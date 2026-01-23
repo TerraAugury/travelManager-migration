@@ -212,7 +212,21 @@ export function renderTripSelect(trips, activeTripId, options = {}) {
     return tripHasUpcomingEvents(trip, now, todayStart);
   });
 
-  visibleTrips.forEach((trip) => {
+  const sortedTrips = visibleTrips
+    .map((trip, index) => ({
+      trip,
+      index,
+      startDate: getTripStartDate(trip)
+    }))
+    .sort((a, b) => {
+      const aTime = a.startDate ? a.startDate.getTime() : Number.POSITIVE_INFINITY;
+      const bTime = b.startDate ? b.startDate.getTime() : Number.POSITIVE_INFINITY;
+      if (aTime !== bTime) return aTime - bTime;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.trip);
+
+  sortedTrips.forEach((trip) => {
     const opt = document.createElement("option");
     opt.value = String(trip.id);
 

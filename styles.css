@@ -14,6 +14,9 @@
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
+  --ios-tabbar-base: 49px;
+  --ios-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ios-tabbar-height: calc(var(--ios-tabbar-base) + var(--ios-safe-bottom));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -54,7 +57,7 @@ body {
 
 @media (max-width: 720px) {
   .app-shell {
-    padding-bottom: calc(110px + var(--safe-bottom)); /* room for bottom nav */
+    padding-bottom: var(--ios-tabbar-height); /* room for iOS-style bottom nav */
   }
 }
 
@@ -1371,15 +1374,27 @@ html.vv-enabled .overlay {
 .bottom-nav {
   position: fixed;
   inset: auto 0 0 0;
-  padding: 10px 14px calc(12px + env(safe-area-inset-bottom));
+  height: calc(var(--ios-tabbar-base) + constant(safe-area-inset-bottom));
+  height: var(--ios-tabbar-height);
+  padding: 0 14px;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: var(--ios-safe-bottom);
   display: flex;
   gap: 10px;
   justify-content: center;
+  align-items: center;
   background: rgba(255,255,255,0.96);
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid rgba(0,0,0,0.1);
   box-shadow: 0 -6px 18px rgba(0,0,0,0.08);
-  backdrop-filter: blur(10px);
   z-index: 1200;
+}
+
+@supports ((-webkit-backdrop-filter: blur(20px)) or (backdrop-filter: blur(20px))) {
+  .bottom-nav {
+    background: rgba(255,255,255,0.85);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1405,6 +1420,9 @@ html.vv-enabled .bottom-nav {
   border: none;
   background: transparent;
   color: var(--text-secondary);
+  min-width: 44px;
+  min-height: 44px;
+  height: var(--ios-tabbar-base);
   padding: 6px 4px;
   font-weight: 600;
   font-size: 11px;

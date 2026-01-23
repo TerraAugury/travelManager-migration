@@ -484,5 +484,7 @@ export const airportToCountry = {
   "ZAG": "Croatia",
   "ZIA": "Russia",
   "ZNZ": "Tanzania",
-  "ZRH": "Switzerland"
+  "ZRH": "Switzerland",
+  "SPU": "Croatia",
+  "NTE": "France",
 };

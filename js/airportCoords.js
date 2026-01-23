@@ -2903,5 +2903,17 @@ export const airportCoords = {
     "city": "Zurich",
     "lat": 47.458056,
     "lon": 8.548056
-  }
+  },
+  "NTE": {
+  "name": "Nantes Atlantique Airport",
+  "city": "Nantes",
+  "lat": 47.1532,
+  "lon": -1.61073
+},
+"SPU": {
+  "name": "Split Airport",
+  "city": "Split",
+  "lat": 43.53889,
+  "lon": 16.29806
+}
 };
