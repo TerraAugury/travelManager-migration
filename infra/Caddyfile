@@ -1,14 +1,13 @@
 :80 {
-  encode gzip
+  route {
+    encode gzip
 
-  @api path /api/*
-  handle @api {
-    uri strip_prefix /api
-    reverse_proxy backend:8000
+    handle_path /api/* {
+      reverse_proxy backend:8000
+    }
+
+    root * /srv/app
+    try_files {path} /index.html
+    file_server
   }
-
-  root * /srv/app
-  try_files {path} /index.html
-  file_server
 }
-
