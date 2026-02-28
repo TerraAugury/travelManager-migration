@@ -64,6 +64,7 @@ label {
 }
 
 input,
+textarea,
 select,
 button {
   border: 1px solid var(--border);
@@ -83,6 +84,10 @@ button {
 button.danger {
   background: var(--danger);
   border-color: var(--danger);
+}
+
+.wide {
+  grid-column: 1 / -1;
 }
 
 .row {

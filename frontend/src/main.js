@@ -1,4 +1,11 @@
 import * as api from "./api.js";
+import {
+  fillTripEditor,
+  readCreateFlightBody,
+  readCreateHotelBody,
+  readCreateTripBody,
+  readUpdateTripBody
+} from "./forms.js";
 import { render } from "./render.js";
 import {
   getState,
@@ -12,12 +19,18 @@ import {
   setUser
 } from "./state.js";
 
+function getActiveTrip() {
+  return getState().trips.find((trip) => trip.id === getState().selectedTripId) || null;
+}
+
+function syncTripEditor() {
+  fillTripEditor(getActiveTrip());
+}
+
 async function refreshTrips() {
   const trips = await api.listTrips(getState().token);
   setTrips(trips);
-  if (!getState().selectedTripId && trips.length) {
-    setSelectedTripId(trips[0].id);
-  }
+  if (!getState().selectedTripId && trips.length) setSelectedTripId(trips[0].id);
 }
 
 async function refreshTripDetails() {
@@ -42,26 +55,19 @@ async function refreshTripDetails() {
 async function fullRefresh() {
   await refreshTrips();
   await refreshTripDetails();
+  syncTripEditor();
 }
 
 function bindForms(actions) {
-  const loginForm = document.getElementById("login-form");
-  const logoutBtn = document.getElementById("logout-btn");
-  const tripForm = document.getElementById("trip-form");
-  const flightForm = document.getElementById("flight-form");
-  const hotelForm = document.getElementById("hotel-form");
-  const tripSelect = document.getElementById("trip-select");
-  const exportBtn = document.getElementById("export-btn");
-  const importFile = document.getElementById("import-file");
-
-  loginForm.addEventListener("submit", actions.onLogin);
-  logoutBtn.addEventListener("click", actions.onLogout);
-  tripForm.addEventListener("submit", actions.onCreateTrip);
-  flightForm.addEventListener("submit", actions.onCreateFlight);
-  hotelForm.addEventListener("submit", actions.onCreateHotel);
-  tripSelect.addEventListener("change", actions.onSelectTripChange);
-  exportBtn.addEventListener("click", actions.onExport);
-  importFile.addEventListener("change", actions.onImport);
+  document.getElementById("login-form").addEventListener("submit", actions.onLogin);
+  document.getElementById("logout-btn").addEventListener("click", actions.onLogout);
+  document.getElementById("trip-form").addEventListener("submit", actions.onCreateTrip);
+  document.getElementById("trip-edit-form").addEventListener("submit", actions.onUpdateTrip);
+  document.getElementById("flight-form").addEventListener("submit", actions.onCreateFlight);
+  document.getElementById("hotel-form").addEventListener("submit", actions.onCreateHotel);
+  document.getElementById("trip-select").addEventListener("change", actions.onSelectTripChange);
+  document.getElementById("export-btn").addEventListener("click", actions.onExport);
+  document.getElementById("import-file").addEventListener("change", actions.onImport);
 }
 
 async function bootstrap() {
@@ -70,6 +76,7 @@ async function bootstrap() {
     onSelectTrip: async (tripId) => {
       setSelectedTripId(tripId);
       await refreshTripDetails();
+      syncTripEditor();
       render(`Selected trip ${tripId}.`, actions);
     },
     onDeleteTrip: async (tripId) => {
@@ -108,30 +115,30 @@ async function bootstrap() {
         setFlights([]);
         setHotels([]);
         setPassengers([]);
+        syncTripEditor();
         render("Logged out.", actions);
       }
     },
     onCreateTrip: async (event) => {
       event.preventDefault();
-      const name = document.getElementById("trip-name").value.trim();
-      const startDate = document.getElementById("trip-start").value || null;
-      const endDate = document.getElementById("trip-end").value || null;
-      await api.createTrip(getState().token, { name, startDate, endDate });
+      await api.createTrip(getState().token, readCreateTripBody());
       event.target.reset();
       await fullRefresh();
       render("Trip created.", actions);
+    },
+    onUpdateTrip: async (event) => {
+      event.preventDefault();
+      const tripId = getState().selectedTripId;
+      if (!tripId) throw new Error("Select a trip first.");
+      await api.updateTrip(getState().token, tripId, readUpdateTripBody());
+      await fullRefresh();
+      render("Trip updated.", actions);
     },
     onCreateFlight: async (event) => {
       event.preventDefault();
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
-      const body = {
-        flightNumber: document.getElementById("flight-number").value.trim(),
-        departureAirportCode: document.getElementById("flight-dep-code").value.trim(),
-        arrivalAirportCode: document.getElementById("flight-arr-code").value.trim(),
-        passengerNames: []
-      };
-      await api.createFlight(getState().token, tripId, body);
+      await api.createFlight(getState().token, tripId, readCreateFlightBody());
       event.target.reset();
       await refreshTripDetails();
       render("Flight created.", actions);
@@ -140,15 +147,7 @@ async function bootstrap() {
       event.preventDefault();
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
-      const body = {
-        hotelName: document.getElementById("hotel-name").value.trim(),
-        checkInDate: document.getElementById("hotel-checkin").value,
-        checkOutDate: document.getElementById("hotel-checkout").value,
-        paxCount: 1,
-        paymentType: "prepaid",
-        passengerNames: []
-      };
-      await api.createHotel(getState().token, tripId, body);
+      await api.createHotel(getState().token, tripId, readCreateHotelBody());
       event.target.reset();
       await refreshTripDetails();
       render("Hotel created.", actions);
@@ -170,8 +169,7 @@ async function bootstrap() {
     onImport: async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
-      const payload = JSON.parse(await file.text());
-      await api.importLegacyTrips(getState().token, payload);
+      await api.importLegacyTrips(getState().token, JSON.parse(await file.text()));
       event.target.value = "";
       await fullRefresh();
       render("Import completed.", actions);
@@ -193,4 +191,3 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => render(`Fatal: ${error.message}`));
-

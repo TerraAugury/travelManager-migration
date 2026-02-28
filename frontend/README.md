@@ -7,8 +7,8 @@ This folder now contains the first migrated frontend entrypoint.
 - `frontend/index.html` bootstraps the migrated UI.
 - `frontend/src/*` provides a modular API-based frontend:
   - auth login/logout
-  - list/create/delete trips
-  - per-trip list/create/delete for flights and hotels
+  - list/create/delete/update trips
+  - per-trip list/create/delete for flights and hotels with richer field coverage
   - passenger list per trip
   - legacy export/import bridge via `/api/sync/trips`
 
@@ -23,4 +23,4 @@ This folder now contains the first migrated frontend entrypoint.
 
 - Existing root UI is still available for fallback.
 - New frontend already reads/writes through backend API.
-- Next step is richer field coverage and full timeline-style parity.
+- Next step is timeline-style and screen-level parity with the legacy root UI.

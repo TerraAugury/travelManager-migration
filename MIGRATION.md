@@ -47,9 +47,11 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Added migrated frontend UI for:
   - auth login/logout
   - trips list/create/delete
+  - trip update/edit form for active trip
   - per-trip flights list/create/delete
   - per-trip hotels list/create/delete
   - per-trip passengers listing
+  - richer flight/hotel input coverage (airline, PNR, times, confirmation, payment, pax, passenger names)
 
 ## Phase 5: Cutover (in progress)
 

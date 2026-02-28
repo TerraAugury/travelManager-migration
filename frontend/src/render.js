@@ -5,6 +5,11 @@ function fmtDate(value) {
   return String(value).slice(0, 10);
 }
 
+function fmtDateTime(value) {
+  if (!value) return "-";
+  return String(value).replace("T", " ").slice(0, 16);
+}
+
 function clear(el) {
   el.innerHTML = "";
 }
@@ -134,13 +139,15 @@ export function render(logLine = null, actions = {}) {
     renderEvents(
       "flight-list",
       state.flights,
-      (f) => `${f.flight_number || "Flight"} ${f.departure_airport_code || ""} -> ${f.arrival_airport_code || ""}`,
+      (f) =>
+        `${f.flight_number || "Flight"} ${f.airline || ""} ${f.departure_airport_code || ""} -> ${f.arrival_airport_code || ""} ${fmtDateTime(f.departure_scheduled)} ${f.pnr ? `PNR:${f.pnr}` : ""}`,
       actions.onDeleteFlight || (() => {})
     );
     renderEvents(
       "hotel-list",
       state.hotels,
-      (h) => `${h.hotel_name || "Hotel"} (${fmtDate(h.check_in_date)} -> ${fmtDate(h.check_out_date)})`,
+      (h) =>
+        `${h.hotel_name || "Hotel"} (${fmtDate(h.check_in_date)} -> ${fmtDate(h.check_out_date)}) pax:${h.pax_count || "-"} ${h.payment_type || ""} ${h.confirmation_id ? `#${h.confirmation_id}` : ""}`,
       actions.onDeleteHotel || (() => {})
     );
     renderPassengers(state.passengers);
@@ -152,4 +159,3 @@ export function render(logLine = null, actions = {}) {
     status.textContent = lines.join("\n");
   }
 }
-

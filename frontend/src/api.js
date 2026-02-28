@@ -53,6 +53,13 @@ export async function deleteTrip(token, tripId) {
   return request(`/trips/${tripId}`, { method: "DELETE" }, token);
 }
 
+export async function updateTrip(token, tripId, body) {
+  return request(`/trips/${tripId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body)
+  }, token);
+}
+
 export async function listFlights(token, tripId) {
   const payload = await request(`/trips/${tripId}/flights`, {}, token);
   return payload?.items || [];

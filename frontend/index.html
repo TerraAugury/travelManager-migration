@@ -45,6 +45,10 @@
           Trip Name
           <input id="trip-name" type="text" maxlength="120" required />
         </label>
+        <label class="wide">
+          Notes
+          <textarea id="trip-notes" rows="2" maxlength="4000"></textarea>
+        </label>
         <label>
           Start Date
           <input id="trip-start" type="date" />
@@ -77,14 +81,29 @@
 
       <section id="trip-detail-panel" class="panel nested hidden">
         <h3 id="trip-detail-title">Trip Details</h3>
+        <h4>Edit Active Trip</h4>
+        <form id="trip-edit-form" class="form-grid compact">
+          <label>Trip Name<input id="trip-edit-name" type="text" maxlength="120" /></label>
+          <label>Start Date<input id="trip-edit-start" type="date" /></label>
+          <label>End Date<input id="trip-edit-end" type="date" /></label>
+          <label class="wide">Notes<textarea id="trip-edit-notes" rows="2" maxlength="4000"></textarea></label>
+          <button type="submit">Save Trip</button>
+        </form>
 
         <div class="columns">
           <div>
             <h4>Flights</h4>
             <form id="flight-form" class="form-grid compact">
               <label>Flight #<input id="flight-number" type="text" required /></label>
+              <label>Airline<input id="flight-airline" type="text" maxlength="120" /></label>
+              <label>PNR<input id="flight-pnr" type="text" maxlength="24" /></label>
+              <label>Departure Name<input id="flight-dep-name" type="text" maxlength="180" /></label>
               <label>Departure Code<input id="flight-dep-code" type="text" maxlength="8" /></label>
+              <label>Arrival Name<input id="flight-arr-name" type="text" maxlength="180" /></label>
               <label>Arrival Code<input id="flight-arr-code" type="text" maxlength="8" /></label>
+              <label>Departure Time<input id="flight-dep-time" type="datetime-local" /></label>
+              <label>Arrival Time<input id="flight-arr-time" type="datetime-local" /></label>
+              <label class="wide">Passengers (comma separated)<input id="flight-passengers" type="text" /></label>
               <button type="submit">Add Flight</button>
             </form>
             <ul id="flight-list" class="list compact-list"></ul>
@@ -94,8 +113,17 @@
             <h4>Hotels</h4>
             <form id="hotel-form" class="form-grid compact">
               <label>Hotel Name<input id="hotel-name" type="text" required /></label>
+              <label>Confirmation<input id="hotel-confirmation" type="text" maxlength="64" /></label>
               <label>Check-in<input id="hotel-checkin" type="date" required /></label>
               <label>Check-out<input id="hotel-checkout" type="date" required /></label>
+              <label>Pax Count<input id="hotel-pax" type="number" min="1" value="1" required /></label>
+              <label>Payment
+                <select id="hotel-payment">
+                  <option value="prepaid">Prepaid</option>
+                  <option value="pay_at_hotel">Pay At Hotel</option>
+                </select>
+              </label>
+              <label class="wide">Passengers (comma separated)<input id="hotel-passengers" type="text" /></label>
               <button type="submit">Add Hotel</button>
             </form>
             <ul id="hotel-list" class="list compact-list"></ul>
