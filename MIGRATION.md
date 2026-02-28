@@ -50,3 +50,6 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Import existing JSON data into Postgres.
 - Enable backups and restore test.
 - Restrict access through Tailscale.
+- Added operational scripts:
+  - `scripts/cutover-import.sh` for legacy JSON import through API
+  - `scripts/smoke-api.sh` for post-cutover health/auth/trips smoke checks

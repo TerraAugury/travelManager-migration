@@ -41,3 +41,25 @@ docker compose -f infra/docker-compose.yml --env-file .env down
 
 Install Tailscale on the host and share access with family devices.
 After join, users can open the same app through the host's tailnet address.
+
+## 6) Cutover checklist (Phase 5)
+
+1. Backup database:
+
+```bash
+scripts/backup-db.sh
+```
+
+2. Import legacy trips JSON:
+
+```bash
+ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
+scripts/cutover-import.sh /path/to/trips.json
+```
+
+3. Run API smoke checks:
+
+```bash
+ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
+scripts/smoke-api.sh
+```
