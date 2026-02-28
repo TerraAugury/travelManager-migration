@@ -5,7 +5,7 @@ import { buildApp } from "./app.js";
 async function start() {
   const config = getConfig();
   const db = buildDb(config);
-  const app = await buildApp({ db });
+  const app = await buildApp({ db, config });
 
   const closeGracefully = async () => {
     try {
@@ -34,4 +34,3 @@ async function start() {
 }
 
 start();
-

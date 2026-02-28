@@ -48,10 +48,10 @@ function parseFlightBody(body) {
 }
 
 export async function registerFlightRoutes(app, deps) {
-  const { usersRepository, tripsRepository, flightsRepository, passengersRepository } = deps;
+  const { tripsRepository, flightsRepository, passengersRepository } = deps;
 
   app.get("/trips/:tripId/flights", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId } = request.params;
     if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
@@ -62,7 +62,7 @@ export async function registerFlightRoutes(app, deps) {
   });
 
   app.post("/trips/:tripId/flights", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId } = request.params;
     if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
@@ -89,7 +89,7 @@ export async function registerFlightRoutes(app, deps) {
   });
 
   app.delete("/trips/:tripId/flights/:flightId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId, flightId } = request.params;
     if (!isUuid(tripId) || !isUuid(flightId)) {
@@ -101,4 +101,3 @@ export async function registerFlightRoutes(app, deps) {
     return null;
   });
 }
-

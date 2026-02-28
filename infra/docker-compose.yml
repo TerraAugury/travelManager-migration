@@ -22,6 +22,7 @@ services:
     environment:
       PORT: ${PORT}
       DATABASE_URL: ${DATABASE_URL}
+      DEV_AUTH_X_USER_ID_FALLBACK: ${DEV_AUTH_X_USER_ID_FALLBACK}
       NODE_ENV: production
     depends_on:
       db:

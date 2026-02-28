@@ -42,10 +42,10 @@ function parseHotelBody(body) {
 }
 
 export async function registerHotelRoutes(app, deps) {
-  const { usersRepository, tripsRepository, hotelsRepository, passengersRepository } = deps;
+  const { tripsRepository, hotelsRepository, passengersRepository } = deps;
 
   app.get("/trips/:tripId/hotels", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId } = request.params;
     if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
@@ -56,7 +56,7 @@ export async function registerHotelRoutes(app, deps) {
   });
 
   app.post("/trips/:tripId/hotels", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId } = request.params;
     if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
@@ -83,7 +83,7 @@ export async function registerHotelRoutes(app, deps) {
   });
 
   app.delete("/trips/:tripId/hotels/:hotelId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId, hotelId } = request.params;
     if (!isUuid(tripId) || !isUuid(hotelId)) {
@@ -95,4 +95,3 @@ export async function registerHotelRoutes(app, deps) {
     return null;
   });
 }
-

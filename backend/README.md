@@ -42,9 +42,17 @@ When running through Caddy in `infra/`, the API is exposed under `/api/*`:
 
 ## Auth for current API stage
 
-- Current routes require `x-user-id` request header.
-- Value must be an active user UUID from `users.id`.
+- Log in with `POST /auth/login` and use `Authorization: Bearer <token>`.
 - Use `npm run seed:admin` to create the first account.
+- Optional dev fallback:
+  - set `DEV_AUTH_X_USER_ID_FALLBACK=true`
+  - then `x-user-id` header is accepted for local migration/testing.
+
+## Auth endpoints
+
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/logout`
 
 ## CRUD endpoints (Phase 3 start)
 

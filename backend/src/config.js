@@ -19,12 +19,20 @@ function parsePort(value) {
   return parsed;
 }
 
+function parseBool(value, defaultValue = false) {
+  if (value == null || value === "") return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  throw new Error(`Invalid boolean value: ${value}`);
+}
+
 export function getConfig() {
   assertRequiredEnv();
   return {
     env: process.env.NODE_ENV || "development",
     port: parsePort(process.env.PORT || "8000"),
-    databaseUrl: process.env.DATABASE_URL
+    databaseUrl: process.env.DATABASE_URL,
+    allowDevHeaderAuth: parseBool(process.env.DEV_AUTH_X_USER_ID_FALLBACK, false)
   };
 }
-

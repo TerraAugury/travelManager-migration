@@ -25,14 +25,18 @@ This file tracks migration from static-only app to frontend/backend architecture
 
 ## Phase 3: API v1 (started)
 
-- Added first authenticated data endpoints with `x-user-id`:
+- Added first authenticated data endpoints:
   - trips CRUD
   - trip flights list/create/delete
   - trip hotels list/create/delete
   - trip passengers list
-- Added request validation helpers and auth guard.
+- Added login/session flow:
+  - `POST /auth/login`
+  - `GET /auth/me`
+  - `POST /auth/logout`
+- Added request validation helpers and bearer-token auth guard.
 - Added repositories for users, passengers, flights, and hotels.
-- Next: replace header-based auth with login/session flow.
+- Added sessions repository and token security helpers.
 
 ## Phase 4: Frontend integration
 

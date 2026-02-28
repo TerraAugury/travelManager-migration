@@ -3,10 +3,10 @@ import { isUuid } from "../http/validation.js";
 import { sendError } from "../http/responses.js";
 
 export async function registerPassengerRoutes(app, deps) {
-  const { usersRepository, tripsRepository, passengersRepository } = deps;
+  const { tripsRepository, passengersRepository } = deps;
 
   app.get("/trips/:tripId/passengers", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId } = request.params;
     if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
@@ -21,4 +21,3 @@ export async function registerPassengerRoutes(app, deps) {
     return { items };
   });
 }
-

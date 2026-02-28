@@ -36,17 +36,17 @@ function parseTripBody(body, { requireName }) {
 }
 
 export async function registerTripRoutes(app, deps) {
-  const { usersRepository, tripsRepository } = deps;
+  const { tripsRepository } = deps;
 
   app.get("/trips", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const rows = await tripsRepository.listByOwner(auth.user.id);
     return { items: rows };
   });
 
   app.get("/trips/:tripId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId } = request.params;
     if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
@@ -56,7 +56,7 @@ export async function registerTripRoutes(app, deps) {
   });
 
   app.post("/trips", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const parsed = parseTripBody(request.body, { requireName: true });
     if (parsed.error) return sendError(reply, 400, parsed.error);
@@ -73,7 +73,7 @@ export async function registerTripRoutes(app, deps) {
   });
 
   app.patch("/trips/:tripId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId } = request.params;
     if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
@@ -86,7 +86,7 @@ export async function registerTripRoutes(app, deps) {
   });
 
   app.delete("/trips/:tripId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, usersRepository);
+    const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;
     const { tripId } = request.params;
     if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
@@ -96,4 +96,3 @@ export async function registerTripRoutes(app, deps) {
     return null;
   });
 }
-

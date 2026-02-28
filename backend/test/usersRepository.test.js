@@ -37,3 +37,19 @@ test("findByEmail uses case-insensitive query", async () => {
   assert.deepEqual(calls[0].params, ["USER@EXAMPLE.COM"]);
 });
 
+test("findAuthByEmail selects password hash for auth flow", async () => {
+  const calls = [];
+  const repo = buildUsersRepository({
+    pool: {
+      async query(text, params) {
+        calls.push({ text, params });
+        return { rows: [{ id: "u2", password_hash: "hash" }] };
+      }
+    }
+  });
+
+  const row = await repo.findAuthByEmail("login@example.com");
+  assert.equal(row.id, "u2");
+  assert.match(calls[0].text, /password_hash/);
+  assert.deepEqual(calls[0].params, ["login@example.com"]);
+});
