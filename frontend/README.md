@@ -26,4 +26,4 @@ This folder now contains the first migrated frontend entrypoint.
 
 - Existing root UI is still available for fallback.
 - New frontend already reads/writes through backend API.
-- Next step is map-screen parity and final UX refinements against the legacy root UI.
+- Frontend parity phase is complete; next step is production cutover execution.

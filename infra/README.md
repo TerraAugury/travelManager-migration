@@ -76,27 +76,50 @@ Family user flow:
 
 ## 6) Cutover checklist (Phase 5)
 
-1. Backup database:
+1. Run preflight checks:
+
+```bash
+ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
+scripts/cutover-preflight.sh /path/to/trips.json
+```
+
+2. Run full cutover (recommended):
+
+```bash
+ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
+scripts/cutover-run.sh /path/to/trips.json
+```
+
+3. Optional full rollback validation during cutover:
+
+```bash
+ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
+VERIFY_RESTORE=true scripts/cutover-run.sh /path/to/trips.json
+```
+
+4. Manual granular mode (if needed):
+
+- backup:
 
 ```bash
 scripts/backup-db.sh
 ```
 
-2. Import legacy trips JSON:
+- import:
 
 ```bash
 ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
 scripts/cutover-import.sh /path/to/trips.json
 ```
 
-3. Run API smoke checks:
+- smoke:
 
 ```bash
 ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
 scripts/smoke-api.sh
 ```
 
-4. Verify backup/restore behavior:
+- restore verification:
 
 ```bash
 ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \

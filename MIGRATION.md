@@ -39,7 +39,7 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Added sessions repository and token security helpers.
 - Added `/sync/trips` bridge endpoints for legacy frontend payload migration.
 
-## Phase 4: Frontend integration (in progress)
+## Phase 4: Frontend integration (completed)
 
 - Introduce an API client layer.
 - Replace localStorage writes with API calls.
@@ -64,6 +64,8 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Restrict access through Tailscale.
 - Added operational scripts:
   - `scripts/backup-db.sh` and `scripts/restore-db.sh` for DB backups and restores
+  - `scripts/cutover-preflight.sh` for environment/auth/payload readiness checks
+  - `scripts/cutover-run.sh` for one-command backup/import/smoke workflow
   - `scripts/cutover-import.sh` for legacy JSON import through API
   - `scripts/smoke-api.sh` for post-cutover health/auth/trips smoke checks
   - `scripts/backup-restore-smoke.sh` for restore verification end to end
