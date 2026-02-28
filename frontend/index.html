@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Manager (Migrated Frontend)</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Travel Manager</h1>
+      <p class="subtitle">Migrated frontend (API mode)</p>
+    </header>
+
+    <section id="auth-panel" class="panel">
+      <h2>Login</h2>
+      <form id="login-form" class="form-grid">
+        <label>
+          Email
+          <input id="login-email" type="email" required />
+        </label>
+        <label>
+          Password
+          <input id="login-password" type="password" required />
+        </label>
+        <button type="submit">Sign in</button>
+      </form>
+      <p class="hint">
+        Use the seeded admin account from backend setup.
+      </p>
+    </section>
+
+    <section id="app-panel" class="panel hidden">
+      <div class="row">
+        <div>
+          <h2>Trips</h2>
+          <p id="user-line" class="hint"></p>
+        </div>
+        <button id="logout-btn" type="button" class="danger">Logout</button>
+      </div>
+
+      <form id="trip-form" class="form-grid">
+        <label>
+          Trip Name
+          <input id="trip-name" type="text" maxlength="120" required />
+        </label>
+        <label>
+          Start Date
+          <input id="trip-start" type="date" />
+        </label>
+        <label>
+          End Date
+          <input id="trip-end" type="date" />
+        </label>
+        <button type="submit">Create Trip</button>
+      </form>
+
+      <div class="row tools">
+        <button id="export-btn" type="button">Export Legacy JSON</button>
+        <label class="file-label">
+          Import Legacy JSON
+          <input id="import-file" type="file" accept="application/json" />
+        </label>
+      </div>
+
+      <ul id="trip-list" class="list"></ul>
+    </section>
+
+    <section class="panel">
+      <h2>Status</h2>
+      <pre id="status-log" class="status">Ready.</pre>
+    </section>
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+

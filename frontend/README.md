@@ -1,27 +1,24 @@
 # Frontend Migration Notes
 
-This folder will host the migrated frontend application.
+This folder now contains the first migrated frontend entrypoint.
 
-## Current state
+## What is implemented
 
-- The production UI still lives in the repository root:
-  - `index.html`
-  - `styles.css`
-  - `js/`
-  - `icon/`
+- `frontend/index.html` bootstraps the migrated UI.
+- `frontend/src/*` provides a modular API-based frontend:
+  - auth login/logout
+  - list/create/delete trips
+  - legacy export/import bridge via `/api/sync/trips`
 
-## Target state
+## How to use
 
-- Move UI into a dedicated frontend app:
-  - `frontend/src/`
-  - `frontend/public/`
-- Replace direct `localStorage` data access with backend API calls.
-- Keep UI behavior unchanged during migration.
+1. Start backend stack (`infra/docker-compose.yml`).
+2. Open:
+   - `http://localhost/frontend/index.html` (through Caddy)
+3. Log in with seeded admin account.
 
-## Phase order
+## Migration status
 
-1. Keep root UI running while backend is introduced.
-2. Add an API client module.
-3. Route reads/writes through backend endpoints.
-4. Decommission root-only static mode when migration is complete.
-
+- Existing root UI is still available for fallback.
+- New frontend already reads/writes through backend API.
+- Next step is feature parity with full event editing screens.
