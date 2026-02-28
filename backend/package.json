@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "migrate": "node src/cli/migrate.js",
+    "seed:admin": "node src/cli/seed-admin.js",
     "test": "node --test"
   },
   "dependencies": {

@@ -9,21 +9,30 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Added Docker Compose stack: Postgres + backend + Caddy.
 - Added `.env.example` and basic run docs.
 
-## Phase 2: Data model
+## Phase 2: Data model (in progress)
 
-- Create SQL migrations for:
+- Added migration runner and tracking table support.
+- Added initial SQL schema migration:
   - users
   - trips
+  - passengers and mappings
   - flight records
   - hotel records
-  - passengers and mappings
-- Add indexes and foreign keys.
+- Added indexes, foreign keys, and integrity checks.
+- Added initial repository module (`tripsRepository`).
+- Added migration/schema/repository/password tests.
+- Added admin bootstrap CLI (`seed-admin`).
 
-## Phase 3: API v1
+## Phase 3: API v1 (started)
 
-- Auth endpoints (family-only login).
-- CRUD endpoints for trips, flights, hotels.
-- Validation, sanitization, and paging.
+- Added first authenticated data endpoints with `x-user-id`:
+  - trips CRUD
+  - trip flights list/create/delete
+  - trip hotels list/create/delete
+  - trip passengers list
+- Added request validation helpers and auth guard.
+- Added repositories for users, passengers, flights, and hotels.
+- Next: replace header-based auth with login/session flow.
 
 ## Phase 4: Frontend integration
 
@@ -36,4 +45,3 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Import existing JSON data into Postgres.
 - Enable backups and restore test.
 - Restrict access through Tailscale.
-

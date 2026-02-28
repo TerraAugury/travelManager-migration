@@ -18,6 +18,7 @@ services:
     build:
       context: ../backend
     restart: unless-stopped
+    command: ["sh", "-c", "node src/cli/migrate.js && npm start"]
     environment:
       PORT: ${PORT}
       DATABASE_URL: ${DATABASE_URL}
@@ -50,4 +51,3 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
-

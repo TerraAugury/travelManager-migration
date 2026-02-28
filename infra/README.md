@@ -29,6 +29,8 @@ curl http://localhost/api/health
 curl http://localhost/api/health/db
 ```
 
+The backend container runs database migrations before starting the API.
+
 ## 4) Stop services
 
 ```bash
@@ -39,4 +41,3 @@ docker compose -f infra/docker-compose.yml --env-file .env down
 
 Install Tailscale on the host and share access with family devices.
 After join, users can open the same app through the host's tailnet address.
-
