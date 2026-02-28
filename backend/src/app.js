@@ -5,12 +5,15 @@ import { registerTripRoutes } from "./routes/trips.js";
 import { registerFlightRoutes } from "./routes/flights.js";
 import { registerHotelRoutes } from "./routes/hotels.js";
 import { registerPassengerRoutes } from "./routes/passengers.js";
+import { registerSyncRoutes } from "./routes/sync.js";
 import { buildUsersRepository } from "./repositories/usersRepository.js";
 import { buildSessionsRepository } from "./repositories/sessionsRepository.js";
 import { buildTripsRepository } from "./repositories/tripsRepository.js";
 import { buildFlightsRepository } from "./repositories/flightsRepository.js";
 import { buildHotelsRepository } from "./repositories/hotelsRepository.js";
 import { buildPassengersRepository } from "./repositories/passengersRepository.js";
+import { buildLegacyTripsExportService } from "./services/legacyTripsExport.js";
+import { buildLegacyTripsImportService } from "./services/legacyTripsImport.js";
 
 export async function buildApp(deps) {
   const app = Fastify({
@@ -25,6 +28,14 @@ export async function buildApp(deps) {
     hotelsRepository: buildHotelsRepository({ pool: deps.db.pool }),
     passengersRepository: buildPassengersRepository({ pool: deps.db.pool })
   };
+  const services = {
+    legacyTripsExportService: buildLegacyTripsExportService(repositories),
+    legacyTripsImportService: buildLegacyTripsImportService({ pool: deps.db.pool })
+  };
+  const context = {
+    ...repositories,
+    ...services
+  };
 
   app.get("/", async () => {
     return {
@@ -35,11 +46,12 @@ export async function buildApp(deps) {
   });
 
   await registerHealthRoutes(app, deps);
-  await registerAuthRoutes(app, repositories);
-  await registerTripRoutes(app, repositories);
-  await registerFlightRoutes(app, repositories);
-  await registerHotelRoutes(app, repositories);
-  await registerPassengerRoutes(app, repositories);
+  await registerAuthRoutes(app, context);
+  await registerTripRoutes(app, context);
+  await registerFlightRoutes(app, context);
+  await registerHotelRoutes(app, context);
+  await registerPassengerRoutes(app, context);
+  await registerSyncRoutes(app, context);
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error({ err: error }, "Unhandled error");

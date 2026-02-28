@@ -68,3 +68,11 @@ When running through Caddy in `infra/`, the API is exposed under `/api/*`:
 - `POST /trips/:tripId/hotels`
 - `DELETE /trips/:tripId/hotels/:hotelId`
 - `GET /trips/:tripId/passengers`
+
+## Legacy sync bridge (for current frontend)
+
+- `GET /sync/trips`
+  - Returns trip payload in legacy JSON structure used by existing UI.
+- `PUT /sync/trips`
+  - Replaces current user data from legacy JSON array payload.
+  - Returns imported count and exported canonical payload.

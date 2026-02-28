@@ -37,6 +37,7 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Added request validation helpers and bearer-token auth guard.
 - Added repositories for users, passengers, flights, and hotels.
 - Added sessions repository and token security helpers.
+- Added `/sync/trips` bridge endpoints for legacy frontend payload migration.
 
 ## Phase 4: Frontend integration
 
