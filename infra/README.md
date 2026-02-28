@@ -37,10 +37,42 @@ The backend container runs database migrations before starting the API.
 docker compose -f infra/docker-compose.yml --env-file .env down
 ```
 
-## 5) Tailscale (later step)
+## 5) Private mode with Tailscale
 
-Install Tailscale on the host and share access with family devices.
-After join, users can open the same app through the host's tailnet address.
+Use the private compose override to bind app ports to localhost only:
+
+```bash
+docker compose \
+  -f infra/docker-compose.yml \
+  -f infra/docker-compose.private.yml \
+  --env-file .env \
+  up -d --build
+```
+
+Then install and connect Tailscale on the host:
+
+```bash
+tailscale up
+```
+
+Publish local app access to your tailnet:
+
+```bash
+scripts/tailscale-private-access.sh start 80
+```
+
+Show status or stop sharing:
+
+```bash
+scripts/tailscale-private-access.sh status
+scripts/tailscale-private-access.sh stop
+```
+
+Family user flow:
+
+1. Install Tailscale and sign in to the shared tailnet.
+2. Open the `https://<host>.tailnet-name.ts.net` URL shown by the script.
+3. Log in to Travel Manager with their app account.
 
 ## 6) Cutover checklist (Phase 5)
 
@@ -62,4 +94,11 @@ scripts/cutover-import.sh /path/to/trips.json
 ```bash
 ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
 scripts/smoke-api.sh
+```
+
+4. Verify backup/restore behavior:
+
+```bash
+ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
+scripts/backup-restore-smoke.sh
 ```

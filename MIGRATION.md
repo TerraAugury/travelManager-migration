@@ -9,7 +9,7 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Added Docker Compose stack: Postgres + backend + Caddy.
 - Added `.env.example` and basic run docs.
 
-## Phase 2: Data model (in progress)
+## Phase 2: Data model (completed)
 
 - Added migration runner and tracking table support.
 - Added initial SQL schema migration:
@@ -23,7 +23,7 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Added migration/schema/repository/password tests.
 - Added admin bootstrap CLI (`seed-admin`).
 
-## Phase 3: API v1 (started)
+## Phase 3: API v1 (completed)
 
 - Added first authenticated data endpoints:
   - trips CRUD
@@ -39,7 +39,7 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Added sessions repository and token security helpers.
 - Added `/sync/trips` bridge endpoints for legacy frontend payload migration.
 
-## Phase 4: Frontend integration
+## Phase 4: Frontend integration (in progress)
 
 - Introduce an API client layer.
 - Replace localStorage writes with API calls.
@@ -51,11 +51,15 @@ This file tracks migration from static-only app to frontend/backend architecture
   - per-trip hotels list/create/delete
   - per-trip passengers listing
 
-## Phase 5: Cutover
+## Phase 5: Cutover (in progress)
 
 - Import existing JSON data into Postgres.
 - Enable backups and restore test.
 - Restrict access through Tailscale.
 - Added operational scripts:
+  - `scripts/backup-db.sh` and `scripts/restore-db.sh` for DB backups and restores
   - `scripts/cutover-import.sh` for legacy JSON import through API
   - `scripts/smoke-api.sh` for post-cutover health/auth/trips smoke checks
+  - `scripts/backup-restore-smoke.sh` for restore verification end to end
+  - `scripts/tailscale-private-access.sh` for private tailnet-only access
+- Added `infra/docker-compose.private.yml` for localhost-only port binding before Tailscale sharing.
