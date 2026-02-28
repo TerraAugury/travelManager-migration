@@ -36,6 +36,11 @@ export function buildPassengersRepository({ pool }) {
     }
   }
 
+  async function replaceFlightLinks({ flightRecordId, passengerIds }) {
+    await pool.query("DELETE FROM flight_passengers WHERE flight_record_id = $1", [flightRecordId]);
+    await linkToFlight({ flightRecordId, passengerIds });
+  }
+
   async function linkToHotel({ hotelRecordId, passengerIds }) {
     for (const passengerId of passengerIds) {
       await pool.query(
@@ -45,6 +50,11 @@ export function buildPassengersRepository({ pool }) {
         [hotelRecordId, passengerId]
       );
     }
+  }
+
+  async function replaceHotelLinks({ hotelRecordId, passengerIds }) {
+    await pool.query("DELETE FROM hotel_passengers WHERE hotel_record_id = $1", [hotelRecordId]);
+    await linkToHotel({ hotelRecordId, passengerIds });
   }
 
   async function listByTrip({ tripId, ownerUserId }) {
@@ -64,8 +74,9 @@ export function buildPassengersRepository({ pool }) {
     ensureByNames,
     linkToTrip,
     linkToFlight,
+    replaceFlightLinks,
     linkToHotel,
+    replaceHotelLinks,
     listByTrip
   };
 }
-

@@ -63,9 +63,11 @@ When running through Caddy in `infra/`, the API is exposed under `/api/*`:
 - `DELETE /trips/:tripId`
 - `GET /trips/:tripId/flights`
 - `POST /trips/:tripId/flights`
+- `PATCH /trips/:tripId/flights/:flightId`
 - `DELETE /trips/:tripId/flights/:flightId`
 - `GET /trips/:tripId/hotels`
 - `POST /trips/:tripId/hotels`
+- `PATCH /trips/:tripId/hotels/:hotelId`
 - `DELETE /trips/:tripId/hotels/:hotelId`
 - `GET /trips/:tripId/passengers`
 

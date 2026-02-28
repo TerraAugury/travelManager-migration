@@ -72,7 +72,7 @@ function renderTrips(items, selectedTripId, actions) {
   });
 }
 
-function renderEvents(listId, items, toLabel, onDelete) {
+function renderEvents(listId, items, toLabel, actions = {}) {
   const list = document.getElementById(listId);
   clear(list);
   if (!items.length) {
@@ -82,14 +82,25 @@ function renderEvents(listId, items, toLabel, onDelete) {
   items.forEach((item) => {
     const li = document.createElement("li");
     const info = document.createElement("div");
-    info.textContent = toLabel(item);
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "danger";
-    btn.textContent = "Delete";
-    btn.addEventListener("click", () => onDelete(item.id));
+    const editingTag = actions.isEditing?.(item.id) ? " [editing]" : "";
+    info.textContent = `${toLabel(item)}${editingTag}`;
+    const right = document.createElement("div");
+    right.className = "row";
+    if (actions.onEdit) {
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.textContent = "Edit";
+      editBtn.addEventListener("click", () => actions.onEdit(item.id));
+      right.appendChild(editBtn);
+    }
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "danger";
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", () => actions.onDelete?.(item.id));
     li.appendChild(info);
-    li.appendChild(btn);
+    right.appendChild(delBtn);
+    li.appendChild(right);
     list.appendChild(li);
   });
 }
@@ -141,14 +152,22 @@ export function render(logLine = null, actions = {}) {
       state.flights,
       (f) =>
         `${f.flight_number || "Flight"} ${f.airline || ""} ${f.departure_airport_code || ""} -> ${f.arrival_airport_code || ""} ${fmtDateTime(f.departure_scheduled)} ${f.pnr ? `PNR:${f.pnr}` : ""}`,
-      actions.onDeleteFlight || (() => {})
+      {
+        onEdit: actions.onEditFlight,
+        onDelete: actions.onDeleteFlight,
+        isEditing: actions.isEditingFlight
+      }
     );
     renderEvents(
       "hotel-list",
       state.hotels,
       (h) =>
         `${h.hotel_name || "Hotel"} (${fmtDate(h.check_in_date)} -> ${fmtDate(h.check_out_date)}) pax:${h.pax_count || "-"} ${h.payment_type || ""} ${h.confirmation_id ? `#${h.confirmation_id}` : ""}`,
-      actions.onDeleteHotel || (() => {})
+      {
+        onEdit: actions.onEditHotel,
+        onDelete: actions.onDeleteHotel,
+        isEditing: actions.isEditingHotel
+      }
     );
     renderPassengers(state.passengers);
   }

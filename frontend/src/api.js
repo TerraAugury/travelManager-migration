@@ -72,6 +72,13 @@ export async function createFlight(token, tripId, body) {
   }, token);
 }
 
+export async function updateFlight(token, tripId, flightId, body) {
+  return request(`/trips/${tripId}/flights/${flightId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body)
+  }, token);
+}
+
 export async function deleteFlight(token, tripId, flightId) {
   return request(`/trips/${tripId}/flights/${flightId}`, { method: "DELETE" }, token);
 }
@@ -84,6 +91,13 @@ export async function listHotels(token, tripId) {
 export async function createHotel(token, tripId, body) {
   return request(`/trips/${tripId}/hotels`, {
     method: "POST",
+    body: JSON.stringify(body)
+  }, token);
+}
+
+export async function updateHotel(token, tripId, hotelId, body) {
+  return request(`/trips/${tripId}/hotels/${hotelId}`, {
+    method: "PATCH",
     body: JSON.stringify(body)
   }, token);
 }

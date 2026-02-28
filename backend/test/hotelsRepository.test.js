@@ -48,3 +48,30 @@ test("remove hotel deletes only for owner", async () => {
   assert.deepEqual(calls[0].params, ["h1", "u1"]);
 });
 
+test("update hotel uses ownership-guarded UPDATE query", async () => {
+  const calls = [];
+  const repo = buildHotelsRepository({
+    pool: {
+      async query(text, params) {
+        calls.push({ text, params });
+        return { rows: [{ id: "h-updated", trip_id: "trip-1" }], rowCount: 1 };
+      }
+    }
+  });
+
+  const row = await repo.update({
+    hotelId: "h1",
+    ownerUserId: "u1",
+    hotelName: "Marriott",
+    confirmationId: "C-123",
+    checkInDate: "2026-04-01",
+    checkOutDate: "2026-04-03",
+    paxCount: 2,
+    paymentType: "prepaid"
+  });
+
+  assert.equal(row.id, "h-updated");
+  assert.match(calls[0].text, /UPDATE hotel_records hr/);
+  assert.match(calls[0].text, /FROM trips t/);
+  assert.deepEqual(calls[0].params.slice(0, 2), ["h1", "u1"]);
+});

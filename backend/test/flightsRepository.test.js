@@ -51,3 +51,33 @@ test("remove flight deletes only for owner", async () => {
   assert.deepEqual(calls[0].params, ["f1", "u1"]);
 });
 
+test("update flight uses ownership-guarded UPDATE query", async () => {
+  const calls = [];
+  const repo = buildFlightsRepository({
+    pool: {
+      async query(text, params) {
+        calls.push({ text, params });
+        return { rows: [{ id: "f-updated", trip_id: "trip-1" }], rowCount: 1 };
+      }
+    }
+  });
+
+  const row = await repo.update({
+    flightId: "f1",
+    ownerUserId: "u1",
+    flightNumber: "BA123",
+    airline: "BA",
+    pnr: "XYZ123",
+    departureAirportName: "LHR",
+    departureAirportCode: "LHR",
+    departureScheduled: "2026-03-01T12:00:00.000Z",
+    arrivalAirportName: "JFK",
+    arrivalAirportCode: "JFK",
+    arrivalScheduled: "2026-03-01T16:00:00.000Z"
+  });
+
+  assert.equal(row.id, "f-updated");
+  assert.match(calls[0].text, /UPDATE flight_records fr/);
+  assert.match(calls[0].text, /FROM trips t/);
+  assert.deepEqual(calls[0].params.slice(0, 2), ["f1", "u1"]);
+});

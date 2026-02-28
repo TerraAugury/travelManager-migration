@@ -55,6 +55,43 @@ export function buildFlightsRepository({ pool }) {
     return result.rows[0] || null;
   }
 
+  async function update(input) {
+    const result = await pool.query(
+      `UPDATE flight_records fr
+       SET
+         flight_number = $3,
+         airline = $4,
+         pnr = $5,
+         departure_airport_name = $6,
+         departure_airport_code = $7,
+         departure_scheduled = $8,
+         arrival_airport_name = $9,
+         arrival_airport_code = $10,
+         arrival_scheduled = $11
+       FROM trips t
+       WHERE fr.id = $1 AND fr.trip_id = t.id AND t.owner_user_id = $2
+       RETURNING
+         fr.id, fr.trip_id, fr.created_by_user_id, fr.flight_number, fr.airline, fr.pnr,
+         fr.departure_airport_name, fr.departure_airport_code, fr.departure_scheduled,
+         fr.arrival_airport_name, fr.arrival_airport_code, fr.arrival_scheduled,
+         fr.created_at, fr.updated_at`,
+      [
+        input.flightId,
+        input.ownerUserId,
+        input.flightNumber,
+        input.airline,
+        input.pnr,
+        input.departureAirportName,
+        input.departureAirportCode,
+        input.departureScheduled,
+        input.arrivalAirportName,
+        input.arrivalAirportCode,
+        input.arrivalScheduled
+      ]
+    );
+    return result.rows[0] || null;
+  }
+
   async function remove({ flightId, ownerUserId }) {
     const result = await pool.query(
       `DELETE FROM flight_records fr
@@ -68,7 +105,7 @@ export function buildFlightsRepository({ pool }) {
   return {
     listByTrip,
     create,
+    update,
     remove
   };
 }
-

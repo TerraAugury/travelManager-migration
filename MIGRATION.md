@@ -48,8 +48,8 @@ This file tracks migration from static-only app to frontend/backend architecture
   - auth login/logout
   - trips list/create/delete
   - trip update/edit form for active trip
-  - per-trip flights list/create/delete
-  - per-trip hotels list/create/delete
+  - per-trip flights list/create/update/delete
+  - per-trip hotels list/create/update/delete
   - per-trip passengers listing
   - richer flight/hotel input coverage (airline, PNR, times, confirmation, payment, pax, passenger names)
 

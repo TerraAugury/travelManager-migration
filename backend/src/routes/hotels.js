@@ -82,6 +82,34 @@ export async function registerHotelRoutes(app, deps) {
     };
   });
 
+  app.patch("/trips/:tripId/hotels/:hotelId", async (request, reply) => {
+    const auth = await requireRequestUser(request, reply, deps);
+    if (auth.error) return auth;
+    const { tripId, hotelId } = request.params;
+    if (!isUuid(tripId) || !isUuid(hotelId)) {
+      return sendError(reply, 400, "Invalid tripId or hotelId.");
+    }
+    const parsed = parseHotelBody(request.body);
+    if (parsed.error) return sendError(reply, 400, parsed.error);
+
+    const updated = await hotelsRepository.update({
+      hotelId,
+      ownerUserId: auth.user.id,
+      ...parsed.value
+    });
+    if (!updated || updated.trip_id !== tripId) return sendError(reply, 404, "Hotel not found.");
+
+    const passengers = await passengersRepository.ensureByNames(parsed.value.passengerNames);
+    const passengerIds = passengers.map((p) => p.id);
+    await passengersRepository.linkToTrip({ tripId, passengerIds });
+    await passengersRepository.replaceHotelLinks({ hotelRecordId: hotelId, passengerIds });
+
+    return {
+      ...updated,
+      passenger_names: passengers.map((p) => p.name)
+    };
+  });
+
   app.delete("/trips/:tripId/hotels/:hotelId", async (request, reply) => {
     const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;

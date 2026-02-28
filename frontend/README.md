@@ -8,7 +8,7 @@ This folder now contains the first migrated frontend entrypoint.
 - `frontend/src/*` provides a modular API-based frontend:
   - auth login/logout
   - list/create/delete/update trips
-  - per-trip list/create/delete for flights and hotels with richer field coverage
+  - per-trip list/create/update/delete for flights and hotels with richer field coverage
   - passenger list per trip
   - legacy export/import bridge via `/api/sync/trips`
 

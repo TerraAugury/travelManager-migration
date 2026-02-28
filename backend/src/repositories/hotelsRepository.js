@@ -49,6 +49,36 @@ export function buildHotelsRepository({ pool }) {
     return result.rows[0] || null;
   }
 
+  async function update(input) {
+    const result = await pool.query(
+      `UPDATE hotel_records hr
+       SET
+         hotel_name = $3,
+         confirmation_id = $4,
+         check_in_date = $5,
+         check_out_date = $6,
+         pax_count = $7,
+         payment_type = $8
+       FROM trips t
+       WHERE hr.id = $1 AND hr.trip_id = t.id AND t.owner_user_id = $2
+       RETURNING
+         hr.id, hr.trip_id, hr.created_by_user_id, hr.hotel_name, hr.confirmation_id,
+         hr.check_in_date, hr.check_out_date, hr.pax_count, hr.payment_type,
+         hr.created_at, hr.updated_at`,
+      [
+        input.hotelId,
+        input.ownerUserId,
+        input.hotelName,
+        input.confirmationId,
+        input.checkInDate,
+        input.checkOutDate,
+        input.paxCount,
+        input.paymentType
+      ]
+    );
+    return result.rows[0] || null;
+  }
+
   async function remove({ hotelId, ownerUserId }) {
     const result = await pool.query(
       `DELETE FROM hotel_records hr
@@ -62,7 +92,7 @@ export function buildHotelsRepository({ pool }) {
   return {
     listByTrip,
     create,
+    update,
     remove
   };
 }
-

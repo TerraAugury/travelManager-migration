@@ -88,6 +88,34 @@ export async function registerFlightRoutes(app, deps) {
     };
   });
 
+  app.patch("/trips/:tripId/flights/:flightId", async (request, reply) => {
+    const auth = await requireRequestUser(request, reply, deps);
+    if (auth.error) return auth;
+    const { tripId, flightId } = request.params;
+    if (!isUuid(tripId) || !isUuid(flightId)) {
+      return sendError(reply, 400, "Invalid tripId or flightId.");
+    }
+    const parsed = parseFlightBody(request.body);
+    if (parsed.error) return sendError(reply, 400, parsed.error);
+
+    const updated = await flightsRepository.update({
+      flightId,
+      ownerUserId: auth.user.id,
+      ...parsed.value
+    });
+    if (!updated || updated.trip_id !== tripId) return sendError(reply, 404, "Flight not found.");
+
+    const passengers = await passengersRepository.ensureByNames(parsed.value.passengerNames);
+    const passengerIds = passengers.map((p) => p.id);
+    await passengersRepository.linkToTrip({ tripId, passengerIds });
+    await passengersRepository.replaceFlightLinks({ flightRecordId: flightId, passengerIds });
+
+    return {
+      ...updated,
+      passenger_names: passengers.map((p) => p.name)
+    };
+  });
+
   app.delete("/trips/:tripId/flights/:flightId", async (request, reply) => {
     const auth = await requireRequestUser(request, reply, deps);
     if (auth.error) return auth;

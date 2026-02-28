@@ -41,3 +41,22 @@ test("link methods insert mapping rows with conflict guards", async () => {
   assert.match(calls[3].text, /INSERT INTO hotel_passengers/);
 });
 
+test("replace link methods delete old rows before insert", async () => {
+  const calls = [];
+  const repo = buildPassengersRepository({
+    pool: {
+      async query(text, params) {
+        calls.push({ text, params });
+        return { rows: [], rowCount: 1 };
+      }
+    }
+  });
+
+  await repo.replaceFlightLinks({ flightRecordId: "f1", passengerIds: ["p1"] });
+  await repo.replaceHotelLinks({ hotelRecordId: "h1", passengerIds: ["p2"] });
+
+  assert.match(calls[0].text, /DELETE FROM flight_passengers/);
+  assert.match(calls[1].text, /INSERT INTO flight_passengers/);
+  assert.match(calls[2].text, /DELETE FROM hotel_passengers/);
+  assert.match(calls[3].text, /INSERT INTO hotel_passengers/);
+});
