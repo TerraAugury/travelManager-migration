@@ -44,6 +44,12 @@ This file tracks migration from static-only app to frontend/backend architecture
 - Introduce an API client layer.
 - Replace localStorage writes with API calls.
 - Keep existing UI behavior and screens.
+- Added migrated frontend UI for:
+  - auth login/logout
+  - trips list/create/delete
+  - per-trip flights list/create/delete
+  - per-trip hotels list/create/delete
+  - per-trip passengers listing
 
 ## Phase 5: Cutover
 

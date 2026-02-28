@@ -3,7 +3,11 @@ import { TOKEN_STORAGE_KEY } from "./config.js";
 const state = {
   token: null,
   user: null,
-  trips: []
+  trips: [],
+  selectedTripId: null,
+  flights: [],
+  hotels: [],
+  passengers: []
 };
 
 export function getState() {
@@ -30,5 +34,26 @@ export function setUser(user) {
 
 export function setTrips(trips) {
   state.trips = Array.isArray(trips) ? trips : [];
+  if (state.selectedTripId && !state.trips.find((t) => t.id === state.selectedTripId)) {
+    state.selectedTripId = null;
+    state.flights = [];
+    state.hotels = [];
+    state.passengers = [];
+  }
 }
 
+export function setSelectedTripId(tripId) {
+  state.selectedTripId = tripId || null;
+}
+
+export function setFlights(flights) {
+  state.flights = Array.isArray(flights) ? flights : [];
+}
+
+export function setHotels(hotels) {
+  state.hotels = Array.isArray(hotels) ? hotels : [];
+}
+
+export function setPassengers(passengers) {
+  state.passengers = Array.isArray(passengers) ? passengers : [];
+}

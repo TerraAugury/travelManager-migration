@@ -53,6 +53,43 @@ export async function deleteTrip(token, tripId) {
   return request(`/trips/${tripId}`, { method: "DELETE" }, token);
 }
 
+export async function listFlights(token, tripId) {
+  const payload = await request(`/trips/${tripId}/flights`, {}, token);
+  return payload?.items || [];
+}
+
+export async function createFlight(token, tripId, body) {
+  return request(`/trips/${tripId}/flights`, {
+    method: "POST",
+    body: JSON.stringify(body)
+  }, token);
+}
+
+export async function deleteFlight(token, tripId, flightId) {
+  return request(`/trips/${tripId}/flights/${flightId}`, { method: "DELETE" }, token);
+}
+
+export async function listHotels(token, tripId) {
+  const payload = await request(`/trips/${tripId}/hotels`, {}, token);
+  return payload?.items || [];
+}
+
+export async function createHotel(token, tripId, body) {
+  return request(`/trips/${tripId}/hotels`, {
+    method: "POST",
+    body: JSON.stringify(body)
+  }, token);
+}
+
+export async function deleteHotel(token, tripId, hotelId) {
+  return request(`/trips/${tripId}/hotels/${hotelId}`, { method: "DELETE" }, token);
+}
+
+export async function listPassengers(token, tripId) {
+  const payload = await request(`/trips/${tripId}/passengers`, {}, token);
+  return payload?.items || [];
+}
+
 export async function exportLegacyTrips(token) {
   return request("/sync/trips", {}, token);
 }
@@ -63,4 +100,3 @@ export async function importLegacyTrips(token, trips) {
     body: JSON.stringify(trips)
   }, token);
 }
-

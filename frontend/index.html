@@ -57,6 +57,15 @@
       </form>
 
       <div class="row tools">
+        <label>
+          Active Trip
+          <select id="trip-select">
+            <option value="">Select trip</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row tools">
         <button id="export-btn" type="button">Export Legacy JSON</button>
         <label class="file-label">
           Import Legacy JSON
@@ -65,6 +74,37 @@
       </div>
 
       <ul id="trip-list" class="list"></ul>
+
+      <section id="trip-detail-panel" class="panel nested hidden">
+        <h3 id="trip-detail-title">Trip Details</h3>
+
+        <div class="columns">
+          <div>
+            <h4>Flights</h4>
+            <form id="flight-form" class="form-grid compact">
+              <label>Flight #<input id="flight-number" type="text" required /></label>
+              <label>Departure Code<input id="flight-dep-code" type="text" maxlength="8" /></label>
+              <label>Arrival Code<input id="flight-arr-code" type="text" maxlength="8" /></label>
+              <button type="submit">Add Flight</button>
+            </form>
+            <ul id="flight-list" class="list compact-list"></ul>
+          </div>
+
+          <div>
+            <h4>Hotels</h4>
+            <form id="hotel-form" class="form-grid compact">
+              <label>Hotel Name<input id="hotel-name" type="text" required /></label>
+              <label>Check-in<input id="hotel-checkin" type="date" required /></label>
+              <label>Check-out<input id="hotel-checkout" type="date" required /></label>
+              <button type="submit">Add Hotel</button>
+            </form>
+            <ul id="hotel-list" class="list compact-list"></ul>
+          </div>
+        </div>
+
+        <h4>Passengers</h4>
+        <ul id="passenger-list" class="list compact-list"></ul>
+      </section>
     </section>
 
     <section class="panel">
@@ -76,4 +116,3 @@
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
-

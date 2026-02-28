@@ -1,82 +1,162 @@
 import * as api from "./api.js";
 import { render } from "./render.js";
-import { getState, loadToken, setToken, setTrips, setUser } from "./state.js";
+import {
+  getState,
+  loadToken,
+  setFlights,
+  setHotels,
+  setPassengers,
+  setSelectedTripId,
+  setToken,
+  setTrips,
+  setUser
+} from "./state.js";
 
 async function refreshTrips() {
-  const token = getState().token;
-  const trips = await api.listTrips(token);
+  const trips = await api.listTrips(getState().token);
   setTrips(trips);
+  if (!getState().selectedTripId && trips.length) {
+    setSelectedTripId(trips[0].id);
+  }
+}
+
+async function refreshTripDetails() {
+  const tripId = getState().selectedTripId;
+  if (!tripId) {
+    setFlights([]);
+    setHotels([]);
+    setPassengers([]);
+    return;
+  }
+  const token = getState().token;
+  const [flights, hotels, passengers] = await Promise.all([
+    api.listFlights(token, tripId),
+    api.listHotels(token, tripId),
+    api.listPassengers(token, tripId)
+  ]);
+  setFlights(flights);
+  setHotels(hotels);
+  setPassengers(passengers);
+}
+
+async function fullRefresh() {
+  await refreshTrips();
+  await refreshTripDetails();
+}
+
+function bindForms(actions) {
+  const loginForm = document.getElementById("login-form");
+  const logoutBtn = document.getElementById("logout-btn");
+  const tripForm = document.getElementById("trip-form");
+  const flightForm = document.getElementById("flight-form");
+  const hotelForm = document.getElementById("hotel-form");
+  const tripSelect = document.getElementById("trip-select");
+  const exportBtn = document.getElementById("export-btn");
+  const importFile = document.getElementById("import-file");
+
+  loginForm.addEventListener("submit", actions.onLogin);
+  logoutBtn.addEventListener("click", actions.onLogout);
+  tripForm.addEventListener("submit", actions.onCreateTrip);
+  flightForm.addEventListener("submit", actions.onCreateFlight);
+  hotelForm.addEventListener("submit", actions.onCreateHotel);
+  tripSelect.addEventListener("change", actions.onSelectTripChange);
+  exportBtn.addEventListener("click", actions.onExport);
+  importFile.addEventListener("change", actions.onImport);
 }
 
 async function bootstrap() {
   loadToken();
-  render("Bootstrapping...");
-
-  const loginForm = document.getElementById("login-form");
-  const logoutBtn = document.getElementById("logout-btn");
-  const tripForm = document.getElementById("trip-form");
-  const exportBtn = document.getElementById("export-btn");
-  const importFile = document.getElementById("import-file");
-
-  const handleDelete = async (tripId) => {
-    try {
+  const actions = {
+    onSelectTrip: async (tripId) => {
+      setSelectedTripId(tripId);
+      await refreshTripDetails();
+      render(`Selected trip ${tripId}.`, actions);
+    },
+    onDeleteTrip: async (tripId) => {
       await api.deleteTrip(getState().token, tripId);
-      await refreshTrips();
-      render("Trip deleted.", handleDelete);
-    } catch (error) {
-      render(`Delete failed: ${error.message}`, handleDelete);
-    }
-  };
-
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const email = document.getElementById("login-email").value.trim();
-    const password = document.getElementById("login-password").value;
-    try {
+      await fullRefresh();
+      render("Trip deleted.", actions);
+    },
+    onDeleteFlight: async (flightId) => {
+      await api.deleteFlight(getState().token, getState().selectedTripId, flightId);
+      await refreshTripDetails();
+      render("Flight deleted.", actions);
+    },
+    onDeleteHotel: async (hotelId) => {
+      await api.deleteHotel(getState().token, getState().selectedTripId, hotelId);
+      await refreshTripDetails();
+      render("Hotel deleted.", actions);
+    },
+    onLogin: async (event) => {
+      event.preventDefault();
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
       const out = await api.login(email, password);
       setToken(out.token);
       setUser(out.user);
-      await refreshTrips();
-      render("Login successful.", handleDelete);
-    } catch (error) {
-      render(`Login failed: ${error.message}`, handleDelete);
-    }
-  });
-
-  logoutBtn.addEventListener("click", async () => {
-    try {
-      if (getState().token) await api.logout(getState().token);
-    } catch {
-      // Continue local logout even if API call fails.
-    } finally {
-      setToken(null);
-      setUser(null);
-      setTrips([]);
-      render("Logged out.", handleDelete);
-    }
-  });
-
-  tripForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const name = document.getElementById("trip-name").value.trim();
-    const startDate = document.getElementById("trip-start").value || null;
-    const endDate = document.getElementById("trip-end").value || null;
-    try {
+      await fullRefresh();
+      render("Login successful.", actions);
+    },
+    onLogout: async () => {
+      try {
+        if (getState().token) await api.logout(getState().token);
+      } finally {
+        setToken(null);
+        setUser(null);
+        setTrips([]);
+        setSelectedTripId(null);
+        setFlights([]);
+        setHotels([]);
+        setPassengers([]);
+        render("Logged out.", actions);
+      }
+    },
+    onCreateTrip: async (event) => {
+      event.preventDefault();
+      const name = document.getElementById("trip-name").value.trim();
+      const startDate = document.getElementById("trip-start").value || null;
+      const endDate = document.getElementById("trip-end").value || null;
       await api.createTrip(getState().token, { name, startDate, endDate });
-      tripForm.reset();
-      await refreshTrips();
-      render("Trip created.", handleDelete);
-    } catch (error) {
-      render(`Create failed: ${error.message}`, handleDelete);
-    }
-  });
-
-  exportBtn.addEventListener("click", async () => {
-    try {
+      event.target.reset();
+      await fullRefresh();
+      render("Trip created.", actions);
+    },
+    onCreateFlight: async (event) => {
+      event.preventDefault();
+      const tripId = getState().selectedTripId;
+      if (!tripId) throw new Error("Select a trip first.");
+      const body = {
+        flightNumber: document.getElementById("flight-number").value.trim(),
+        departureAirportCode: document.getElementById("flight-dep-code").value.trim(),
+        arrivalAirportCode: document.getElementById("flight-arr-code").value.trim(),
+        passengerNames: []
+      };
+      await api.createFlight(getState().token, tripId, body);
+      event.target.reset();
+      await refreshTripDetails();
+      render("Flight created.", actions);
+    },
+    onCreateHotel: async (event) => {
+      event.preventDefault();
+      const tripId = getState().selectedTripId;
+      if (!tripId) throw new Error("Select a trip first.");
+      const body = {
+        hotelName: document.getElementById("hotel-name").value.trim(),
+        checkInDate: document.getElementById("hotel-checkin").value,
+        checkOutDate: document.getElementById("hotel-checkout").value,
+        paxCount: 1,
+        paymentType: "prepaid",
+        passengerNames: []
+      };
+      await api.createHotel(getState().token, tripId, body);
+      event.target.reset();
+      await refreshTripDetails();
+      render("Hotel created.", actions);
+    },
+    onSelectTripChange: async (event) => actions.onSelectTrip(event.target.value || null),
+    onExport: async () => {
       const payload = await api.exportLegacyTrips(getState().token);
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: "application/json"
-      });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -85,42 +165,32 @@ async function bootstrap() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      render("Legacy export downloaded.", handleDelete);
-    } catch (error) {
-      render(`Export failed: ${error.message}`, handleDelete);
+      render("Legacy export downloaded.", actions);
+    },
+    onImport: async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const payload = JSON.parse(await file.text());
+      await api.importLegacyTrips(getState().token, payload);
+      event.target.value = "";
+      await fullRefresh();
+      render("Import completed.", actions);
     }
-  });
+  };
 
-  importFile.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const payload = JSON.parse(text);
-      const out = await api.importLegacyTrips(getState().token, payload);
-      setTrips(out.items || []);
-      render(`Import completed: ${out.importedTrips} trip(s).`, handleDelete);
-    } catch (error) {
-      render(`Import failed: ${error.message}`, handleDelete);
-    } finally {
-      importFile.value = "";
-    }
-  });
+  bindForms(actions);
+  render("Bootstrapping...", actions);
 
-  if (getState().token) {
-    try {
-      const user = await api.me(getState().token);
-      setUser(user);
-      await refreshTrips();
-      render("Session restored.", handleDelete);
-    } catch {
-      setToken(null);
-      setUser(null);
-      setTrips([]);
-      render("Previous session expired. Please sign in.", handleDelete);
-    }
+  if (!getState().token) return;
+  try {
+    setUser(await api.me(getState().token));
+    await fullRefresh();
+    render("Session restored.", actions);
+  } catch {
+    await actions.onLogout();
+    render("Previous session expired. Please sign in.", actions);
   }
 }
 
-bootstrap();
+bootstrap().catch((error) => render(`Fatal: ${error.message}`));
 

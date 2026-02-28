@@ -64,6 +64,7 @@ label {
 }
 
 input,
+select,
 button {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -129,6 +130,26 @@ button.danger {
   align-items: center;
 }
 
+.nested {
+  margin-top: 14px;
+  background: #fbfdff;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.compact {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.compact-list li {
+  padding: 8px;
+  font-size: 0.9rem;
+}
+
 .status {
   margin: 0;
   white-space: pre-wrap;
@@ -144,4 +165,3 @@ button.danger {
   color: var(--muted);
   font-size: 0.9rem;
 }
-
