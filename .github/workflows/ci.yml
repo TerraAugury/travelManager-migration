@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm install --no-audit --no-fund
+
+      - name: Backend lint
+        working-directory: backend
+        run: npm run lint
+
+      - name: Backend typecheck
+        working-directory: backend
+        run: npm run typecheck
+
+      - name: Backend test
+        working-directory: backend
+        run: npm test
+
+      - name: Backend build gate
+        working-directory: backend
+        run: npm run build
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Frontend typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Frontend test
+        working-directory: frontend
+        run: npm test
+
+      - name: Frontend build gate
+        working-directory: frontend
+        run: npm run build
+
+  infra_and_scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Shell syntax checks
+        run: bash -n scripts/*.sh
+
+      - name: Compose config checks
+        run: |
+          docker compose -f infra/docker-compose.yml --env-file .env.example config >/dev/null
+          docker compose -f infra/docker-compose.yml -f infra/docker-compose.private.yml --env-file .env.example config >/dev/null
+
+      - name: Compose build validation
+        run: docker compose -f infra/docker-compose.yml --env-file .env.example build backend
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Security scan
+        run: |
+          chmod +x scripts/security-scan.sh
+          scripts/security-scan.sh
