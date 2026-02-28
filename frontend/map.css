@@ -1,0 +1,44 @@
+.map-canvas {
+  min-height: 360px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.route-count-icon {
+  background: transparent;
+  border: 0;
+}
+
+.route-count-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid #0f172a;
+  background: rgba(255, 255, 255, 0.94);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+}
+
+.route-count-num {
+  font-size: 0.8rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.route-count-arrow {
+  font-size: 0.75rem;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+body.map-fullscreen .container {
+  max-width: 100%;
+  padding: 10px;
+}
+
+body.map-fullscreen #map-canvas {
+  min-height: calc(100vh - 170px);
+}

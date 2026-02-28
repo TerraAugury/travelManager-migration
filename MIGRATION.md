@@ -52,6 +52,10 @@ This file tracks migration from static-only app to frontend/backend architecture
   - per-trip hotels list/create/update/delete
   - per-trip passengers listing
   - richer flight/hotel input coverage (airline, PNR, times, confirmation, payment, pax, passenger names)
+  - upcoming flights panel (with passenger filter)
+  - daycount panel (passenger/year/month drilldown)
+  - all-trips statistics panel
+- Reused proven legacy screen logic through API-to-legacy adapter in frontend modules.
 
 ## Phase 5: Cutover (in progress)
 

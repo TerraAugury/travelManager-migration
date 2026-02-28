@@ -1,10 +1,12 @@
 import * as api from "./api.js";
 import { fillFlightForm, fillHotelForm, fillTripEditor, readCreateFlightBody, readCreateHotelBody, readCreateTripBody, readUpdateTripBody } from "./forms.js";
+import { createInsightsController } from "./insights.js";
 import { render } from "./render.js";
 import { getState, loadToken, setFlights, setHotels, setPassengers, setSelectedTripId, setToken, setTrips, setUser } from "./state.js";
 
 let editingFlightId = null;
 let editingHotelId = null;
+const insights = createInsightsController();
 
 function getActiveTrip() {
   return getState().trips.find((trip) => trip.id === getState().selectedTripId) || null;
@@ -41,6 +43,7 @@ async function fullRefresh() {
   await refreshTripDetails();
   if (!getState().flights.some((x) => x.id === editingFlightId)) editingFlightId = null;
   if (!getState().hotels.some((x) => x.id === editingHotelId)) editingHotelId = null;
+  await insights.refresh(getState().token, getState().trips);
   syncTripEditor();
 }
 function bindForms(actions) {
@@ -79,6 +82,7 @@ async function bootstrap() {
       await api.deleteFlight(getState().token, getState().selectedTripId, flightId);
       if (editingFlightId === flightId) fillFlightForm(null), editingFlightId = null;
       await refreshTripDetails();
+      await insights.refresh(getState().token, getState().trips);
       render("Flight deleted.", actions);
     },
     onEditHotel: (hotelId) => {
@@ -90,6 +94,7 @@ async function bootstrap() {
       await api.deleteHotel(getState().token, getState().selectedTripId, hotelId);
       if (editingHotelId === hotelId) fillHotelForm(null), editingHotelId = null;
       await refreshTripDetails();
+      await insights.refresh(getState().token, getState().trips);
       render("Hotel deleted.", actions);
     },
     isEditingFlight: (id) => id === editingFlightId,
@@ -110,6 +115,7 @@ async function bootstrap() {
       } finally {
         setToken(null), setUser(null), setTrips([]), setSelectedTripId(null);
         setFlights([]), setHotels([]), setPassengers([]), clearEventEditors(), syncTripEditor();
+        insights.reset();
         render("Logged out.", actions);
       }
     },
@@ -138,6 +144,7 @@ async function bootstrap() {
       event.target.reset();
       editingFlightId = null;
       await refreshTripDetails();
+      await insights.refresh(getState().token, getState().trips);
       render("Flight saved.", actions);
     },
     onUpsertHotel: async (event) => {
@@ -150,6 +157,7 @@ async function bootstrap() {
       event.target.reset();
       editingHotelId = null;
       await refreshTripDetails();
+      await insights.refresh(getState().token, getState().trips);
       render("Hotel saved.", actions);
     },
     onSelectTripChange: async (event) => actions.onSelectTrip(event.target.value || null),
@@ -177,6 +185,7 @@ async function bootstrap() {
     }
   };
   bindForms(actions);
+  insights.bind();
   render("Bootstrapping...", actions);
   if (!getState().token) return;
   try {

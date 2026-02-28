@@ -9,6 +9,9 @@ This folder now contains the first migrated frontend entrypoint.
   - auth login/logout
   - list/create/delete/update trips
   - per-trip list/create/update/delete for flights and hotels with richer field coverage
+  - upcoming flights screen with passenger filter
+  - daycount screen with passenger/year/month drilldown
+  - all-trips statistics panel
   - passenger list per trip
   - legacy export/import bridge via `/api/sync/trips`
 
@@ -23,4 +26,4 @@ This folder now contains the first migrated frontend entrypoint.
 
 - Existing root UI is still available for fallback.
 - New frontend already reads/writes through backend API.
-- Next step is timeline-style and screen-level parity with the legacy root UI.
+- Next step is map-screen parity and final UX refinements against the legacy root UI.

@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Travel Manager (Migrated Frontend)</title>
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./insights.css" />
+  <link rel="stylesheet" href="./map.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
   <main class="container">
@@ -12,7 +15,6 @@
       <h1>Travel Manager</h1>
       <p class="subtitle">Migrated frontend (API mode)</p>
     </header>
-
     <section id="auth-panel" class="panel">
       <h2>Login</h2>
       <form id="login-form" class="form-grid">
@@ -30,7 +32,6 @@
         Use the seeded admin account from backend setup.
       </p>
     </section>
-
     <section id="app-panel" class="panel hidden">
       <div class="row">
         <div>
@@ -133,6 +134,58 @@
         <h4>Passengers</h4>
         <ul id="passenger-list" class="list compact-list"></ul>
       </section>
+
+      <section class="panel nested">
+        <h3>Upcoming Flights</h3>
+        <div class="row tools">
+          <label>
+            Passenger
+            <select id="upcoming-passenger">
+              <option value="">All passengers</option>
+            </select>
+          </label>
+        </div>
+        <p id="upcoming-empty" class="hint">No upcoming flights.</p>
+        <div id="upcoming-list" class="insight-list"></div>
+      </section>
+
+      <section class="panel nested">
+        <h3>Daycount</h3>
+        <div class="row tools">
+          <label>
+            Passenger
+            <select id="daycount-passenger">
+              <option value="">Select passenger</option>
+            </select>
+          </label>
+        </div>
+        <div id="daycount-year-list" class="chip-row"></div>
+        <p id="daycount-empty" class="hint">Choose a passenger to view days by country.</p>
+        <div id="daycount-results" class="daycount-results"></div>
+        <p id="daycount-upcoming-empty" class="hidden"></p>
+        <div id="daycount-upcoming-list" class="hidden"></div>
+      </section>
+
+      <section class="panel nested">
+        <h3>All Trips Statistics</h3>
+        <p id="trip-details-empty" class="hint">No trip data yet.</p>
+        <div id="trip-stats-container" class="stats-grid"></div>
+        <div id="trip-pax-container" class="stats-grid"></div>
+      </section>
+
+      <section class="panel nested">
+        <h3>Route Map</h3>
+        <div class="row tools">
+          <label>Passenger<select id="map-passenger"><option value="__all__">All passengers</option></select></label>
+          <label>Route<select id="map-route"><option value="__all__">All routes</option></select></label>
+          <button id="map-badges-btn" type="button">Hide badges</button>
+          <button id="map-fullscreen-btn" type="button">Full screen</button>
+        </div>
+        <div id="map-year-list" class="chip-row"></div>
+        <p id="map-empty" class="hint">No flights for this selection.</p>
+        <p id="map-warning" class="hint hidden"></p>
+        <div id="map-canvas" class="map-canvas hidden"></div>
+      </section>
     </section>
 
     <section class="panel">
@@ -140,7 +193,7 @@
       <pre id="status-log" class="status">Ready.</pre>
     </section>
   </main>
-
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
