@@ -8,12 +8,17 @@
   <link rel="stylesheet" href="./insights.css" />
   <link rel="stylesheet" href="./map.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Trips" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
 </head>
 <body>
   <main class="container">
     <header class="header">
       <h1>Travel Manager</h1>
-      <p class="subtitle">Migrated frontend (API mode)</p>
     </header>
     <section id="auth-panel" class="panel">
       <h2>Login</h2>
@@ -138,12 +143,7 @@
       <section class="panel nested">
         <h3>Upcoming Flights</h3>
         <div class="row tools">
-          <label>
-            Passenger
-            <select id="upcoming-passenger">
-              <option value="">All passengers</option>
-            </select>
-          </label>
+          <label>Passenger<select id="upcoming-passenger"><option value="">All passengers</option></select></label>
         </div>
         <p id="upcoming-empty" class="hint">No upcoming flights.</p>
         <div id="upcoming-list" class="insight-list"></div>
@@ -152,12 +152,7 @@
       <section class="panel nested">
         <h3>Daycount</h3>
         <div class="row tools">
-          <label>
-            Passenger
-            <select id="daycount-passenger">
-              <option value="">Select passenger</option>
-            </select>
-          </label>
+          <label>Passenger<select id="daycount-passenger"><option value="">Select passenger</option></select></label>
         </div>
         <div id="daycount-year-list" class="chip-row"></div>
         <p id="daycount-empty" class="hint">Choose a passenger to view days by country.</p>
@@ -194,6 +189,7 @@
     </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="./sw-register.js"></script>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
