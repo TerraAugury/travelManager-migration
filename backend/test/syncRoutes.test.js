@@ -37,7 +37,7 @@ test("GET /sync/trips returns legacy trips for authenticated user", async () => 
   const deps = depsMock();
   registerSyncRoutes(app, deps);
 
-  const handler = app.routes.get("GET /sync/trips");
+  const handler = app.routes.get("GET /api/sync/trips");
   const result = await handler(cMock({ headers: { authorization: "Bearer token" } }));
   assert.equal(Array.isArray(result.data), true);
   assert.equal(result.data[0].name, "Trip");
@@ -48,7 +48,7 @@ test("PUT /sync/trips rejects non-array body", async () => {
   const deps = depsMock();
   registerSyncRoutes(app, deps);
 
-  const handler = app.routes.get("PUT /sync/trips");
+  const handler = app.routes.get("PUT /api/sync/trips");
   const result = await handler(cMock({
     headers: { authorization: "Bearer token" },
     jsonBody: {}

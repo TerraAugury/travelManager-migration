@@ -40,7 +40,7 @@ test("POST /auth/login returns token for valid credentials", async () => {
     }
   });
 
-  const handler = app.routes.get("POST /auth/login");
+  const handler = app.routes.get("POST /api/auth/login");
   const result = await handler(cMock({ jsonBody: { email: "a@b.com", password: "super-secret-pass" } }));
   assert.equal(result.status, 200);
   assert.ok(result.data.token);
@@ -55,7 +55,7 @@ test("POST /auth/login rejects invalid credentials", async () => {
     sessionsRepository: { async create() { return null; }, async findActiveByToken() { return null; }, async revokeToken() { return false; } }
   });
 
-  const handler = app.routes.get("POST /auth/login");
+  const handler = app.routes.get("POST /api/auth/login");
   const result = await handler(cMock({ jsonBody: { email: "bad@bad.com", password: "wrong-pass" } }));
   assert.equal(result.status, 401);
   assert.match(result.data.error, /Invalid email or password/);

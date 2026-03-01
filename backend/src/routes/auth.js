@@ -29,7 +29,7 @@ function parseLoginBody(body) {
 export async function registerAuthRoutes(app, deps) {
   const { usersRepository, sessionsRepository } = deps;
 
-  app.post("/auth/login", async (c) => {
+  app.post("/api/auth/login", async (c) => {
     const parsed = parseLoginBody(await c.req.json());
     if (parsed.error) return sendError(c, 400, parsed.error);
 
@@ -55,7 +55,7 @@ export async function registerAuthRoutes(app, deps) {
     });
   });
 
-  app.get("/auth/me", async (c) => {
+  app.get("/api/auth/me", async (c) => {
     const auth = await requireRequestUser(c, deps);
     if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
     return c.json({
@@ -66,7 +66,7 @@ export async function registerAuthRoutes(app, deps) {
     });
   });
 
-  app.post("/auth/logout", async (c) => {
+  app.post("/api/auth/logout", async (c) => {
     const auth = await requireRequestUser(c, deps);
     if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
     if (auth.token) {

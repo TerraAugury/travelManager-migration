@@ -4,14 +4,14 @@ import { sendError } from "../http/responses.js";
 export function registerSyncRoutes(app, deps) {
   const { legacyTripsExportService, legacyTripsImportService } = deps;
 
-  app.get("/sync/trips", async (c) => {
+  app.get("/api/sync/trips", async (c) => {
     const auth = await requireRequestUser(c, deps);
     if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
     const trips = await legacyTripsExportService.exportByOwner(auth.user.id);
     return c.json(trips);
   });
 
-  app.put("/sync/trips", async (c) => {
+  app.put("/api/sync/trips", async (c) => {
     const auth = await requireRequestUser(c, deps);
     if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
     const body = await c.req.json();
