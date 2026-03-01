@@ -3,7 +3,7 @@ import { syncTripForms } from "./ui.js";
 
 function fmtDate(v) { return v ? String(v).slice(0, 10) : "–"; }
 function fmtDT(v) { return v ? String(v).replace("T", " ").slice(0, 16) : "–"; }
-function esc(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function esc(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
 function renderTripSelect(trips, selectedTripId) {
   const select = document.getElementById("trip-select");

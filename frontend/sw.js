@@ -14,7 +14,8 @@ const STATIC = [
   "/src/insights.js",
   "/src/legacyAdapter.js",
   "/src/render.js",
-  "/src/state.js"
+  "/src/state.js",
+  "/src/ui.js"
 ];
 
 self.addEventListener("install", (e) => {
