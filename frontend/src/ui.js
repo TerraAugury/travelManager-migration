@@ -1,6 +1,6 @@
 import { getState } from "./state.js";
 
-export function switchScreen(screen) {
+function switchScreen(screen) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active-screen"));
   document.querySelectorAll(".tab-btn,.nav-btn").forEach((b) => b.classList.remove("active"));
   const el = document.getElementById(`screen-${screen}`);
@@ -8,7 +8,7 @@ export function switchScreen(screen) {
   document.querySelectorAll(`[data-screen="${screen}"]`).forEach((b) => b.classList.add("active"));
 }
 
-export function openOverlay(id) {
+function openOverlay(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
   overlay.classList.remove("hidden");

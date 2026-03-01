@@ -59,39 +59,39 @@ async function bootstrap() {
       clearEventEditors();
       await refreshTripDetails();
       syncTripEditor();
-      render(null, actions);
+      render(actions);
     },
     onDeleteTrip: async (tripId) => {
       await api.deleteTrip(getState().token, tripId);
       clearEventEditors();
       await fullRefresh();
-      render(null, actions);
+      render(actions);
     },
     onEditFlight: (flightId) => {
       editingFlightId = flightId;
       fillFlightForm(getState().flights.find((f) => f.id === flightId) || null);
       setOverlayEditMode("flight", true);
-      render(null, actions);
+      render(actions);
     },
     onDeleteFlight: async (flightId) => {
       await api.deleteFlight(getState().token, getState().selectedTripId, flightId);
       if (editingFlightId === flightId) { fillFlightForm(null); editingFlightId = null; }
       await refreshTripDetails();
       await insights.refresh(getState().token, getState().trips);
-      render(null, actions);
+      render(actions);
     },
     onEditHotel: (hotelId) => {
       editingHotelId = hotelId;
       fillHotelForm(getState().hotels.find((h) => h.id === hotelId) || null);
       setOverlayEditMode("hotel", true);
-      render(null, actions);
+      render(actions);
     },
     onDeleteHotel: async (hotelId) => {
       await api.deleteHotel(getState().token, getState().selectedTripId, hotelId);
       if (editingHotelId === hotelId) { fillHotelForm(null); editingHotelId = null; }
       await refreshTripDetails();
       await insights.refresh(getState().token, getState().trips);
-      render(null, actions);
+      render(actions);
     },
     isEditingFlight: (id) => id === editingFlightId,
     isEditingHotel:  (id) => id === editingHotelId,
@@ -103,14 +103,14 @@ async function bootstrap() {
       setToken(out.token);
       setUser(out.user);
       await fullRefresh();
-      render(null, actions);
+      render(actions);
     },
     onLogout: async () => {
       try { if (getState().token) await api.logout(getState().token); } finally {
         setToken(null); setUser(null); setTrips([]); setSelectedTripId(null);
         setFlights([]); setHotels([]); setPassengers([]); clearEventEditors(); syncTripEditor();
         insights.reset();
-        render(null, actions);
+        render(actions);
       }
     },
     onCreateTrip: async (event) => {
@@ -119,7 +119,7 @@ async function bootstrap() {
       event.target.reset();
       if (trip?.id) setSelectedTripId(trip.id);
       await fullRefresh();
-      render(null, actions);
+      render(actions);
     },
     onUpdateTrip: async (event) => {
       event.preventDefault();
@@ -127,7 +127,7 @@ async function bootstrap() {
       if (!tripId) throw new Error("Select a trip first.");
       await api.updateTrip(getState().token, tripId, readUpdateTripBody());
       await fullRefresh();
-      render(null, actions);
+      render(actions);
     },
     onUpsertFlight: async (event) => {
       event.preventDefault();
@@ -141,7 +141,7 @@ async function bootstrap() {
       closeOverlay("flight-overlay");
       await refreshTripDetails();
       await insights.refresh(getState().token, getState().trips);
-      render(null, actions);
+      render(actions);
     },
     onUpsertHotel: async (event) => {
       event.preventDefault();
@@ -155,7 +155,7 @@ async function bootstrap() {
       closeOverlay("hotel-overlay");
       await refreshTripDetails();
       await insights.refresh(getState().token, getState().trips);
-      render(null, actions);
+      render(actions);
     },
     onSelectTripChange: async (event) => {
       const val = event.target.value;
@@ -178,20 +178,20 @@ async function bootstrap() {
       event.target.value = "";
       clearEventEditors();
       await fullRefresh();
-      render(null, actions);
+      render(actions);
     }
   };
 
   bindForms(actions);
   bindUI(actions);
   insights.bind();
-  render(null, actions);
+  render(actions);
 
   if (!getState().token) return;
   try {
     setUser(await api.me(getState().token));
     await fullRefresh();
-    render(null, actions);
+    render(actions);
   } catch {
     await actions.onLogout();
   }

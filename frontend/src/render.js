@@ -81,7 +81,7 @@ function renderEventTiles(flights, hotels, actions) {
   };
 }
 
-export function render(_logLine = null, actions = {}) {
+export function render(actions = {}) {
   const state    = getState();
   const authPanel = document.getElementById("auth-panel");
   const appPanel  = document.getElementById("app-panel");
