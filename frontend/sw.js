@@ -1,4 +1,4 @@
-const CACHE = "tm-v1";
+const CACHE = "tm-v2";
 const STATIC = [
   "/",
   "/styles.css",
@@ -15,7 +15,9 @@ const STATIC = [
   "/src/legacyAdapter.js",
   "/src/render.js",
   "/src/state.js",
-  "/src/ui.js"
+  "/src/ui.js",
+  "/vendor/leaflet.css",
+  "/vendor/leaflet.js"
 ];
 
 self.addEventListener("install", (e) => {

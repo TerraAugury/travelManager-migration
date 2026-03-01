@@ -173,6 +173,7 @@ async function bootstrap() {
     onImport: async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
+      if (file.size > 5 * 1024 * 1024) throw new Error("Import file too large (max 5 MB).");
       await api.importLegacyTrips(getState().token, JSON.parse(await file.text()));
       event.target.value = "";
       clearEventEditors();
