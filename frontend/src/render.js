@@ -1,34 +1,15 @@
 import { getState } from "./state.js";
+import { syncTripForms } from "./ui.js";
 
-function fmtDate(value) {
-  if (!value) return "-";
-  return String(value).slice(0, 10);
-}
+function fmtDate(v) { return v ? String(v).slice(0, 10) : "–"; }
+function fmtDT(v) { return v ? String(v).replace("T", " ").slice(0, 16) : "–"; }
+function esc(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
-function fmtDateTime(value) {
-  if (!value) return "-";
-  return String(value).replace("T", " ").slice(0, 16);
-}
-
-function clear(el) {
-  el.innerHTML = "";
-}
-
-function addEmptyItem(el, text) {
-  const li = document.createElement("li");
-  li.textContent = text;
-  el.appendChild(li);
-}
-
-function renderTripSelect(items, selectedTripId) {
+function renderTripSelect(trips, selectedTripId) {
   const select = document.getElementById("trip-select");
-  clear(select);
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "Select trip";
-  select.appendChild(placeholder);
-
-  items.forEach((trip) => {
+  if (!select) return;
+  select.innerHTML = `<option value="">Select a trip…</option><option value="__new__">➕ Create New Trip</option>`;
+  trips.forEach((trip) => {
     const opt = document.createElement("option");
     opt.value = trip.id;
     opt.textContent = trip.name;
@@ -37,96 +18,74 @@ function renderTripSelect(items, selectedTripId) {
   });
 }
 
-function renderTrips(items, selectedTripId, actions) {
-  const list = document.getElementById("trip-list");
-  clear(list);
-  if (!items.length) {
-    addEmptyItem(list, "No trips yet.");
+function renderEventTiles(flights, hotels, actions) {
+  const list = document.getElementById("trip-events-list");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const events = [
+    ...flights.map((f) => ({ type: "flight", date: f.departure_scheduled || "", data: f })),
+    ...hotels.map((h) => ({ type: "hotel", date: h.check_in_date || "", data: h }))
+  ].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+  if (!events.length) {
+    list.innerHTML = '<div class="tiles-empty">No flights or hotels yet. Use the buttons above to add.</div>';
     return;
   }
 
-  items.forEach((trip) => {
-    const li = document.createElement("li");
-    const info = document.createElement("div");
-    info.textContent = `${trip.name} (${fmtDate(trip.start_date)} -> ${fmtDate(trip.end_date)})`;
-
-    const right = document.createElement("div");
-    right.className = "row";
-    const openBtn = document.createElement("button");
-    openBtn.type = "button";
-    openBtn.textContent = trip.id === selectedTripId ? "Active" : "Open";
-    openBtn.disabled = trip.id === selectedTripId;
-    openBtn.addEventListener("click", () => actions.onSelectTrip(trip.id));
-
-    const delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "danger";
-    delBtn.textContent = "Delete";
-    delBtn.addEventListener("click", () => actions.onDeleteTrip(trip.id));
-
-    right.appendChild(openBtn);
-    right.appendChild(delBtn);
-    li.appendChild(info);
-    li.appendChild(right);
-    list.appendChild(li);
-  });
-}
-
-function renderEvents(listId, items, toLabel, actions = {}) {
-  const list = document.getElementById(listId);
-  clear(list);
-  if (!items.length) {
-    addEmptyItem(list, "No items.");
-    return;
-  }
-  items.forEach((item) => {
-    const li = document.createElement("li");
-    const info = document.createElement("div");
-    const editingTag = actions.isEditing?.(item.id) ? " [editing]" : "";
-    info.textContent = `${toLabel(item)}${editingTag}`;
-    const right = document.createElement("div");
-    right.className = "row";
-    if (actions.onEdit) {
-      const editBtn = document.createElement("button");
-      editBtn.type = "button";
-      editBtn.textContent = "Edit";
-      editBtn.addEventListener("click", () => actions.onEdit(item.id));
-      right.appendChild(editBtn);
+  events.forEach(({ type, data }) => {
+    const tile = document.createElement("div");
+    tile.className = "event-tile";
+    if (type === "flight") {
+      const dep = esc(data.departure_airport_code || "?");
+      const arr = esc(data.arrival_airport_code || "?");
+      const fl  = esc(data.flight_number || "Flight");
+      const al  = data.airline ? ` (${esc(data.airline)})` : "";
+      const pax = Array.isArray(data.passenger_names) ? esc(data.passenger_names.join(", ")) : "";
+      const pnr = data.pnr ? ` · PNR: ${esc(data.pnr)}` : "";
+      const ed  = actions.isEditingFlight?.(data.id) ? " · ✏️ editing" : "";
+      tile.innerHTML = `<div class="event-tile-header"><div>
+        <div class="event-tile-title">${fl}${al} · ${dep} → ${arr}</div>
+        <div class="event-tile-meta">${fmtDT(data.departure_scheduled)}${pnr}${pax ? ` · ${pax}` : ""}${ed}</div>
+        </div><span class="event-tile-badge">✈︎ Flight</span></div>
+        <div class="event-tile-actions">
+          <button type="button" class="btn btn-ghost btn-xs" data-edit-flight="${esc(data.id)}">Edit</button>
+          <button type="button" class="btn btn-danger btn-xs" data-del-flight="${esc(data.id)}">Delete</button>
+        </div>`;
+    } else {
+      const name = esc(data.hotel_name || "Hotel");
+      const conf = data.confirmation_id ? ` · #${esc(data.confirmation_id)}` : "";
+      const pax  = Array.isArray(data.passenger_names) ? esc(data.passenger_names.join(", ")) : "";
+      const ed   = actions.isEditingHotel?.(data.id) ? " · ✏️ editing" : "";
+      tile.innerHTML = `<div class="event-tile-header"><div>
+        <div class="event-tile-title">${name}</div>
+        <div class="event-tile-meta">${fmtDate(data.check_in_date)} → ${fmtDate(data.check_out_date)} · ${data.pax_count ?? "?"} guests · ${esc(data.payment_type || "")}${conf}${pax ? ` · ${pax}` : ""}${ed}</div>
+        </div><span class="event-tile-badge hotel">🛏 Hotel</span></div>
+        <div class="event-tile-actions">
+          <button type="button" class="btn btn-ghost btn-xs" data-edit-hotel="${esc(data.id)}">Edit</button>
+          <button type="button" class="btn btn-danger btn-xs" data-del-hotel="${esc(data.id)}">Delete</button>
+        </div>`;
     }
-    const delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "danger";
-    delBtn.textContent = "Delete";
-    delBtn.addEventListener("click", () => actions.onDelete?.(item.id));
-    li.appendChild(info);
-    right.appendChild(delBtn);
-    li.appendChild(right);
-    list.appendChild(li);
+    list.appendChild(tile);
   });
+
+  list.onclick = (e) => {
+    const ef = e.target.closest("[data-edit-flight]")?.dataset.editFlight;
+    const df = e.target.closest("[data-del-flight]")?.dataset.delFlight;
+    const eh = e.target.closest("[data-edit-hotel]")?.dataset.editHotel;
+    const dh = e.target.closest("[data-del-hotel]")?.dataset.delHotel;
+    if (ef) actions.onEditFlight?.(ef);
+    if (df) actions.onDeleteFlight?.(df);
+    if (eh) actions.onEditHotel?.(eh);
+    if (dh) actions.onDeleteHotel?.(dh);
+  };
 }
 
-function renderPassengers(passengers) {
-  const list = document.getElementById("passenger-list");
-  clear(list);
-  if (!passengers.length) {
-    addEmptyItem(list, "No passengers.");
-    return;
-  }
-  passengers.forEach((p) => {
-    const li = document.createElement("li");
-    li.textContent = p.name;
-    list.appendChild(li);
-  });
-}
-
-export function render(logLine = null, actions = {}) {
-  const state = getState();
+export function render(_logLine = null, actions = {}) {
+  const state    = getState();
   const authPanel = document.getElementById("auth-panel");
-  const appPanel = document.getElementById("app-panel");
-  const userLine = document.getElementById("user-line");
-  const status = document.getElementById("status-log");
-  const detailPanel = document.getElementById("trip-detail-panel");
-  const detailTitle = document.getElementById("trip-detail-title");
+  const appPanel  = document.getElementById("app-panel");
+  const userLine  = document.getElementById("user-line");
 
   if (state.user) {
     authPanel.classList.add("hidden");
@@ -139,42 +98,25 @@ export function render(logLine = null, actions = {}) {
   }
 
   renderTripSelect(state.trips, state.selectedTripId);
-  renderTrips(state.trips, state.selectedTripId, actions);
+  syncTripForms();
 
-  const activeTrip = state.trips.find((t) => t.id === state.selectedTripId) || null;
-  if (!activeTrip) {
-    detailPanel.classList.add("hidden");
-  } else {
-    detailPanel.classList.remove("hidden");
-    detailTitle.textContent = `Trip Details: ${activeTrip.name}`;
-    renderEvents(
-      "flight-list",
-      state.flights,
-      (f) =>
-        `${f.flight_number || "Flight"} ${f.airline || ""} ${f.departure_airport_code || ""} -> ${f.arrival_airport_code || ""} ${fmtDateTime(f.departure_scheduled)} ${f.pnr ? `PNR:${f.pnr}` : ""}`,
-      {
-        onEdit: actions.onEditFlight,
-        onDelete: actions.onDeleteFlight,
-        isEditing: actions.isEditingFlight
-      }
-    );
-    renderEvents(
-      "hotel-list",
-      state.hotels,
-      (h) =>
-        `${h.hotel_name || "Hotel"} (${fmtDate(h.check_in_date)} -> ${fmtDate(h.check_out_date)}) pax:${h.pax_count || "-"} ${h.payment_type || ""} ${h.confirmation_id ? `#${h.confirmation_id}` : ""}`,
-      {
-        onEdit: actions.onEditHotel,
-        onDelete: actions.onDeleteHotel,
-        isEditing: actions.isEditingHotel
-      }
-    );
-    renderPassengers(state.passengers);
+  const hasTrip  = !!state.selectedTripId;
+  const addFlight = document.getElementById("add-flight-btn");
+  const addHotel  = document.getElementById("add-hotel-btn");
+  if (addFlight) addFlight.disabled = !hasTrip;
+  if (addHotel)  addHotel.disabled  = !hasTrip;
+
+  const summary = document.getElementById("trip-events-summary");
+  if (summary) {
+    summary.textContent = hasTrip
+      ? `${state.flights.length} flight${state.flights.length !== 1 ? "s" : ""}, ${state.hotels.length} hotel${state.hotels.length !== 1 ? "s" : ""}`
+      : "Select a trip to begin";
   }
 
-  if (logLine) {
-    const lines = status.textContent.split("\n").slice(-11);
-    lines.push(logLine);
-    status.textContent = lines.join("\n");
+  if (hasTrip) {
+    renderEventTiles(state.flights, state.hotels, actions);
+  } else {
+    const list = document.getElementById("trip-events-list");
+    if (list) list.innerHTML = '<div class="tiles-empty">Select a trip to start adding flights and hotels.</div>';
   }
 }

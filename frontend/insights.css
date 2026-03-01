@@ -10,7 +10,7 @@
   border-radius: 999px;
   padding: 6px 12px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--card-bg);
   color: var(--text);
 }
 
@@ -30,7 +30,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px;
-  background: #fff;
+  background: var(--card-bg);
 }
 
 .flight-tile-header {
@@ -91,7 +91,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px;
-  background: #fff;
+  background: var(--card-bg);
 }
 
 .daycount-country-header {
@@ -112,13 +112,13 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px;
-  background: #f8fafc;
+  background: var(--card-bg);
   color: var(--text);
 }
 
 .daycount-month.active {
-  border-color: var(--primary);
-  background: #ecfeff;
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .daycount-month .label {
@@ -155,7 +155,7 @@
 .secondary-card {
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--card-bg);
 }
 
 .tag-soft {

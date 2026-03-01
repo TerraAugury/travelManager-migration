@@ -1,195 +1,195 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Travel Manager (Migrated Frontend)</title>
-  <link rel="stylesheet" href="./styles.css" />
-  <link rel="stylesheet" href="./insights.css" />
-  <link rel="stylesheet" href="./map.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#2563eb" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Trips" />
-  <link rel="apple-touch-icon" href="/icons/icon.svg" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <title>Travel Manager</title>
+  <link rel="stylesheet" href="./styles.css"/>
+  <link rel="stylesheet" href="./layout.css"/>
+  <link rel="stylesheet" href="./overlays.css"/>
+  <link rel="stylesheet" href="./insights.css"/>
+  <link rel="stylesheet" href="./map.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#007aff"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Trips"/>
+  <link rel="apple-touch-icon" href="/icons/icon.svg"/>
 </head>
 <body>
-  <main class="container">
-    <header class="header">
-      <h1>Travel Manager</h1>
+<section id="auth-panel" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">✈︎</div>
+    <h1 class="auth-title">Travel Manager</h1>
+    <form id="login-form" class="form-stack">
+      <div class="field"><label for="login-email">Email</label><input id="login-email" type="email" required autocomplete="email"/></div>
+      <div class="field"><label for="login-password">Password</label><input id="login-password" type="password" required autocomplete="current-password"/></div>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:4px">Sign in</button>
+    </form>
+  </div>
+</section>
+<div id="app-panel" class="hidden">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-icon">✈︎</div>
+        <span class="topbar-title">Travel Manager</span>
+      </div>
+      <div class="topbar-right">
+        <span id="user-line" class="topbar-user"></span>
+        <div class="topbar-menu">
+          <button id="topbar-menu-btn" class="btn btn-ghost btn-xs" type="button">Menu</button>
+          <div id="topbar-menu-panel" class="menu-panel hidden">
+            <button id="export-btn" class="menu-item" type="button">Export JSON</button>
+            <label class="menu-item" style="cursor:pointer">Import JSON<input id="import-file" type="file" accept="application/json" style="display:none"/></label>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-ghost btn-xs" type="button">Sign out</button>
+      </div>
     </header>
-    <section id="auth-panel" class="panel">
-      <h2>Login</h2>
-      <form id="login-form" class="form-grid">
-        <label>
-          Email
-          <input id="login-email" type="email" required />
-        </label>
-        <label>
-          Password
-          <input id="login-password" type="password" required />
-        </label>
-        <button type="submit">Sign in</button>
-      </form>
-      <p class="hint">
-        Use the seeded admin account from backend setup.
-      </p>
-    </section>
-    <section id="app-panel" class="panel hidden">
-      <div class="row">
-        <div>
-          <h2>Trips</h2>
-          <p id="user-line" class="hint"></p>
-        </div>
-        <button id="logout-btn" type="button" class="danger">Logout</button>
-      </div>
-
-      <form id="trip-form" class="form-grid">
-        <label>
-          Trip Name
-          <input id="trip-name" type="text" maxlength="120" required />
-        </label>
-        <label class="wide">
-          Notes
-          <textarea id="trip-notes" rows="2" maxlength="4000"></textarea>
-        </label>
-        <label>
-          Start Date
-          <input id="trip-start" type="date" />
-        </label>
-        <label>
-          End Date
-          <input id="trip-end" type="date" />
-        </label>
-        <button type="submit">Create Trip</button>
-      </form>
-
-      <div class="row tools">
-        <label>
-          Active Trip
-          <select id="trip-select">
-            <option value="">Select trip</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="row tools">
-        <button id="export-btn" type="button">Export Legacy JSON</button>
-        <label class="file-label">
-          Import Legacy JSON
-          <input id="import-file" type="file" accept="application/json" />
-        </label>
-      </div>
-
-      <ul id="trip-list" class="list"></ul>
-
-      <section id="trip-detail-panel" class="panel nested hidden">
-        <h3 id="trip-detail-title">Trip Details</h3>
-        <h4>Edit Active Trip</h4>
-        <form id="trip-edit-form" class="form-grid compact">
-          <label>Trip Name<input id="trip-edit-name" type="text" maxlength="120" /></label>
-          <label>Start Date<input id="trip-edit-start" type="date" /></label>
-          <label>End Date<input id="trip-edit-end" type="date" /></label>
-          <label class="wide">Notes<textarea id="trip-edit-notes" rows="2" maxlength="4000"></textarea></label>
-          <button type="submit">Save Trip</button>
-        </form>
-
-        <div class="columns">
-          <div>
-            <h4>Flights</h4>
-            <form id="flight-form" class="form-grid compact">
-              <label>Flight #<input id="flight-number" type="text" required /></label>
-              <label>Airline<input id="flight-airline" type="text" maxlength="120" /></label>
-              <label>PNR<input id="flight-pnr" type="text" maxlength="24" /></label>
-              <label>Departure Name<input id="flight-dep-name" type="text" maxlength="180" /></label>
-              <label>Departure Code<input id="flight-dep-code" type="text" maxlength="8" /></label>
-              <label>Arrival Name<input id="flight-arr-name" type="text" maxlength="180" /></label>
-              <label>Arrival Code<input id="flight-arr-code" type="text" maxlength="8" /></label>
-              <label>Departure Time<input id="flight-dep-time" type="datetime-local" /></label>
-              <label>Arrival Time<input id="flight-arr-time" type="datetime-local" /></label>
-              <label class="wide">Passengers (comma separated)<input id="flight-passengers" type="text" /></label>
-              <button type="submit">Add Flight</button>
+    <div class="screen-tabs desktop-tabs">
+      <button class="tab-btn active" data-screen="trips">Trips</button>
+      <button class="tab-btn" data-screen="daycount">Days by Country</button>
+      <button class="tab-btn" data-screen="upcoming">Upcoming Flights</button>
+      <button class="tab-btn" data-screen="map">Map</button>
+    </div>
+    <div class="screen-container">
+      <main id="screen-trips" class="screen active-screen layout-columns">
+        <div class="card-trip-container">
+          <div class="card card-trip">
+            <div class="card-title">Control Center</div>
+            <div class="field"><label for="trip-select">Trip</label><select id="trip-select"><option value="">Select a trip…</option></select></div>
+            <form id="trip-form" class="new-trip-form hidden form-stack">
+              <div class="field"><label for="trip-name">Trip Name</label><input id="trip-name" type="text" maxlength="120" required/></div>
+              <div class="field-row"><div class="field"><label for="trip-start">Start</label><input id="trip-start" type="date"/></div><div class="field"><label for="trip-end">End</label><input id="trip-end" type="date"/></div></div>
+              <div class="field"><label for="trip-notes">Notes</label><textarea id="trip-notes" rows="2" maxlength="4000"></textarea></div>
+              <button type="submit" class="btn btn-primary btn-full">Create Trip</button>
             </form>
-            <ul id="flight-list" class="list compact-list"></ul>
+            <form id="trip-edit-form" class="trip-edit-form hidden form-stack">
+              <div class="field"><label for="trip-edit-name">Trip Name</label><input id="trip-edit-name" type="text" maxlength="120"/></div>
+              <div class="field-row"><div class="field"><label for="trip-edit-start">Start</label><input id="trip-edit-start" type="date"/></div><div class="field"><label for="trip-edit-end">End</label><input id="trip-edit-end" type="date"/></div></div>
+              <div class="field"><label for="trip-edit-notes">Notes</label><textarea id="trip-edit-notes" rows="2" maxlength="4000"></textarea></div>
+              <div class="btn-row"><button type="submit" class="btn btn-primary">Save</button><button type="button" id="trip-delete-btn" class="btn btn-danger">Delete</button></div>
+            </form>
+            <div class="control-grid"><button id="add-flight-btn" class="btn btn-primary" type="button" disabled>✈︎ Add Flight</button><button id="add-hotel-btn" class="btn btn-primary" type="button" disabled>🛏 Add Hotel</button></div>
+            <div class="summary-bar"><span id="trip-events-summary">Select a trip to begin</span></div>
           </div>
-
-          <div>
-            <h4>Hotels</h4>
-            <form id="hotel-form" class="form-grid compact">
-              <label>Hotel Name<input id="hotel-name" type="text" required /></label>
-              <label>Confirmation<input id="hotel-confirmation" type="text" maxlength="64" /></label>
-              <label>Check-in<input id="hotel-checkin" type="date" required /></label>
-              <label>Check-out<input id="hotel-checkout" type="date" required /></label>
-              <label>Pax Count<input id="hotel-pax" type="number" min="1" value="1" required /></label>
-              <label>Payment
-                <select id="hotel-payment">
-                  <option value="prepaid">Prepaid</option>
-                  <option value="pay_at_hotel">Pay At Hotel</option>
-                </select>
-              </label>
-              <label class="wide">Passengers (comma separated)<input id="hotel-passengers" type="text" /></label>
-              <button type="submit">Add Hotel</button>
-            </form>
-            <ul id="hotel-list" class="list compact-list"></ul>
+          <button id="toggle-alltrips-btn" class="btn btn-ghost stats-toggle-btn" type="button" aria-expanded="false">Show all trips statistics</button>
+          <div id="stats-card" class="card card-trip-details hidden">
+            <div class="card-title">All trips statistics</div>
+            <div id="trip-stats-container" class="trip-stats-grid"></div>
+            <div id="trip-pax-container"></div>
+            <p id="trip-details-empty" class="hint">Add flights or hotels to start building your travel history.</p>
           </div>
         </div>
-
-        <h4>Passengers</h4>
-        <ul id="passenger-list" class="list compact-list"></ul>
-      </section>
-
-      <section class="panel nested">
-        <h3>Upcoming Flights</h3>
-        <div class="row tools">
-          <label>Passenger<select id="upcoming-passenger"><option value="">All passengers</option></select></label>
+        <div class="event-stream-container">
+          <div id="trip-events-list" class="tiles-grid"><div class="tiles-empty">Select a trip to start adding flights and hotels.</div></div>
         </div>
-        <p id="upcoming-empty" class="hint">No upcoming flights.</p>
-        <div id="upcoming-list" class="insight-list"></div>
-      </section>
-
-      <section class="panel nested">
-        <h3>Daycount</h3>
-        <div class="row tools">
-          <label>Passenger<select id="daycount-passenger"><option value="">Select passenger</option></select></label>
+      </main>
+      <section id="screen-daycount" class="screen">
+        <div class="card card-daycount">
+          <div class="card-title">Days by Country</div>
+          <div class="card-subtitle">Per passenger, per month</div>
+          <div class="field-group">
+            <div class="field"><label for="daycount-passenger">Passenger</label><select id="daycount-passenger"><option value="">Select passenger</option></select></div>
+            <div class="field"><label>Year</label><div id="daycount-year-list" class="chip-row"></div></div>
+          </div>
+          <p id="daycount-empty" class="hint">Select a passenger to view days by country.</p>
+          <div id="daycount-results" class="daycount-results"></div>
+          <p id="daycount-upcoming-empty" class="hidden"></p>
+          <div id="daycount-upcoming-list" class="hidden"></div>
         </div>
-        <div id="daycount-year-list" class="chip-row"></div>
-        <p id="daycount-empty" class="hint">Choose a passenger to view days by country.</p>
-        <div id="daycount-results" class="daycount-results"></div>
-        <p id="daycount-upcoming-empty" class="hidden"></p>
-        <div id="daycount-upcoming-list" class="hidden"></div>
       </section>
-
-      <section class="panel nested">
-        <h3>All Trips Statistics</h3>
-        <p id="trip-details-empty" class="hint">No trip data yet.</p>
-        <div id="trip-stats-container" class="stats-grid"></div>
-        <div id="trip-pax-container" class="stats-grid"></div>
-      </section>
-
-      <section class="panel nested">
-        <h3>Route Map</h3>
-        <div class="row tools">
-          <label>Passenger<select id="map-passenger"><option value="__all__">All passengers</option></select></label>
-          <label>Route<select id="map-route"><option value="__all__">All routes</option></select></label>
-          <button id="map-badges-btn" type="button">Hide badges</button>
-          <button id="map-fullscreen-btn" type="button">Full screen</button>
+      <section id="screen-upcoming" class="screen">
+        <div class="card card-daycount">
+          <div class="card-title">Upcoming Flights</div>
+          <div class="card-subtitle">All passengers, sorted by departure</div>
+          <div class="field"><label for="upcoming-passenger">Passenger</label><select id="upcoming-passenger"><option value="">All passengers</option></select></div>
+          <p id="upcoming-empty" class="hint">No upcoming flights.</p>
+          <div id="upcoming-list" class="insight-list"></div>
         </div>
-        <div id="map-year-list" class="chip-row"></div>
-        <p id="map-empty" class="hint">No flights for this selection.</p>
-        <p id="map-warning" class="hint hidden"></p>
-        <div id="map-canvas" class="map-canvas hidden"></div>
       </section>
-    </section>
-
-    <section class="panel">
-      <h2>Status</h2>
-      <pre id="status-log" class="status">Ready.</pre>
-    </section>
-  </main>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="./sw-register.js"></script>
-  <script type="module" src="./src/main.js"></script>
+      <section id="screen-map" class="screen">
+        <div class="card card-daycount">
+          <div class="card-title">Map</div>
+          <div class="card-subtitle">Flights for a selected year</div>
+          <div class="field-group">
+            <div class="field"><label for="map-passenger">Passenger</label><select id="map-passenger"><option value="__all__">All passengers</option></select></div>
+            <div class="field"><label for="map-route">Route</label><select id="map-route"><option value="__all__">All routes</option></select></div>
+            <div class="field"><label>Year</label><div id="map-year-list" class="chip-row"></div></div>
+          </div>
+          <div class="map-actions">
+            <button id="map-fullscreen-btn" class="btn btn-ghost btn-xs" type="button">Full screen</button>
+            <button id="map-badges-btn"     class="btn btn-ghost btn-xs" type="button">Hide badges</button>
+          </div>
+          <p id="map-empty"   class="hint">Add flights to visualize them on a map.</p>
+          <p id="map-warning" class="hint hidden"></p>
+          <div id="map-canvas" class="map-canvas hidden" aria-label="Map"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-screen="trips"><span class="nav-icon">✈︎</span><span class="nav-label">Trips</span></button>
+    <button class="nav-btn" data-screen="daycount"><span class="nav-icon">📅</span><span class="nav-label">Days</span></button>
+    <button class="nav-btn" data-screen="upcoming"><span class="nav-icon">🔜</span><span class="nav-label">Upcoming</span></button>
+    <button class="nav-btn" data-screen="map"><span class="nav-icon">🗺</span><span class="nav-label">Map</span></button>
+  </nav>
+</div>
+<div id="flight-overlay" class="overlay hidden" aria-hidden="true">
+  <div class="overlay-backdrop"></div>
+  <section class="overlay-card" role="dialog" aria-modal="true">
+    <button type="button" id="close-flight-overlay" class="overlay-close-btn" aria-label="Close">×</button>
+    <div id="flight-overlay-title" class="card-title">Add Flight</div>
+    <form id="flight-form" class="form-stack">
+      <div class="field-group">
+        <div class="field"><label for="flight-number">Flight #</label><input id="flight-number" class="upper" type="text" required autocomplete="off"/></div>
+        <div class="field"><label for="flight-airline">Airline</label><input id="flight-airline" type="text" maxlength="120"/></div>
+        <div class="field"><label for="flight-pnr">PNR</label><input id="flight-pnr" class="upper" type="text" maxlength="24"/></div>
+      </div>
+      <div class="field-group">
+        <div class="field"><label for="flight-dep-time">Departure</label><input id="flight-dep-time" type="datetime-local"/></div>
+        <div class="field"><label for="flight-arr-time">Arrival</label><input id="flight-arr-time" type="datetime-local"/></div>
+      </div>
+      <div class="field-group">
+        <div class="field"><label for="flight-dep-name">Dep Airport</label><input id="flight-dep-name" type="text" maxlength="180"/></div>
+        <div class="field"><label for="flight-dep-code">Dep IATA</label><input id="flight-dep-code" class="upper" type="text" maxlength="8"/></div>
+        <div class="field"><label for="flight-arr-name">Arr Airport</label><input id="flight-arr-name" type="text" maxlength="180"/></div>
+        <div class="field"><label for="flight-arr-code">Arr IATA</label><input id="flight-arr-code" class="upper" type="text" maxlength="8"/></div>
+      </div>
+      <div class="field"><label for="flight-passengers">Passengers (comma-separated)</label><input id="flight-passengers" type="text"/></div>
+      <div class="overlay-actions">
+        <button type="button" class="btn btn-ghost" id="cancel-flight-btn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save flight</button>
+      </div>
+    </form>
+  </section>
+</div>
+<div id="hotel-overlay" class="overlay hidden" aria-hidden="true">
+  <div class="overlay-backdrop"></div>
+  <section class="overlay-card" role="dialog" aria-modal="true">
+    <button type="button" id="close-hotel-overlay" class="overlay-close-btn" aria-label="Close">×</button>
+    <div id="hotel-overlay-title" class="card-title">Add Hotel</div>
+    <form id="hotel-form" class="form-stack">
+      <div class="field"><label for="hotel-name">Hotel Name</label><input id="hotel-name" type="text" required/></div>
+      <div class="field"><label for="hotel-confirmation">Confirmation #</label><input id="hotel-confirmation" type="text" maxlength="64"/></div>
+      <div class="field-group">
+        <div class="field"><label for="hotel-checkin">Check-in</label><input id="hotel-checkin" type="date" required/></div>
+        <div class="field"><label for="hotel-checkout">Check-out</label><input id="hotel-checkout" type="date" required/></div>
+        <div class="field"><label for="hotel-pax">Guests</label><input id="hotel-pax" type="number" min="1" value="1" required/></div>
+        <div class="field"><label for="hotel-payment">Payment</label><select id="hotel-payment"><option value="prepaid">Already paid</option><option value="pay_at_hotel">Pay at hotel</option></select></div>
+      </div>
+      <div class="field"><label for="hotel-passengers">Passengers (comma-separated)</label><input id="hotel-passengers" type="text"/></div>
+      <div class="overlay-actions">
+        <button type="button" class="btn btn-ghost" id="cancel-hotel-btn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save hotel</button>
+      </div>
+    </form>
+  </section>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./sw-register.js"></script>
+<script type="module" src="./src/main.js"></script>
 </body>
 </html>

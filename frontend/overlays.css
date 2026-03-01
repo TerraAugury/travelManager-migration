@@ -1,0 +1,43 @@
+.overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+@media (min-width: 600px) {
+  .overlay { align-items: center; }
+}
+
+.overlay-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.overlay-card {
+  position: relative; z-index: 1;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 28px 20px calc(20px + var(--safe-bottom));
+  width: 100%; max-width: 560px; max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+}
+@media (min-width: 600px) {
+  .overlay-card { border-radius: var(--r-lg); }
+}
+
+.overlay-close-btn {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 999px; border: none;
+  background: var(--accent-soft); color: var(--muted);
+  font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+
+.overlay-actions {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding-top: 10px; border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
