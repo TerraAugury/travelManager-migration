@@ -12,13 +12,19 @@ function appMock() {
   };
 }
 
-function replyMock() {
-  return { statusCode: 200, code(v) { this.statusCode = v; return this; } };
+function cMock({ jsonBody = null, headers = {} } = {}) {
+  return {
+    req: {
+      async json() { return jsonBody; },
+      header(name) { return headers[name.toLowerCase()] ?? null; }
+    },
+    json(data, status = 200) { return { data, status }; }
+  };
 }
 
 test("POST /auth/login returns token for valid credentials", async () => {
   const app = appMock();
-  const passwordHash = hashPassword("super-secret-pass");
+  const passwordHash = await hashPassword("super-secret-pass");
   await registerAuthRoutes(app, {
     allowDevHeaderAuth: false,
     usersRepository: {
@@ -35,11 +41,10 @@ test("POST /auth/login returns token for valid credentials", async () => {
   });
 
   const handler = app.routes.get("POST /auth/login");
-  const reply = replyMock();
-  const body = await handler({ body: { email: "a@b.com", password: "super-secret-pass" } }, reply);
-  assert.equal(reply.statusCode, 200);
-  assert.ok(body.token);
-  assert.equal(body.user.email, "a@b.com");
+  const result = await handler(cMock({ jsonBody: { email: "a@b.com", password: "super-secret-pass" } }));
+  assert.equal(result.status, 200);
+  assert.ok(result.data.token);
+  assert.equal(result.data.user.email, "a@b.com");
 });
 
 test("POST /auth/login rejects invalid credentials", async () => {
@@ -51,9 +56,7 @@ test("POST /auth/login rejects invalid credentials", async () => {
   });
 
   const handler = app.routes.get("POST /auth/login");
-  const reply = replyMock();
-  const body = await handler({ body: { email: "bad@bad.com", password: "wrong-pass" } }, reply);
-  assert.equal(reply.statusCode, 401);
-  assert.match(body.error, /Invalid email or password/);
+  const result = await handler(cMock({ jsonBody: { email: "bad@bad.com", password: "wrong-pass" } }));
+  assert.equal(result.status, 401);
+  assert.match(result.data.error, /Invalid email or password/);
 });
-

@@ -4,25 +4,14 @@ import { buildLegacyTripsImportService } from "../src/services/legacyTripsImport
 
 function createPoolMock() {
   const calls = [];
-  const client = {
-    async query(text, params) {
-      const sql = String(text).trim();
-      calls.push({ text: sql, params });
-      if (/RETURNING id/.test(sql)) {
-        if (/INSERT INTO trips/.test(sql)) return { rows: [{ id: "trip-1" }], rowCount: 1 };
-        if (/INSERT INTO flight_records/.test(sql)) return { rows: [{ id: "flight-1" }], rowCount: 1 };
-        if (/INSERT INTO hotel_records/.test(sql)) return { rows: [{ id: "hotel-1" }], rowCount: 1 };
-        if (/INSERT INTO passengers/.test(sql)) return { rows: [{ id: "p1" }], rowCount: 1 };
-      }
-      return { rows: [], rowCount: 1 };
-    },
-    release() {}
-  };
   return {
     calls,
     pool: {
-      async connect() {
-        return client;
+      async query(text, params) {
+        const sql = String(text).trim();
+        calls.push({ text: sql, params });
+        if (/INSERT INTO passengers/.test(sql)) return { rows: [{ id: "p1" }], rowCount: 1 };
+        return { rows: [], rowCount: 1 };
       }
     }
   };
@@ -56,8 +45,6 @@ test("replaceForOwner deletes old trips and imports new payload", async () => {
 
   const result = await service.replaceForOwner("user-1", payload);
   assert.equal(result.importedTrips, 1);
-  assert.equal(calls[0].text, "BEGIN");
-  assert.match(calls[1].text, /DELETE FROM trips/);
-  assert.equal(calls[calls.length - 1].text, "COMMIT");
+  assert.match(calls[0].text, /DELETE FROM trips/);
+  assert.match(calls[1].text, /INSERT INTO trips/);
 });
-

@@ -16,8 +16,9 @@ test("create stores hashed token and returns session row", async () => {
   const row = await repo.create({ userId: "u1", token: "secret-token" });
   assert.equal(row.id, "s1");
   assert.match(calls[0].text, /INSERT INTO sessions/);
-  assert.equal(calls[0].params[0], "u1");
-  assert.notEqual(calls[0].params[1], "secret-token");
+  // id is first param, userId is second, tokenHash is third
+  assert.equal(calls[0].params[1], "u1");
+  assert.notEqual(calls[0].params[2], "secret-token");
 });
 
 test("findActiveByToken queries token hash and validity window", async () => {
@@ -33,7 +34,6 @@ test("findActiveByToken queries token hash and validity window", async () => {
 
   const row = await repo.findActiveByToken("token-value");
   assert.equal(row, null);
-  assert.match(calls[0].text, /expires_at > NOW\(\)/);
+  assert.match(calls[0].text, /expires_at > datetime\('now'\)/);
   assert.notEqual(calls[0].params[0], "token-value");
 });
-

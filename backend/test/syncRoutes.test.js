@@ -11,8 +11,14 @@ function appMock() {
   };
 }
 
-function replyMock() {
-  return { statusCode: 200, code(v) { this.statusCode = v; return this; } };
+function cMock({ headers = {}, jsonBody = null } = {}) {
+  return {
+    req: {
+      header(name) { return headers[name.toLowerCase()] ?? null; },
+      async json() { return jsonBody; }
+    },
+    json(data, status = 200) { return { data, status }; }
+  };
 }
 
 function depsMock() {
@@ -29,23 +35,24 @@ function depsMock() {
 test("GET /sync/trips returns legacy trips for authenticated user", async () => {
   const app = appMock();
   const deps = depsMock();
-  await registerSyncRoutes(app, deps);
+  registerSyncRoutes(app, deps);
 
   const handler = app.routes.get("GET /sync/trips");
-  const body = await handler({ headers: { authorization: "Bearer token" } }, replyMock());
-  assert.equal(Array.isArray(body), true);
-  assert.equal(body[0].name, "Trip");
+  const result = await handler(cMock({ headers: { authorization: "Bearer token" } }));
+  assert.equal(Array.isArray(result.data), true);
+  assert.equal(result.data[0].name, "Trip");
 });
 
 test("PUT /sync/trips rejects non-array body", async () => {
   const app = appMock();
   const deps = depsMock();
-  await registerSyncRoutes(app, deps);
+  registerSyncRoutes(app, deps);
 
   const handler = app.routes.get("PUT /sync/trips");
-  const reply = replyMock();
-  const body = await handler({ headers: { authorization: "Bearer token" }, body: {} }, reply);
-  assert.equal(reply.statusCode, 400);
-  assert.match(body.error, /array of trips/);
+  const result = await handler(cMock({
+    headers: { authorization: "Bearer token" },
+    jsonBody: {}
+  }));
+  assert.equal(result.status, 400);
+  assert.match(result.data.error, /array of trips/);
 });
-

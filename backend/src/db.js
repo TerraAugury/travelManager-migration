@@ -1,26 +1,22 @@
-import pg from "pg";
-
-const { Pool } = pg;
-
-export function buildDb({ databaseUrl }) {
-  const pool = new Pool({
-    connectionString: databaseUrl,
-    max: 10
-  });
+export function buildDb(d1) {
+  const pool = {
+    async query(sql, params = []) {
+      const d1sql = sql.replace(/\$\d+/g, "?");
+      const stmt = d1.prepare(d1sql).bind(...params);
+      const result = await stmt.all();
+      const rowCount =
+        result.results?.length > 0
+          ? result.results.length
+          : (result.meta?.changes ?? 0);
+      return { rows: result.results ?? [], rowCount };
+    }
+  };
 
   async function check() {
-    const result = await pool.query("SELECT 1 AS ok");
-    return result.rows?.[0]?.ok === 1;
+    const row = await d1.prepare("SELECT 1 AS ok").first();
+    return row?.ok === 1;
   }
 
-  async function close() {
-    await pool.end();
-  }
-
-  return {
-    pool,
-    check,
-    close
-  };
+  return { pool, check };
 }
 

@@ -8,7 +8,8 @@ test("ensureByNames upserts one row per name", async () => {
     pool: {
       async query(text, params) {
         calls.push({ text, params });
-        return { rows: [{ id: `id-${params[0]}`, name: params[0] }], rowCount: 1 };
+        // params[0] is UUID, params[1] is name
+        return { rows: [{ id: "p1", name: params[1] }], rowCount: 1 };
       }
     }
   });
@@ -17,7 +18,8 @@ test("ensureByNames upserts one row per name", async () => {
   assert.equal(rows.length, 2);
   assert.match(calls[0].text, /INSERT INTO passengers/);
   assert.match(calls[0].text, /ON CONFLICT/);
-  assert.deepEqual(calls.map((c) => c.params[0]), ["Alice", "Bob"]);
+  // params[1] is the name (params[0] is the generated UUID)
+  assert.deepEqual(calls.map((c) => c.params[1]), ["Alice", "Bob"]);
 });
 
 test("link methods insert mapping rows with conflict guards", async () => {

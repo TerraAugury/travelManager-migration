@@ -29,23 +29,21 @@ function parseLoginBody(body) {
 export async function registerAuthRoutes(app, deps) {
   const { usersRepository, sessionsRepository } = deps;
 
-  app.post("/auth/login", async (request, reply) => {
-    const parsed = parseLoginBody(request.body);
-    if (parsed.error) return sendError(reply, 400, parsed.error);
+  app.post("/auth/login", async (c) => {
+    const parsed = parseLoginBody(await c.req.json());
+    if (parsed.error) return sendError(c, 400, parsed.error);
 
     const user = await usersRepository.findAuthByEmail(parsed.value.email);
     const valid =
       user &&
       user.is_active &&
-      verifyPassword(parsed.value.password, user.password_hash);
-    if (!valid) {
-      return sendError(reply, 401, "Invalid email or password.");
-    }
+      (await verifyPassword(parsed.value.password, user.password_hash));
+    if (!valid) return sendError(c, 401, "Invalid email or password.");
 
     const token = generateAuthToken();
     const session = await sessionsRepository.create({ userId: user.id, token });
 
-    return {
+    return c.json({
       token,
       expiresAt: session.expires_at,
       user: {
@@ -54,27 +52,27 @@ export async function registerAuthRoutes(app, deps) {
         display_name: user.display_name,
         role: user.role
       }
-    };
+    });
   });
 
-  app.get("/auth/me", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    return {
+  app.get("/auth/me", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    return c.json({
       id: auth.user.id,
       email: auth.user.email,
       display_name: auth.user.display_name,
       role: auth.user.role
-    };
+    });
   });
 
-  app.post("/auth/logout", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
+  app.post("/auth/logout", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
     if (auth.token) {
       await sessionsRepository.revokeToken(auth.token);
     }
-    return { ok: true };
+    return c.json({ ok: true });
   });
 }
 

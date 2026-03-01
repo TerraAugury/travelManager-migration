@@ -41,85 +41,85 @@ function parseHotelBody(body) {
   };
 }
 
-export async function registerHotelRoutes(app, deps) {
+export function registerHotelRoutes(app, deps) {
   const { tripsRepository, hotelsRepository, passengersRepository } = deps;
 
-  app.get("/trips/:tripId/hotels", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    const { tripId } = request.params;
-    if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
+  app.get("/trips/:tripId/hotels", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const tripId = c.req.param("tripId");
+    if (!isUuid(tripId)) return sendError(c, 400, "Invalid tripId.");
     const trip = await tripsRepository.getById(tripId, auth.user.id);
-    if (!trip) return sendError(reply, 404, "Trip not found.");
-    const items = await hotelsRepository.listByTrip({ tripId, ownerUserId: auth.user.id });
-    return { items };
+    if (!trip) return sendError(c, 404, "Trip not found.");
+    const hotels = await hotelsRepository.listByTrip({ tripId, ownerUserId: auth.user.id });
+    const items = await Promise.all(
+      hotels.map(async (h) => ({
+        ...h,
+        passenger_names: await passengersRepository.listPassengersForHotel(h.id)
+      }))
+    );
+    return c.json({ items });
   });
 
-  app.post("/trips/:tripId/hotels", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    const { tripId } = request.params;
-    if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
-    const parsed = parseHotelBody(request.body);
-    if (parsed.error) return sendError(reply, 400, parsed.error);
+  app.post("/trips/:tripId/hotels", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const tripId = c.req.param("tripId");
+    if (!isUuid(tripId)) return sendError(c, 400, "Invalid tripId.");
+    const parsed = parseHotelBody(await c.req.json());
+    if (parsed.error) return sendError(c, 400, parsed.error);
 
     const created = await hotelsRepository.create({
       tripId,
       ownerUserId: auth.user.id,
       ...parsed.value
     });
-    if (!created) return sendError(reply, 404, "Trip not found.");
+    if (!created) return sendError(c, 404, "Trip not found.");
 
     const passengers = await passengersRepository.ensureByNames(parsed.value.passengerNames);
     const passengerIds = passengers.map((p) => p.id);
     await passengersRepository.linkToTrip({ tripId, passengerIds });
     await passengersRepository.linkToHotel({ hotelRecordId: created.id, passengerIds });
 
-    reply.code(201);
-    return {
-      ...created,
-      passenger_names: passengers.map((p) => p.name)
-    };
+    return c.json({ ...created, passenger_names: passengers.map((p) => p.name) }, 201);
   });
 
-  app.patch("/trips/:tripId/hotels/:hotelId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    const { tripId, hotelId } = request.params;
+  app.patch("/trips/:tripId/hotels/:hotelId", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const tripId = c.req.param("tripId");
+    const hotelId = c.req.param("hotelId");
     if (!isUuid(tripId) || !isUuid(hotelId)) {
-      return sendError(reply, 400, "Invalid tripId or hotelId.");
+      return sendError(c, 400, "Invalid tripId or hotelId.");
     }
-    const parsed = parseHotelBody(request.body);
-    if (parsed.error) return sendError(reply, 400, parsed.error);
+    const parsed = parseHotelBody(await c.req.json());
+    if (parsed.error) return sendError(c, 400, parsed.error);
 
     const updated = await hotelsRepository.update({
       hotelId,
       ownerUserId: auth.user.id,
       ...parsed.value
     });
-    if (!updated || updated.trip_id !== tripId) return sendError(reply, 404, "Hotel not found.");
+    if (!updated || updated.trip_id !== tripId) return sendError(c, 404, "Hotel not found.");
 
     const passengers = await passengersRepository.ensureByNames(parsed.value.passengerNames);
     const passengerIds = passengers.map((p) => p.id);
     await passengersRepository.linkToTrip({ tripId, passengerIds });
     await passengersRepository.replaceHotelLinks({ hotelRecordId: hotelId, passengerIds });
 
-    return {
-      ...updated,
-      passenger_names: passengers.map((p) => p.name)
-    };
+    return c.json({ ...updated, passenger_names: passengers.map((p) => p.name) });
   });
 
-  app.delete("/trips/:tripId/hotels/:hotelId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    const { tripId, hotelId } = request.params;
+  app.delete("/trips/:tripId/hotels/:hotelId", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const tripId = c.req.param("tripId");
+    const hotelId = c.req.param("hotelId");
     if (!isUuid(tripId) || !isUuid(hotelId)) {
-      return sendError(reply, 400, "Invalid tripId or hotelId.");
+      return sendError(c, 400, "Invalid tripId or hotelId.");
     }
     const removed = await hotelsRepository.remove({ hotelId, ownerUserId: auth.user.id });
-    if (!removed) return sendError(reply, 404, "Hotel not found.");
-    reply.code(204);
-    return null;
+    if (!removed) return sendError(c, 404, "Hotel not found.");
+    return new Response(null, { status: 204 });
   });
 }

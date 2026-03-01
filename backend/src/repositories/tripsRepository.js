@@ -1,10 +1,12 @@
+import crypto from "node:crypto";
+
 export function buildTripsRepository({ pool }) {
   async function listByOwner(ownerUserId) {
     const result = await pool.query(
       `SELECT id, owner_user_id, name, notes, start_date, end_date, created_at, updated_at
        FROM trips
        WHERE owner_user_id = $1
-       ORDER BY COALESCE(start_date, DATE '9999-12-31'), created_at`,
+       ORDER BY COALESCE(start_date, '9999-12-31'), created_at`,
       [ownerUserId]
     );
     return result.rows;
@@ -22,11 +24,12 @@ export function buildTripsRepository({ pool }) {
 
   async function create(input) {
     const { ownerUserId, name, notes = null, startDate = null, endDate = null } = input;
+    const id = crypto.randomUUID();
     const result = await pool.query(
-      `INSERT INTO trips (owner_user_id, name, notes, start_date, end_date)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO trips (id, owner_user_id, name, notes, start_date, end_date)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, owner_user_id, name, notes, start_date, end_date, created_at, updated_at`,
-      [ownerUserId, name, notes, startDate, endDate]
+      [id, ownerUserId, name, notes, startDate, endDate]
     );
     return result.rows[0];
   }
@@ -39,7 +42,8 @@ export function buildTripsRepository({ pool }) {
          name = COALESCE($3, name),
          notes = COALESCE($4, notes),
          start_date = COALESCE($5, start_date),
-         end_date = COALESCE($6, end_date)
+         end_date = COALESCE($6, end_date),
+         updated_at = datetime('now')
        WHERE id = $1 AND owner_user_id = $2
        RETURNING id, owner_user_id, name, notes, start_date, end_date, created_at, updated_at`,
       [tripId, ownerUserId, name ?? null, notes ?? null, startDate ?? null, endDate ?? null]
@@ -63,4 +67,3 @@ export function buildTripsRepository({ pool }) {
     remove
   };
 }
-

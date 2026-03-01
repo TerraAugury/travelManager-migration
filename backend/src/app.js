@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+import { Hono } from "hono";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerTripRoutes } from "./routes/trips.js";
@@ -14,48 +14,46 @@ import { buildHotelsRepository } from "./repositories/hotelsRepository.js";
 import { buildPassengersRepository } from "./repositories/passengersRepository.js";
 import { buildLegacyTripsExportService } from "./services/legacyTripsExport.js";
 import { buildLegacyTripsImportService } from "./services/legacyTripsImport.js";
+import { buildDb } from "./db.js";
 
-export async function buildApp(deps) {
-  const app = Fastify({
-    logger: true
-  });
+export function buildApp({ db: d1, env }) {
+  const app = new Hono();
+  const db = buildDb(d1);
+  const allowDevHeaderAuth = env?.DEV_AUTH_X_USER_ID_FALLBACK === "true";
   const repositories = {
-    allowDevHeaderAuth: Boolean(deps.config?.allowDevHeaderAuth),
-    usersRepository: buildUsersRepository({ pool: deps.db.pool }),
-    sessionsRepository: buildSessionsRepository({ pool: deps.db.pool }),
-    tripsRepository: buildTripsRepository({ pool: deps.db.pool }),
-    flightsRepository: buildFlightsRepository({ pool: deps.db.pool }),
-    hotelsRepository: buildHotelsRepository({ pool: deps.db.pool }),
-    passengersRepository: buildPassengersRepository({ pool: deps.db.pool })
+    allowDevHeaderAuth,
+    usersRepository: buildUsersRepository({ pool: db.pool }),
+    sessionsRepository: buildSessionsRepository({ pool: db.pool }),
+    tripsRepository: buildTripsRepository({ pool: db.pool }),
+    flightsRepository: buildFlightsRepository({ pool: db.pool }),
+    hotelsRepository: buildHotelsRepository({ pool: db.pool }),
+    passengersRepository: buildPassengersRepository({ pool: db.pool })
   };
   const services = {
     legacyTripsExportService: buildLegacyTripsExportService(repositories),
-    legacyTripsImportService: buildLegacyTripsImportService({ pool: deps.db.pool })
+    legacyTripsImportService: buildLegacyTripsImportService({ pool: db.pool })
   };
-  const context = {
-    ...repositories,
-    ...services
-  };
+  const context = { ...repositories, ...services };
 
-  app.get("/", async () => {
-    return {
+  app.get("/", (c) =>
+    c.json({
       service: "travel-manager-backend",
       docs: "Use /health, /health/db, and /trips endpoints.",
       auth: "Use /auth/login then send Authorization: Bearer <token>."
-    };
-  });
+    })
+  );
 
-  await registerHealthRoutes(app, deps);
-  await registerAuthRoutes(app, context);
-  await registerTripRoutes(app, context);
-  await registerFlightRoutes(app, context);
-  await registerHotelRoutes(app, context);
-  await registerPassengerRoutes(app, context);
-  await registerSyncRoutes(app, context);
+  registerHealthRoutes(app, { db });
+  registerAuthRoutes(app, context);
+  registerTripRoutes(app, context);
+  registerFlightRoutes(app, context);
+  registerHotelRoutes(app, context);
+  registerPassengerRoutes(app, context);
+  registerSyncRoutes(app, context);
 
-  app.setErrorHandler((error, request, reply) => {
-    request.log.error({ err: error }, "Unhandled error");
-    reply.code(500).send({ error: "Internal server error" });
+  app.onError((err, c) => {
+    console.error("Unhandled error", err);
+    return c.json({ error: "Internal server error" }, 500);
   });
 
   return app;

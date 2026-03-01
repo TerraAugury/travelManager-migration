@@ -2,14 +2,15 @@
 
 ## Project Overview
 
-A family travel manager app being migrated from a static single-page app
-(localStorage) to a self-hosted frontend/backend architecture with Postgres.
+A family travel manager app migrated from a static single-page app (localStorage)
+to a Cloudflare-native architecture with D1 (SQLite).
 
-**Stack:** Fastify (Node.js, ESM) · PostgreSQL · Caddy · Docker Compose · vanilla JS frontend
+**Stack:** Hono (Cloudflare Workers, ESM) · Cloudflare D1 (SQLite) · Cloudflare Pages · vanilla JS frontend
 
 **Migration phases:**
 - Phases 1–4 complete: scaffold, data model, API v1, frontend integration
-- Phase 5 in progress: production cutover (import, backups, Tailscale access)
+- Phase 5 complete: Cloudflare migration (Workers + D1 + Pages)
+- Phase 6 pending: data import from legacy JSON export
 
 ---
 
@@ -29,16 +30,19 @@ A family travel manager app being migrated from a static single-page app
 ```
 /
 ├── js/               Legacy static frontend (still served as fallback)
-├── frontend/         Migrated frontend (API-backed, modular ESM)
+├── frontend/         Cloudflare Pages frontend (API-backed, modular ESM)
+│   ├── _routes.json  Pages routing: proxy /api/* /auth/* /health to Worker
+│   ├── _headers      Security headers for Pages
 │   └── src/          api.js · state.js · forms.js · render.js · ...
-├── backend/          Fastify API
+├── backend/          Cloudflare Worker (Hono)
+│   ├── wrangler.toml Wrangler config (D1 binding, compatibility flags)
+│   ├── migrations/   001_initial_schema.sql · 002_sessions.sql
 │   └── src/          routes/ · repositories/ · services/ · auth/ · cli/
-├── infra/            Docker Compose + Caddyfile
-├── scripts/          Operational scripts (cutover, backup, smoke, security)
+├── scripts/          Operational scripts (cutover, smoke, security)
 └── .github/workflows/ci.yml
 ```
 
-Backend serves `POST /auth/*`, `GET|POST|PATCH|DELETE /api/trips/*`,
+Worker serves `POST /auth/*`, `GET|POST|PATCH|DELETE /api/trips/*`,
 `/api/sync/trips` (legacy bridge), and `/health`.
 
 ---
@@ -49,12 +53,13 @@ Backend serves `POST /auth/*`, `GET|POST|PATCH|DELETE /api/trips/*`,
 
 ```bash
 npm install
-npm run dev          # node --watch
-npm run migrate      # run DB migrations
-npm run seed:admin   # bootstrap admin user
-npm run lint         # node --check on all source files
-npm test             # node --test
-npm run build        # lint + test
+npm run dev              # wrangler dev (local Worker + D1)
+npm run migrate:local    # wrangler d1 migrations apply --local
+npm run migrate:remote   # wrangler d1 migrations apply --remote
+npm run seed:admin       # outputs SQL to run via wrangler d1 execute
+npm run lint             # node --check on all source files
+npm test                 # node --test
+npm run build            # lint + test
 ```
 
 ### Frontend (`cd frontend`)
@@ -65,34 +70,35 @@ npm test             # node --test test/*.test.js
 npm run build        # lint + test
 ```
 
-### Infrastructure
+### Cloudflare Deployment
 
 ```bash
-cp .env.example .env   # then set POSTGRES_PASSWORD
+# One-time setup: create D1 database
+wrangler d1 create travel-manager
+# Paste the database_id into backend/wrangler.toml
 
-# Start full stack
-docker compose -f infra/docker-compose.yml --env-file .env up -d --build
+# Apply migrations
+cd backend && npm run migrate:remote
 
-# Validate compose config (no .env needed)
-docker compose -f infra/docker-compose.yml --env-file .env.example config
+# Seed admin user (outputs SQL to run manually)
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=... node src/cli/seed-admin.js
 
-# Health check
-curl http://localhost/api/health
-curl http://localhost/api/health/db
+# Deploy Worker
+cd backend && npm run deploy
+
+# Deploy frontend to Pages (via Cloudflare dashboard or wrangler pages deploy)
+# Point Pages project to frontend/ directory
+# Set Worker route for /api/* in Pages settings
 ```
 
 ### Cutover scripts
 
 ```bash
-# Preflight checks
-ADMIN_EMAIL=... ADMIN_PASSWORD=... scripts/cutover-preflight.sh /path/to/trips.json
+# Import legacy JSON data
+ADMIN_EMAIL=... ADMIN_PASSWORD=... scripts/cutover-import.sh /path/to/trips.json
 
-# Full cutover (backup → import → smoke)
-ADMIN_EMAIL=... ADMIN_PASSWORD=... scripts/cutover-run.sh /path/to/trips.json
-
-# Individual steps: backup-db.sh · cutover-import.sh · smoke-api.sh
-# Restore verification: backup-restore-smoke.sh
-# Tailscale private access: scripts/tailscale-private-access.sh start 80
+# Smoke test against live API
+ADMIN_EMAIL=... ADMIN_PASSWORD=... scripts/smoke-api.sh https://your-worker.workers.dev
 ```
 
 ---
@@ -103,7 +109,7 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... scripts/cutover-run.sh /path/to/trips.json
 |---|---|
 | `backend/` | `npm run lint` · `npm test` · `npm run build` |
 | `frontend/` | `npm run lint` · `npm test` · `npm run build` |
-| `infra/` or scripts | `docker compose … config` · `bash -n scripts/*.sh` |
+| `scripts/` | `bash -n scripts/*.sh` |
 | Any PR | `scripts/security-scan.sh` · `npm audit` (if deps changed) |
 
 CI runs all four jobs automatically: `backend`, `frontend`,
@@ -117,5 +123,5 @@ CI runs all four jobs automatically: `backend`, `frontend`,
 - Escape all untrusted output rendered into HTML (XSS prevention).
 - Validate and sanitize all external input before use.
 - Never log tokens, passwords, or personal identifiers.
-- Least-privilege DB credentials; pin dependency versions.
+- Pin dependency versions.
 - Run `scripts/security-scan.sh` (ripgrep-based secret scan) before every push.

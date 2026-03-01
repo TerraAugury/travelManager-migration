@@ -1,13 +1,16 @@
+import crypto from "node:crypto";
+
 export function buildPassengersRepository({ pool }) {
   async function ensureByNames(names) {
     const results = [];
     for (const name of names) {
+      const id = crypto.randomUUID();
       const insert = await pool.query(
-        `INSERT INTO passengers (name)
-         VALUES ($1)
-         ON CONFLICT ((LOWER(name))) DO UPDATE SET name = EXCLUDED.name
+        `INSERT INTO passengers (id, name)
+         VALUES ($1, $2)
+         ON CONFLICT (name_lower) DO UPDATE SET name = excluded.name
          RETURNING id, name`,
-        [name]
+        [id, name]
       );
       results.push(insert.rows[0]);
     }
@@ -70,6 +73,30 @@ export function buildPassengersRepository({ pool }) {
     return result.rows;
   }
 
+  async function listPassengersForFlight(flightRecordId) {
+    const result = await pool.query(
+      `SELECT p.name
+       FROM flight_passengers fp
+       JOIN passengers p ON p.id = fp.passenger_id
+       WHERE fp.flight_record_id = $1
+       ORDER BY LOWER(p.name)`,
+      [flightRecordId]
+    );
+    return result.rows.map((r) => r.name);
+  }
+
+  async function listPassengersForHotel(hotelRecordId) {
+    const result = await pool.query(
+      `SELECT p.name
+       FROM hotel_passengers hp
+       JOIN passengers p ON p.id = hp.passenger_id
+       WHERE hp.hotel_record_id = $1
+       ORDER BY LOWER(p.name)`,
+      [hotelRecordId]
+    );
+    return result.rows.map((r) => r.name);
+  }
+
   return {
     ensureByNames,
     linkToTrip,
@@ -77,6 +104,8 @@ export function buildPassengersRepository({ pool }) {
     replaceFlightLinks,
     linkToHotel,
     replaceHotelLinks,
-    listByTrip
+    listByTrip,
+    listPassengersForFlight,
+    listPassengersForHotel
   };
 }

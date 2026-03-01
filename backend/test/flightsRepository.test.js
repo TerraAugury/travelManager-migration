@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildFlightsRepository } from "../src/repositories/flightsRepository.js";
 
-test("create flight uses ownership-guarded INSERT SELECT", async () => {
+test("create flight checks trip ownership then inserts", async () => {
   const calls = [];
   const repo = buildFlightsRepository({
     pool: {
       async query(text, params) {
         calls.push({ text, params });
+        if (/SELECT id FROM trips/.test(text)) return { rows: [{ id: "trip-1" }], rowCount: 1 };
         return { rows: [{ id: "flight-1" }], rowCount: 1 };
       }
     }
@@ -28,10 +29,14 @@ test("create flight uses ownership-guarded INSERT SELECT", async () => {
   });
 
   assert.equal(row.id, "flight-1");
-  assert.match(calls[0].text, /INSERT INTO flight_records/);
-  assert.match(calls[0].text, /FROM trips t/);
-  assert.equal(calls[0].params[0], "trip-1");
-  assert.equal(calls[0].params[1], "user-1");
+  // First call is ownership check
+  assert.match(calls[0].text, /SELECT id FROM trips/);
+  assert.deepEqual(calls[0].params, ["trip-1", "user-1"]);
+  // Second call is the INSERT
+  assert.match(calls[1].text, /INSERT INTO flight_records/);
+  // params: [id(uuid), tripId, ownerUserId, ...]
+  assert.equal(calls[1].params[1], "trip-1");
+  assert.equal(calls[1].params[2], "user-1");
 });
 
 test("remove flight deletes only for owner", async () => {
@@ -51,7 +56,7 @@ test("remove flight deletes only for owner", async () => {
   assert.deepEqual(calls[0].params, ["f1", "u1"]);
 });
 
-test("update flight uses ownership-guarded UPDATE query", async () => {
+test("update flight uses ownership-guarded subquery", async () => {
   const calls = [];
   const repo = buildFlightsRepository({
     pool: {
@@ -77,7 +82,7 @@ test("update flight uses ownership-guarded UPDATE query", async () => {
   });
 
   assert.equal(row.id, "f-updated");
-  assert.match(calls[0].text, /UPDATE flight_records fr/);
-  assert.match(calls[0].text, /FROM trips t/);
+  assert.match(calls[0].text, /UPDATE flight_records/);
+  assert.match(calls[0].text, /SELECT id FROM trips/);
   assert.deepEqual(calls[0].params.slice(0, 2), ["f1", "u1"]);
 });

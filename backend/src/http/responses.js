@@ -1,5 +1,4 @@
-export function sendError(reply, code, message) {
-  reply.code(code);
-  return { error: message };
+export function sendError(c, code, message) {
+  return c.json({ error: message }, code);
 }
 

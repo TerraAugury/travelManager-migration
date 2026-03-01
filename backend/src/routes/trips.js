@@ -35,31 +35,31 @@ function parseTripBody(body, { requireName }) {
   };
 }
 
-export async function registerTripRoutes(app, deps) {
+export function registerTripRoutes(app, deps) {
   const { tripsRepository } = deps;
 
-  app.get("/trips", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
+  app.get("/trips", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
     const rows = await tripsRepository.listByOwner(auth.user.id);
-    return { items: rows };
+    return c.json({ items: rows });
   });
 
-  app.get("/trips/:tripId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    const { tripId } = request.params;
-    if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
+  app.get("/trips/:tripId", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const tripId = c.req.param("tripId");
+    if (!isUuid(tripId)) return sendError(c, 400, "Invalid tripId.");
     const row = await tripsRepository.getById(tripId, auth.user.id);
-    if (!row) return sendError(reply, 404, "Trip not found.");
-    return row;
+    if (!row) return sendError(c, 404, "Trip not found.");
+    return c.json(row);
   });
 
-  app.post("/trips", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    const parsed = parseTripBody(request.body, { requireName: true });
-    if (parsed.error) return sendError(reply, 400, parsed.error);
+  app.post("/trips", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const parsed = parseTripBody(await c.req.json(), { requireName: true });
+    if (parsed.error) return sendError(c, 400, parsed.error);
 
     const row = await tripsRepository.create({
       ownerUserId: auth.user.id,
@@ -68,31 +68,29 @@ export async function registerTripRoutes(app, deps) {
       startDate: parsed.value.startDate,
       endDate: parsed.value.endDate
     });
-    reply.code(201);
-    return row;
+    return c.json(row, 201);
   });
 
-  app.patch("/trips/:tripId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    const { tripId } = request.params;
-    if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
-    const parsed = parseTripBody(request.body, { requireName: false });
-    if (parsed.error) return sendError(reply, 400, parsed.error);
+  app.patch("/trips/:tripId", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const tripId = c.req.param("tripId");
+    if (!isUuid(tripId)) return sendError(c, 400, "Invalid tripId.");
+    const parsed = parseTripBody(await c.req.json(), { requireName: false });
+    if (parsed.error) return sendError(c, 400, parsed.error);
 
     const row = await tripsRepository.update(tripId, auth.user.id, parsed.value);
-    if (!row) return sendError(reply, 404, "Trip not found.");
-    return row;
+    if (!row) return sendError(c, 404, "Trip not found.");
+    return c.json(row);
   });
 
-  app.delete("/trips/:tripId", async (request, reply) => {
-    const auth = await requireRequestUser(request, reply, deps);
-    if (auth.error) return auth;
-    const { tripId } = request.params;
-    if (!isUuid(tripId)) return sendError(reply, 400, "Invalid tripId.");
+  app.delete("/trips/:tripId", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const tripId = c.req.param("tripId");
+    if (!isUuid(tripId)) return sendError(c, 400, "Invalid tripId.");
     const removed = await tripsRepository.remove(tripId, auth.user.id);
-    if (!removed) return sendError(reply, 404, "Trip not found.");
-    reply.code(204);
-    return null;
+    if (!removed) return sendError(c, 404, "Trip not found.");
+    return new Response(null, { status: 204 });
   });
 }

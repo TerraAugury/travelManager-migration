@@ -1,19 +1,14 @@
 import { isUuid } from "../http/validation.js";
 
-function getHeaderValue(headers, name) {
-  const value = headers?.[name];
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function getBearerToken(headers) {
-  const auth = getHeaderValue(headers, "authorization");
+function getBearerToken(c) {
+  const auth = c.req.header("authorization");
   if (!auth) return null;
   const match = String(auth).match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : null;
 }
 
-async function byToken(headers, usersRepository, sessionsRepository) {
-  const token = getBearerToken(headers);
+async function byToken(c, usersRepository, sessionsRepository) {
+  const token = getBearerToken(c);
   if (!token) return null;
 
   const session = await sessionsRepository.findActiveByToken(token);
@@ -25,8 +20,8 @@ async function byToken(headers, usersRepository, sessionsRepository) {
   return { user, session, token };
 }
 
-async function byDevHeader(headers, usersRepository) {
-  const userId = getHeaderValue(headers, "x-user-id");
+async function byDevHeader(c, usersRepository) {
+  const userId = c.req.header("x-user-id");
   if (!isUuid(userId)) return { error: "Missing or invalid x-user-id header." };
 
   const user = await usersRepository.findActiveById(userId);
@@ -34,24 +29,21 @@ async function byDevHeader(headers, usersRepository) {
   return { user, session: null, token: null };
 }
 
-export async function requireRequestUser(request, reply, deps) {
+export async function requireRequestUser(c, deps) {
   const { usersRepository, sessionsRepository, allowDevHeaderAuth = false } = deps;
 
-  const tokenAuth = await byToken(request.headers, usersRepository, sessionsRepository);
+  const tokenAuth = await byToken(c, usersRepository, sessionsRepository);
   if (tokenAuth?.user) return tokenAuth;
   if (tokenAuth?.error && !allowDevHeaderAuth) {
-    reply.code(401);
-    return { error: tokenAuth.error };
+    return { error: tokenAuth.error, _status: 401 };
   }
 
   if (!allowDevHeaderAuth) {
-    reply.code(401);
-    return { error: "Missing bearer token." };
+    return { error: "Missing bearer token.", _status: 401 };
   }
 
-  const headerAuth = await byDevHeader(request.headers, usersRepository);
+  const headerAuth = await byDevHeader(c, usersRepository);
   if (headerAuth.user) return headerAuth;
-  reply.code(401);
-  return { error: headerAuth.error };
+  return { error: headerAuth.error, _status: 401 };
 }
 

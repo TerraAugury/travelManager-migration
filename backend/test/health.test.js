@@ -2,70 +2,47 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { registerHealthRoutes } from "../src/routes/health.js";
 
-function createMockApp() {
+function appMock() {
   const routes = new Map();
   return {
     routes,
-    get(path, handler) {
-      routes.set(path, handler);
-    }
+    get(path, handler) { routes.set(path, handler); }
   };
 }
 
-function createMockReply() {
+function cMock() {
   return {
-    codeValue: 200,
-    code(statusCode) {
-      this.codeValue = statusCode;
-      return this;
-    }
+    json(data, status = 200) { return { data, status }; }
   };
 }
 
 test("registerHealthRoutes wires the /health endpoint", async () => {
-  const app = createMockApp();
-  await registerHealthRoutes(app, { db: { check: async () => true } });
+  const app = appMock();
+  registerHealthRoutes(app, { db: { check: async () => true } });
 
-  const healthHandler = app.routes.get("/health");
-  assert.ok(healthHandler);
-  const body = await healthHandler();
-  assert.deepEqual(body, {
-    status: "ok",
-    service: "travel-manager-backend"
-  });
+  const handler = app.routes.get("/health");
+  assert.ok(handler);
+  const result = await handler(cMock());
+  assert.deepEqual(result.data, { status: "ok", service: "travel-manager-backend" });
+  assert.equal(result.status, 200);
 });
 
 test("/health/db returns ok when DB check passes", async () => {
-  const app = createMockApp();
-  await registerHealthRoutes(app, { db: { check: async () => true } });
+  const app = appMock();
+  registerHealthRoutes(app, { db: { check: async () => true } });
 
   const handler = app.routes.get("/health/db");
-  const request = { log: { error() {} } };
-  const reply = createMockReply();
-  const body = await handler(request, reply);
-
-  assert.equal(reply.codeValue, 200);
-  assert.deepEqual(body, {
-    status: "ok",
-    database: "connected"
-  });
+  const result = await handler(cMock());
+  assert.deepEqual(result.data, { status: "ok", database: "connected" });
+  assert.equal(result.status, 200);
 });
 
 test("/health/db returns 503 when DB check throws", async () => {
-  const app = createMockApp();
-  await registerHealthRoutes(app, {
-    db: { check: async () => Promise.reject(new Error("offline")) }
-  });
+  const app = appMock();
+  registerHealthRoutes(app, { db: { check: async () => { throw new Error("offline"); } } });
 
   const handler = app.routes.get("/health/db");
-  const request = { log: { error() {} } };
-  const reply = createMockReply();
-  const body = await handler(request, reply);
-
-  assert.equal(reply.codeValue, 503);
-  assert.deepEqual(body, {
-    status: "degraded",
-    database: "unavailable"
-  });
+  const result = await handler(cMock());
+  assert.equal(result.status, 503);
+  assert.deepEqual(result.data, { status: "degraded", database: "unavailable" });
 });
-
