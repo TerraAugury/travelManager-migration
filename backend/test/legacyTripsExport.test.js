@@ -10,9 +10,10 @@ test("exportByOwner returns legacy JSON shape", async () => {
       }
     },
     flightsRepository: {
-      async listByTrip() {
+      async listByOwner() {
         return [{
           id: "f1",
+          trip_id: "t1",
           created_at: "2026-01-03",
           flight_number: "LH438",
           airline: "Lufthansa",
@@ -27,9 +28,10 @@ test("exportByOwner returns legacy JSON shape", async () => {
       }
     },
     hotelsRepository: {
-      async listByTrip() {
+      async listByOwner() {
         return [{
           id: "h1",
+          trip_id: "t1",
           created_at: "2026-01-05",
           hotel_name: "Hilton",
           check_in_date: "2026-02-01",

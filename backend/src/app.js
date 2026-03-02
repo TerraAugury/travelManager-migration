@@ -22,6 +22,8 @@ export function buildApp({ db: d1, env }) {
   const allowDevHeaderAuth = env?.DEV_AUTH_X_USER_ID_FALLBACK === "true";
   const repositories = {
     allowDevHeaderAuth,
+    authLoginRateLimitWindowMs: Number(env?.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
+    authLoginRateLimitMaxAttempts: Number(env?.AUTH_LOGIN_RATE_LIMIT_MAX_ATTEMPTS || 10),
     usersRepository: buildUsersRepository({ pool: db.pool }),
     sessionsRepository: buildSessionsRepository({ pool: db.pool }),
     tripsRepository: buildTripsRepository({ pool: db.pool }),

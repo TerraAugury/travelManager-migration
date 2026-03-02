@@ -1,6 +1,22 @@
 import crypto from "node:crypto";
 
 export function buildFlightsRepository({ pool }) {
+  async function listByOwner(ownerUserId) {
+    const result = await pool.query(
+      `SELECT
+         fr.id, fr.trip_id, fr.created_by_user_id, fr.flight_number, fr.airline, fr.pnr,
+         fr.departure_airport_name, fr.departure_airport_code, fr.departure_scheduled,
+         fr.arrival_airport_name, fr.arrival_airport_code, fr.arrival_scheduled,
+         fr.created_at, fr.updated_at
+       FROM flight_records fr
+       JOIN trips t ON t.id = fr.trip_id
+       WHERE t.owner_user_id = $1
+       ORDER BY fr.trip_id, COALESCE(fr.departure_scheduled, fr.created_at), fr.created_at`,
+      [ownerUserId]
+    );
+    return result.rows;
+  }
+
   async function listByTrip({ tripId, ownerUserId }) {
     const result = await pool.query(
       `SELECT
@@ -104,6 +120,7 @@ export function buildFlightsRepository({ pool }) {
   }
 
   return {
+    listByOwner,
     listByTrip,
     create,
     update,

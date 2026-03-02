@@ -1,6 +1,21 @@
 import crypto from "node:crypto";
 
 export function buildHotelsRepository({ pool }) {
+  async function listByOwner(ownerUserId) {
+    const result = await pool.query(
+      `SELECT
+         hr.id, hr.trip_id, hr.created_by_user_id, hr.hotel_name, hr.confirmation_id,
+         hr.check_in_date, hr.check_out_date, hr.pax_count, hr.payment_type,
+         hr.created_at, hr.updated_at
+       FROM hotel_records hr
+       JOIN trips t ON t.id = hr.trip_id
+       WHERE t.owner_user_id = $1
+       ORDER BY hr.trip_id, hr.check_in_date, hr.created_at`,
+      [ownerUserId]
+    );
+    return result.rows;
+  }
+
   async function listByTrip({ tripId, ownerUserId }) {
     const result = await pool.query(
       `SELECT
@@ -91,6 +106,7 @@ export function buildHotelsRepository({ pool }) {
   }
 
   return {
+    listByOwner,
     listByTrip,
     create,
     update,

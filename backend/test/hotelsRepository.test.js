@@ -77,3 +77,20 @@ test("update hotel uses ownership-guarded subquery", async () => {
   assert.match(calls[0].text, /SELECT id FROM trips/);
   assert.deepEqual(calls[0].params.slice(0, 2), ["h1", "u1"]);
 });
+
+test("listByOwner filters by trip owner", async () => {
+  const calls = [];
+  const repo = buildHotelsRepository({
+    pool: {
+      async query(text, params) {
+        calls.push({ text, params });
+        return { rows: [{ id: "h1" }], rowCount: 1 };
+      }
+    }
+  });
+
+  const rows = await repo.listByOwner("owner-1");
+  assert.equal(rows.length, 1);
+  assert.match(calls[0].text, /WHERE t.owner_user_id = \$1/);
+  assert.deepEqual(calls[0].params, ["owner-1"]);
+});

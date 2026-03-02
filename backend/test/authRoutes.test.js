@@ -13,11 +13,14 @@ function appMock() {
 }
 
 function cMock({ jsonBody = null, headers = {} } = {}) {
+  const responseHeaders = {};
   return {
     req: {
       async json() { return jsonBody; },
       header(name) { return headers[name.toLowerCase()] ?? null; }
     },
+    header(name, value) { responseHeaders[name] = value; },
+    _responseHeaders: responseHeaders,
     json(data, status = 200) { return { data, status }; }
   };
 }
@@ -59,4 +62,26 @@ test("POST /auth/login rejects invalid credentials", async () => {
   const result = await handler(cMock({ jsonBody: { email: "bad@bad.com", password: "wrong-pass" } }));
   assert.equal(result.status, 401);
   assert.match(result.data.error, /Invalid email or password/);
+});
+
+test("POST /auth/login applies rate limit", async () => {
+  const app = appMock();
+  await registerAuthRoutes(app, {
+    allowDevHeaderAuth: false,
+    authLoginRateLimitWindowMs: 60_000,
+    authLoginRateLimitMaxAttempts: 1,
+    usersRepository: { async findAuthByEmail() { return null; }, async findActiveById() { return null; } },
+    sessionsRepository: { async create() { return null; }, async findActiveByToken() { return null; }, async revokeToken() { return false; } }
+  });
+
+  const handler = app.routes.get("POST /api/auth/login");
+  const firstCtx = cMock({ jsonBody: { email: "a@b.com", password: "bad-pass" } });
+  const firstResult = await handler(firstCtx);
+  assert.equal(firstResult.status, 401);
+
+  const secondCtx = cMock({ jsonBody: { email: "a@b.com", password: "bad-pass" } });
+  const secondResult = await handler(secondCtx);
+  assert.equal(secondResult.status, 429);
+  assert.match(secondResult.data.error, /Too many login attempts/);
+  assert.ok(secondCtx._responseHeaders["Retry-After"]);
 });

@@ -599,7 +599,6 @@ export function createMapScreenController() {
       const bearing = computeBearingDegrees(dep.lat, dep.lon, arr.lat, arr.lon);
       const rotAB = Math.round(bearing);
       const rotBA = Math.round((bearing + 180) % 360);
-      const arrowRotation = rotAB;
 
       const [aKey, bKey] = [dep.key, arr.key].sort((x, y) => x.localeCompare(y));
       const sign = dep.key === aKey ? 1 : -1;
@@ -622,13 +621,6 @@ export function createMapScreenController() {
       const labelLatLngBA = mapInstance.unproject(window.L.point(pBA.point.x - nxBA, pBA.point.y - nyBA), zoom);
 
       const planeRotationAdj = (deg) => deg - 90;
-      const labelHtml = `
-        <div class="route-count-badge">
-          <div class="route-count-num">${countAB}</div>
-          <div class="route-count-arrow" style="transform: rotate(${planeRotationAdj(arrowRotation)}deg);">&#9992;</div>
-        </div>
-      `;
-
       if (countAB) {
         const labelHtmlForward = `
           <div class="route-count-badge">
