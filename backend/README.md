@@ -47,6 +47,10 @@ When running through Caddy in `infra/`, the API is exposed under `/api/*`:
 - Optional dev fallback:
   - set `DEV_AUTH_X_USER_ID_FALLBACK=true`
   - then `x-user-id` header is accepted for local migration/testing.
+  - production startup rejects `DEV_AUTH_X_USER_ID_FALLBACK=true`.
+- Login rate limiting:
+  - `AUTH_LOGIN_RATE_LIMIT_WINDOW_MS` (default `900000`)
+  - `AUTH_LOGIN_RATE_LIMIT_MAX_ATTEMPTS` (default `10`)
 
 ## Auth endpoints
 

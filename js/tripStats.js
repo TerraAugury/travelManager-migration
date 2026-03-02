@@ -1,59 +1,3 @@
-export function collectTripStats(trip) {
-  if (!trip) return { flights: 0, hotels: 0, passengers: [] };
-
-  const flightCount = trip.records.length;
-  const hotelCount = trip.hotels.length;
-
-  const uniquePax = new Set();
-  trip.records.forEach((r) => r.paxNames.forEach((name) => uniquePax.add(name)));
-
-  return {
-    flights: flightCount,
-    hotels: hotelCount,
-    passengerCount: uniquePax.size,
-    passengers: Array.from(uniquePax).sort()
-  };
-}
-
-export function renderTripDetails(trip, statsEl, paxEl, emptyEl) {
-  const hasData = trip && (trip.records.length > 0 || trip.hotels.length > 0);
-
-  if (!hasData) {
-    statsEl.classList.add("hidden");
-    paxEl.classList.add("hidden");
-    emptyEl.classList.remove("hidden");
-    return;
-  }
-
-  emptyEl.classList.add("hidden");
-  statsEl.classList.remove("hidden");
-  paxEl.classList.remove("hidden");
-
-  const stats = collectTripStats(trip);
-
-  statsEl.innerHTML = `
-    <div class="stat-item">
-      <div class="stat-label">Flights</div>
-      <div class="stat-value">${stats.flights}</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-label">Hotels</div>
-      <div class="stat-value">${stats.hotels}</div>
-    </div>
-  `;
-
-  paxEl.innerHTML = `
-    <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
-      Passengers (${stats.passengerCount})
-    </div>
-    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-      ${stats.passengers.map((p) =>
-        `<span class="badge">${p}</span>`
-      ).join("")}
-    </div>
-  `;
-}
-
 function parseDateOnly(isoOrDateStr) {
   if (!isoOrDateStr) return null;
   const d = new Date(isoOrDateStr);
@@ -258,4 +202,3 @@ export function renderAllTripsDetails(allTrips, statsEl, paxEl, emptyEl) {
     </div>
   `;
 }
-

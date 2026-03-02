@@ -60,6 +60,7 @@ venv/
 *.dump
 *.bak
 backups/
+!backend/migrations/003_trips_owner_index.sql
 
 # ---- Runtime / temp ----
 tmp/

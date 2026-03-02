@@ -10,21 +10,32 @@ const state = {
   passengers: []
 };
 
+function getSessionStorage() {
+  try {
+    if (typeof window === "undefined") return null;
+    return window.sessionStorage || null;
+  } catch {
+    return null;
+  }
+}
+
 export function getState() {
   return state;
 }
 
 export function loadToken() {
-  state.token = localStorage.getItem(TOKEN_STORAGE_KEY) || null;
+  const storage = getSessionStorage();
+  state.token = storage?.getItem(TOKEN_STORAGE_KEY) || null;
   return state.token;
 }
 
 export function setToken(token) {
+  const storage = getSessionStorage();
   state.token = token || null;
   if (state.token) {
-    localStorage.setItem(TOKEN_STORAGE_KEY, state.token);
+    storage?.setItem(TOKEN_STORAGE_KEY, state.token);
   } else {
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    storage?.removeItem(TOKEN_STORAGE_KEY);
   }
 }
 

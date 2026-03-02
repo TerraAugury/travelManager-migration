@@ -1,4 +1,26 @@
 export function buildHotelsRepository({ pool }) {
+  async function listByOwner(ownerUserId) {
+    const result = await pool.query(
+      `SELECT
+         hr.id, hr.trip_id, hr.created_by_user_id, hr.hotel_name, hr.confirmation_id,
+         hr.check_in_date, hr.check_out_date, hr.pax_count, hr.payment_type,
+         hr.created_at, hr.updated_at,
+         COALESCE(
+           array_agg(p.name ORDER BY LOWER(p.name)) FILTER (WHERE p.id IS NOT NULL),
+           '{}'
+         ) AS passenger_names
+       FROM hotel_records hr
+       JOIN trips t ON t.id = hr.trip_id
+       LEFT JOIN hotel_passengers hp ON hp.hotel_record_id = hr.id
+       LEFT JOIN passengers p ON p.id = hp.passenger_id
+       WHERE t.owner_user_id = $1
+       GROUP BY hr.id
+       ORDER BY hr.trip_id, hr.check_in_date, hr.created_at`,
+      [ownerUserId]
+    );
+    return result.rows;
+  }
+
   async function listByTrip({ tripId, ownerUserId }) {
     const result = await pool.query(
       `SELECT
@@ -90,6 +112,7 @@ export function buildHotelsRepository({ pool }) {
   }
 
   return {
+    listByOwner,
     listByTrip,
     create,
     update,

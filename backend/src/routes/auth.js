@@ -2,6 +2,7 @@ import { requireRequestUser } from "../auth/requestUser.js";
 import { sendError } from "../http/responses.js";
 import { toTrimmedString } from "../http/validation.js";
 import { verifyPassword } from "../security/passwords.js";
+import { buildFixedWindowRateLimiter } from "../security/rateLimiter.js";
 import { generateAuthToken } from "../security/tokens.js";
 
 function parseLoginBody(body) {
@@ -26,10 +27,34 @@ function parseLoginBody(body) {
   };
 }
 
+function getClientIp(request) {
+  const forwarded = String(request?.headers?.["x-forwarded-for"] || "")
+    .split(",")[0]
+    .trim();
+  return forwarded || request?.ip || "unknown";
+}
+
 export async function registerAuthRoutes(app, deps) {
-  const { usersRepository, sessionsRepository } = deps;
+  const {
+    usersRepository,
+    sessionsRepository,
+    authLoginRateLimitWindowMs = 15 * 60 * 1000,
+    authLoginRateLimitMaxAttempts = 10
+  } = deps;
+  const loginLimiter = buildFixedWindowRateLimiter({
+    windowMs: authLoginRateLimitWindowMs,
+    maxAttempts: authLoginRateLimitMaxAttempts
+  });
 
   app.post("/auth/login", async (request, reply) => {
+    const emailForKey = String(request.body?.email || "").trim().toLowerCase() || "unknown";
+    const rateLimitKey = `${getClientIp(request)}|${emailForKey}`;
+    const limit = loginLimiter.consume(rateLimitKey);
+    if (!limit.allowed) {
+      reply.header("Retry-After", String(limit.retryAfterSeconds));
+      return sendError(reply, 429, "Too many login attempts. Please try again later.");
+    }
+
     const parsed = parseLoginBody(request.body);
     if (parsed.error) return sendError(reply, 400, parsed.error);
 
@@ -77,4 +102,3 @@ export async function registerAuthRoutes(app, deps) {
     return { ok: true };
   });
 }
-

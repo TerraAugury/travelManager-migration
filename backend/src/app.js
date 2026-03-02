@@ -21,6 +21,12 @@ export async function buildApp(deps) {
   });
   const repositories = {
     allowDevHeaderAuth: Boolean(deps.config?.allowDevHeaderAuth),
+    authLoginRateLimitWindowMs: Number(
+      deps.config?.authLoginRateLimitWindowMs || 15 * 60 * 1000
+    ),
+    authLoginRateLimitMaxAttempts: Number(
+      deps.config?.authLoginRateLimitMaxAttempts || 10
+    ),
     usersRepository: buildUsersRepository({ pool: deps.db.pool }),
     sessionsRepository: buildSessionsRepository({ pool: deps.db.pool }),
     tripsRepository: buildTripsRepository({ pool: deps.db.pool }),

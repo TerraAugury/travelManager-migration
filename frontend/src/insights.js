@@ -1,5 +1,4 @@
 import * as api from "./api.js";
-import { buildLegacyTrips } from "./legacyAdapter.js";
 import { renderDaycountView } from "../../js/daycountScreen.js";
 import { createMapScreenController } from "../../js/mapScreen.js";
 import { renderUpcomingScreen } from "../../js/upcomingScreen.js";
@@ -35,7 +34,6 @@ export function createInsightsController() {
   const state = {
     els: null,
     legacyTrips: [],
-    detailsByTripId: new Map(),
     daycountState: { passenger: "", year: new Date().getFullYear(), monthSelection: null },
     upcomingState: { passenger: "" },
     mapState: { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false },
@@ -122,28 +120,16 @@ export function createInsightsController() {
   async function refresh(token, trips) {
     if (!token || !Array.isArray(trips)) {
       state.legacyTrips = [];
-      state.detailsByTripId = new Map();
       render();
       return;
     }
-    const entries = await Promise.all(
-      trips.map(async (trip) => {
-        const [flights, hotels, passengers] = await Promise.all([
-          api.listFlights(token, trip.id),
-          api.listHotels(token, trip.id),
-          api.listPassengers(token, trip.id)
-        ]);
-        return [trip.id, { flights, hotels, passengers }];
-      })
-    );
-    state.detailsByTripId = new Map(entries);
-    state.legacyTrips = buildLegacyTrips(trips, state.detailsByTripId);
+    const exported = await api.exportLegacyTrips(token);
+    state.legacyTrips = Array.isArray(exported) ? exported : [];
     render();
   }
 
   function reset() {
     state.legacyTrips = [];
-    state.detailsByTripId = new Map();
     state.daycountState = { passenger: "", year: new Date().getFullYear(), monthSelection: null };
     state.upcomingState = { passenger: "" };
     state.mapState = { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false };

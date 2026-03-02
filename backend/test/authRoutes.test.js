@@ -13,7 +13,12 @@ function appMock() {
 }
 
 function replyMock() {
-  return { statusCode: 200, code(v) { this.statusCode = v; return this; } };
+  return {
+    statusCode: 200,
+    headers: {},
+    code(v) { this.statusCode = v; return this; },
+    header(name, value) { this.headers[name] = value; return this; }
+  };
 }
 
 test("POST /auth/login returns token for valid credentials", async () => {
@@ -57,3 +62,26 @@ test("POST /auth/login rejects invalid credentials", async () => {
   assert.match(body.error, /Invalid email or password/);
 });
 
+test("POST /auth/login applies rate limit", async () => {
+  const app = appMock();
+  await registerAuthRoutes(app, {
+    allowDevHeaderAuth: false,
+    authLoginRateLimitWindowMs: 60_000,
+    authLoginRateLimitMaxAttempts: 1,
+    usersRepository: { async findAuthByEmail() { return null; }, async findActiveById() { return null; } },
+    sessionsRepository: { async create() { return null; }, async findActiveByToken() { return null; }, async revokeToken() { return false; } }
+  });
+
+  const handler = app.routes.get("POST /auth/login");
+  const firstReply = replyMock();
+  await handler({ body: { email: "a@b.com", password: "bad-pass" }, headers: {}, ip: "127.0.0.1" }, firstReply);
+  assert.equal(firstReply.statusCode, 401);
+
+  const secondReply = replyMock();
+  const secondBody = await handler(
+    { body: { email: "a@b.com", password: "bad-pass" }, headers: {}, ip: "127.0.0.1" },
+    secondReply
+  );
+  assert.equal(secondReply.statusCode, 429);
+  assert.match(secondBody.error, /Too many login attempts/);
+});

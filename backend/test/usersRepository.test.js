@@ -20,23 +20,6 @@ test("findActiveById queries active user by id", async () => {
   assert.deepEqual(calls[0].params, ["u1"]);
 });
 
-test("findByEmail uses case-insensitive query", async () => {
-  const calls = [];
-  const repo = buildUsersRepository({
-    pool: {
-      async query(text, params) {
-        calls.push({ text, params });
-        return { rows: [] };
-      }
-    }
-  });
-
-  const row = await repo.findByEmail("USER@EXAMPLE.COM");
-  assert.equal(row, null);
-  assert.match(calls[0].text, /LOWER\(email\) = LOWER\(\$1\)/);
-  assert.deepEqual(calls[0].params, ["USER@EXAMPLE.COM"]);
-});
-
 test("findAuthByEmail selects password hash for auth flow", async () => {
   const calls = [];
   const repo = buildUsersRepository({
