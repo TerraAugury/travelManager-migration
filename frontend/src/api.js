@@ -111,6 +111,10 @@ export async function listPassengers(token, tripId) {
   return payload?.items || [];
 }
 
+export async function lookupFlight(token, flightNumber) {
+  return request(`/flights/lookup?fn=${encodeURIComponent(flightNumber)}`, {}, token);
+}
+
 export async function exportLegacyTrips(token) {
   return request("/sync/trips", {}, token);
 }

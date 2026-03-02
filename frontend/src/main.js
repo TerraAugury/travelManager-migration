@@ -1,5 +1,5 @@
 import * as api from "./api.js";
-import { fillFlightForm, fillHotelForm, fillTripEditor, readCreateFlightBody, readCreateHotelBody, readCreateTripBody, readUpdateTripBody } from "./forms.js";
+import { bindFlightLookup, fillFlightForm, fillHotelForm, fillTripEditor, readCreateFlightBody, readCreateHotelBody, readCreateTripBody, readUpdateTripBody } from "./forms.js";
 import { createInsightsController } from "./insights.js";
 import { render } from "./render.js";
 import { bindUI, closeOverlay, setOverlayEditMode } from "./ui.js";
@@ -49,6 +49,7 @@ function bindForms(actions) {
   document.getElementById("trip-select").addEventListener("change", actions.onSelectTripChange);
   document.getElementById("export-btn").addEventListener("click",   actions.onExport);
   document.getElementById("import-file").addEventListener("change", actions.onImport);
+  bindFlightLookup((fn) => api.lookupFlight(getState().token, fn));
 }
 
 async function bootstrap() {

@@ -98,6 +98,23 @@ export function fillHotelForm(hotel) {
   });
 }
 
+export function bindFlightLookup(lookupFn) {
+  const btn = document.getElementById("flight-lookup-btn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const fn = (document.getElementById("flight-number")?.value || "").trim();
+    if (!fn) return;
+    const status = document.getElementById("flight-lookup-status");
+    btn.disabled = true; btn.textContent = "…";
+    try {
+      fillFlightForm(await lookupFn(fn));
+      if (status) status.textContent = "✓ Details auto-filled";
+    } catch (e) {
+      if (status) status.textContent = `⚠ ${e.message}`;
+    } finally { btn.disabled = false; btn.textContent = "Lookup"; }
+  });
+}
+
 export function readCreateFlightBody() {
   return {
     flightNumber: textValue("flight-number"),

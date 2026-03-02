@@ -50,6 +50,30 @@ function parseFlightBody(body) {
 export function registerFlightRoutes(app, deps) {
   const { tripsRepository, flightsRepository, passengersRepository } = deps;
 
+  app.get("/flights/lookup", async (c) => {
+    const auth = await requireRequestUser(c, deps);
+    if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+    const fn = (c.req.query("fn") || "").trim().toUpperCase().replace(/\s+/g, "");
+    if (!fn || !/^[A-Z0-9]{2,8}$/.test(fn)) return sendError(c, 400, "Invalid or missing flight number (fn).");
+    const key = c.env?.AVIATIONSTACK_API_KEY;
+    if (!key) return sendError(c, 503, "Flight lookup not configured on this server.");
+    const res = await fetch(`https://api.aviationstack.com/v1/flights?access_key=${encodeURIComponent(key)}&flight_iata=${encodeURIComponent(fn)}`);
+    if (!res.ok) return sendError(c, 502, "Upstream flight lookup error.");
+    const json = await res.json();
+    const f = json?.data?.[0];
+    if (!f) return sendError(c, 404, `No flight found for ${fn}.`);
+    return c.json({
+      flight_number: f.flight?.iata || fn,
+      airline: f.airline?.name || null,
+      departure_airport_name: f.departure?.airport || null,
+      departure_airport_code: f.departure?.iata || null,
+      arrival_airport_name: f.arrival?.airport || null,
+      arrival_airport_code: f.arrival?.iata || null,
+      departure_scheduled: f.departure?.scheduled || null,
+      arrival_scheduled: f.arrival?.scheduled || null
+    });
+  });
+
   app.get("/trips/:tripId/flights", async (c) => {
     const auth = await requireRequestUser(c, deps);
     if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
