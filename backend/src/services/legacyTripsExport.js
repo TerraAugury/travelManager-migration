@@ -43,38 +43,34 @@ export function buildLegacyTripsExportService(deps) {
   const { tripsRepository, flightsRepository, hotelsRepository, passengersRepository } = deps;
 
   async function exportByOwner(ownerUserId) {
-    const trips = await tripsRepository.listByOwner(ownerUserId);
-    const output = [];
+    const [trips, flights, hotels] = await Promise.all([
+      tripsRepository.listByOwner(ownerUserId),
+      flightsRepository.listByOwner(ownerUserId),
+      hotelsRepository.listByOwner(ownerUserId)
+    ]);
 
-    for (const trip of trips) {
-      const flights = await flightsRepository.listByTrip({ tripId: trip.id, ownerUserId });
-      const hotels = await hotelsRepository.listByTrip({ tripId: trip.id, ownerUserId });
-
-      const flightRecords = await Promise.all(
-        flights.map(async (f) => {
-          const names = await passengersRepository.listPassengersForFlight(f.id);
-          return flightToLegacyRecord(f, names);
-        })
-      );
-
-      const hotelRecords = await Promise.all(
-        hotels.map(async (h) => {
-          const names = await passengersRepository.listPassengersForHotel(h.id);
-          return hotelToLegacyRecord(h, names);
-        })
-      );
-
-      output.push({
-        id: trip.id,
-        name: trip.name,
-        createdAt: trip.created_at,
-        updatedAt: trip.updated_at,
-        records: flightRecords,
-        hotels: hotelRecords
-      });
+    const flightsByTrip = new Map();
+    for (const flight of flights) {
+      const list = flightsByTrip.get(flight.trip_id) || [];
+      list.push(flight);
+      flightsByTrip.set(flight.trip_id, list);
     }
 
-    return output;
+    const hotelsByTrip = new Map();
+    for (const hotel of hotels) {
+      const list = hotelsByTrip.get(hotel.trip_id) || [];
+      list.push(hotel);
+      hotelsByTrip.set(hotel.trip_id, list);
+    }
+
+    return trips.map((trip) => ({
+      id: trip.id,
+      name: trip.name,
+      createdAt: trip.created_at,
+      updatedAt: trip.updated_at,
+      records: (flightsByTrip.get(trip.id) || []).map(flightToLegacyRecord),
+      hotels: (hotelsByTrip.get(trip.id) || []).map(hotelToLegacyRecord)
+    }));
   }
 
   return {
