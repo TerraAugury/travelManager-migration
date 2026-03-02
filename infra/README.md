@@ -1,127 +1,43 @@
-# Infra Quick Start
+# infra/ — Legacy pre-migration infrastructure (archived)
 
-This infrastructure stack runs:
+This directory previously contained the self-hosted Docker Compose stack:
 
-- `db`: PostgreSQL
-- `backend`: Fastify API
-- `caddy`: reverse proxy serving frontend and `/api/*`
+- **PostgreSQL** database
+- **Fastify** backend API
+- **Caddy** reverse proxy
 
-## 1) Prepare environment
+All Docker Compose files, the Caddyfile, and related scripts have been removed
+as part of the Phase 5 Cloudflare migration. The stack is no longer used.
 
-From repository root:
+---
 
-```bash
-cp .env.example .env
-```
+## Current deployment
 
-Then set a strong `POSTGRES_PASSWORD`.
+The app now runs entirely on Cloudflare's free tier:
 
-## 2) Start services
+| Component | Service |
+|-----------|---------|
+| Backend API | Cloudflare Workers (Hono) |
+| Database | Cloudflare D1 (SQLite) |
+| Frontend | Cloudflare Pages |
 
-```bash
-docker compose -f infra/docker-compose.yml --env-file .env up -d --build
-```
+See **`CLAUDE.md`** and **`backend/README.md`** for current deployment
+instructions.
 
-## 3) Verify health
+---
 
-```bash
-curl http://localhost/api/health
-curl http://localhost/api/health/db
-```
+## Remaining operational scripts
 
-The backend container runs database migrations before starting the API.
+The `scripts/` directory retains the scripts that still apply to the
+Cloudflare deployment:
 
-## 4) Stop services
+| Script | Purpose |
+|--------|---------|
+| `scripts/cutover-import.sh` | Import legacy JSON trips via `PUT /api/sync/trips` |
+| `scripts/cutover-preflight.sh` | Pre-import environment and auth checks |
+| `scripts/cutover-run.sh` | One-command import + smoke workflow |
+| `scripts/smoke-api.sh` | Post-deploy health / auth / trips smoke tests |
+| `scripts/security-scan.sh` | Ripgrep-based secret scan (run before every push) |
 
-```bash
-docker compose -f infra/docker-compose.yml --env-file .env down
-```
-
-## 5) Private mode with Tailscale
-
-Use the private compose override to bind app ports to localhost only:
-
-```bash
-docker compose \
-  -f infra/docker-compose.yml \
-  -f infra/docker-compose.private.yml \
-  --env-file .env \
-  up -d --build
-```
-
-Then install and connect Tailscale on the host:
-
-```bash
-tailscale up
-```
-
-Publish local app access to your tailnet:
-
-```bash
-scripts/tailscale-private-access.sh start 80
-```
-
-Show status or stop sharing:
-
-```bash
-scripts/tailscale-private-access.sh status
-scripts/tailscale-private-access.sh stop
-```
-
-Family user flow:
-
-1. Install Tailscale and sign in to the shared tailnet.
-2. Open the `https://<host>.tailnet-name.ts.net` URL shown by the script.
-3. Log in to Travel Manager with their app account.
-
-## 6) Cutover checklist (Phase 5)
-
-1. Run preflight checks:
-
-```bash
-ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
-scripts/cutover-preflight.sh /path/to/trips.json
-```
-
-2. Run full cutover (recommended):
-
-```bash
-ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
-scripts/cutover-run.sh /path/to/trips.json
-```
-
-3. Optional full rollback validation during cutover:
-
-```bash
-ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
-VERIFY_RESTORE=true scripts/cutover-run.sh /path/to/trips.json
-```
-
-4. Manual granular mode (if needed):
-
-- backup:
-
-```bash
-scripts/backup-db.sh
-```
-
-- import:
-
-```bash
-ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
-scripts/cutover-import.sh /path/to/trips.json
-```
-
-- smoke:
-
-```bash
-ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
-scripts/smoke-api.sh
-```
-
-- restore verification:
-
-```bash
-ADMIN_EMAIL=family-admin@example.com ADMIN_PASSWORD=... \
-scripts/backup-restore-smoke.sh
-```
+Scripts that depended on the Docker stack (database backup/restore,
+Tailscale private access) have been removed.

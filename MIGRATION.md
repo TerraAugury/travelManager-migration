@@ -1,23 +1,19 @@
-# Self-Hosted Migration Plan
+# Migration History
 
-This file tracks migration from static-only app to frontend/backend architecture.
+Tracks the migration of the Travel Manager from a static localStorage-only app
+to a Cloudflare-native architecture.
 
 ## Phase 1: Scaffold (completed)
 
 - Added `frontend/`, `backend/`, `infra/`, and `scripts/`.
 - Added backend service with health endpoints.
-- Added Docker Compose stack: Postgres + backend + Caddy.
+- Added Docker Compose stack: Postgres + Fastify backend + Caddy.
 - Added `.env.example` and basic run docs.
 
 ## Phase 2: Data model (completed)
 
 - Added migration runner and tracking table support.
-- Added initial SQL schema migration:
-  - users
-  - trips
-  - passengers and mappings
-  - flight records
-  - hotel records
+- Added initial SQL schema: users, trips, passengers, flight records, hotel records.
 - Added indexes, foreign keys, and integrity checks.
 - Added initial repository module (`tripsRepository`).
 - Added migration/schema/repository/password tests.
@@ -25,49 +21,59 @@ This file tracks migration from static-only app to frontend/backend architecture
 
 ## Phase 3: API v1 (completed)
 
-- Added first authenticated data endpoints:
-  - trips CRUD
-  - trip flights list/create/delete
-  - trip hotels list/create/delete
-  - trip passengers list
-- Added login/session flow:
-  - `POST /auth/login`
-  - `GET /auth/me`
-  - `POST /auth/logout`
+- Added authenticated CRUD endpoints for trips, flights, hotels, passengers.
+- Added login/session flow: `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`.
 - Added request validation helpers and bearer-token auth guard.
-- Added repositories for users, passengers, flights, and hotels.
-- Added sessions repository and token security helpers.
-- Added `/sync/trips` bridge endpoints for legacy frontend payload migration.
+- Added repositories for users, sessions, passengers, flights, and hotels.
+- Added `/sync/trips` bridge endpoints for legacy payload migration.
 
 ## Phase 4: Frontend integration (completed)
 
-- Introduce an API client layer.
-- Replace localStorage writes with API calls.
-- Keep existing UI behavior and screens.
-- Added migrated frontend UI for:
-  - auth login/logout
-  - trips list/create/delete
-  - trip update/edit form for active trip
-  - per-trip flights list/create/update/delete
-  - per-trip hotels list/create/update/delete
-  - per-trip passengers listing
-  - richer flight/hotel input coverage (airline, PNR, times, confirmation, payment, pax, passenger names)
-  - upcoming flights panel (with passenger filter)
-  - daycount panel (passenger/year/month drilldown)
-  - all-trips statistics panel
-- Reused proven legacy screen logic through API-to-legacy adapter in frontend modules.
+- Introduced API client layer; replaced localStorage writes with API calls.
+- Shipped migrated frontend UI (auth, trips CRUD, flights, hotels, passengers,
+  upcoming flights, daycount, all-trips statistics).
+- Reused proven legacy screen logic via API-to-legacy adapter in `src/legacyAdapter.js`.
 
-## Phase 5: Cutover (in progress)
+## Phase 5: Cloudflare migration (completed)
 
-- Import existing JSON data into Postgres.
-- Enable backups and restore test.
-- Restrict access through Tailscale.
-- Added operational scripts:
-  - `scripts/backup-db.sh` and `scripts/restore-db.sh` for DB backups and restores
-  - `scripts/cutover-preflight.sh` for environment/auth/payload readiness checks
-  - `scripts/cutover-run.sh` for one-command backup/import/smoke workflow
-  - `scripts/cutover-import.sh` for legacy JSON import through API
-  - `scripts/smoke-api.sh` for post-cutover health/auth/trips smoke checks
-  - `scripts/backup-restore-smoke.sh` for restore verification end to end
-  - `scripts/tailscale-private-access.sh` for private tailnet-only access
-- Added `infra/docker-compose.private.yml` for localhost-only port binding before Tailscale sharing.
+Replaced the self-hosted Docker/Postgres/Caddy stack with Cloudflare's free tier.
+
+- **Backend:** Fastify → Hono on Cloudflare Workers.
+- **Database:** PostgreSQL → Cloudflare D1 (SQLite). New migrations in
+  `backend/migrations/`. SQL adapted for SQLite (no `array_agg`, subquery
+  deletes/updates, JS-computed expiry timestamps, `crypto.randomUUID()`).
+- **Frontend:** Served by Cloudflare Pages. `_routes.json` proxies `/api/*`
+  to the Worker. Security headers via `_headers`.
+- **Secrets:** Wrangler secrets replace `.env`; `.dev.vars` for local dev.
+- **Infra removed:** Docker Compose files, Caddyfile, Tailscale scripts,
+  and DB backup/restore scripts removed. `infra/` directory archived.
+- **Operational scripts retained:** `cutover-import.sh`, `cutover-preflight.sh`,
+  `cutover-run.sh`, `smoke-api.sh`, `security-scan.sh` — updated for
+  Cloudflare Worker URL target.
+
+## Phase 6: Data import (pending)
+
+Import the family's historical trip data from the legacy JSON export into D1.
+
+```bash
+ADMIN_EMAIL=... ADMIN_PASSWORD=... \
+  scripts/cutover-import.sh /path/to/trips.json
+```
+
+Run preflight checks first:
+
+```bash
+ADMIN_EMAIL=... ADMIN_PASSWORD=... \
+  scripts/cutover-preflight.sh /path/to/trips.json
+```
+
+---
+
+## Post-migration features
+
+Features added after the Cloudflare deployment landed:
+
+| Feature | Description |
+|---------|-------------|
+| AviationStack lookup | `GET /api/flights/lookup?fn=XX123` — Worker proxies AviationStack so the API key is never exposed; auto-fills the Add Flight form |
+| Calendar view | Toggle on the Days by Country screen showing a 12-month flag-per-day grid for the selected passenger and year |
