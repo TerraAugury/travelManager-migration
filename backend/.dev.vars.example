@@ -1,0 +1,8 @@
+# Wrangler local-dev secrets — copy this file to .dev.vars and fill in values.
+# .dev.vars is gitignored and is read automatically by `wrangler dev`.
+# In production, set each variable with: wrangler secret put <NAME>
+
+# Optional: AviationStack API key for GET /flights/lookup?fn=XX123
+# Free tier (100 req/month): https://aviationstack.com/
+# Leave blank to disable the lookup feature locally.
+AVIATIONSTACK_API_KEY=your_api_key_here

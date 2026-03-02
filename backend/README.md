@@ -1,80 +1,101 @@
-# Backend Service
+# Backend — Cloudflare Worker (Hono + D1)
 
-Fastify API service for Travel Manager.
+Hono-based API running on Cloudflare Workers backed by Cloudflare D1 (SQLite).
 
-## Local run (without Docker)
+## Local development
 
 ```bash
 cd backend
 npm install
-DATABASE_URL=postgresql://user:pass@localhost:5432/travel_manager PORT=8000 npm run dev
+
+# Apply migrations to the local D1 replica
+npm run migrate:local
+
+# Start the local Worker + D1 (hot-reload via wrangler dev)
+npm run dev
 ```
 
-## Migrations
-
-Run SQL migrations:
+Optional secrets for local dev — copy `.dev.vars.example` to `.dev.vars`:
 
 ```bash
-cd backend
-DATABASE_URL=postgresql://user:pass@localhost:5432/travel_manager npm run migrate
+cp .dev.vars.example .dev.vars
+# edit .dev.vars and fill in values (e.g. AVIATIONSTACK_API_KEY)
 ```
 
-Seed or update the admin account:
+`.dev.vars` is gitignored and loaded automatically by `wrangler dev`.
+
+## Remote deployment
 
 ```bash
-cd backend
-DATABASE_URL=postgresql://user:pass@localhost:5432/travel_manager \
-ADMIN_EMAIL=family-admin@example.com \
-ADMIN_PASSWORD=change_me_123 \
-ADMIN_DISPLAY_NAME="Family Admin" \
-npm run seed:admin
+# One-time: create D1 and paste its ID into wrangler.toml
+wrangler d1 create travel-manager
+
+npm run migrate:remote   # apply migrations to production D1
+
+# Seed admin (outputs SQL — pipe to wrangler d1 execute)
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=... node src/cli/seed-admin.js
+
+wrangler secret put AVIATIONSTACK_API_KEY   # optional — see below
+npm run deploy
 ```
+
+## Validation
+
+```bash
+npm run lint   # node --check on all source files
+npm test       # node --test
+npm run build  # lint + test (run before every PR)
+```
+
+## Auth endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/auth/login` | Returns `{ token }` |
+| `GET`  | `/auth/me` | Returns current user |
+| `POST` | `/auth/logout` | Revokes session token |
+
+## Trip & event endpoints
+
+| Method | Path |
+|--------|------|
+| `GET` / `POST` | `/trips` |
+| `PATCH` / `DELETE` | `/trips/:tripId` |
+| `GET` / `POST` | `/trips/:tripId/flights` |
+| `PATCH` / `DELETE` | `/trips/:tripId/flights/:flightId` |
+| `GET` / `POST` | `/trips/:tripId/hotels` |
+| `PATCH` / `DELETE` | `/trips/:tripId/hotels/:hotelId` |
+| `GET` | `/trips/:tripId/passengers` |
+
+## Flight lookup (AviationStack)
+
+```
+GET /flights/lookup?fn=BA234
+Authorization: Bearer <token>
+```
+
+Proxies the AviationStack real-time flight API server-side so the API key is
+never exposed to the browser. Returns a snake_case object matching the flight
+schema; the frontend uses it to auto-fill the Add Flight form.
+
+Returns `503` if the secret is unset — the feature degrades gracefully.
+
+Set in production:
+
+```bash
+wrangler secret put AVIATIONSTACK_API_KEY
+```
+
+Free tier: 100 requests/month at https://aviationstack.com/
+
+## Legacy sync bridge
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/sync/trips` | Export in legacy JSON format |
+| `PUT` | `/sync/trips` | Import from legacy JSON array |
 
 ## Health endpoints
 
 - `GET /health`
 - `GET /health/db`
-
-When running through Caddy in `infra/`, the API is exposed under `/api/*`:
-
-- `GET /api/health`
-- `GET /api/health/db`
-
-## Auth for current API stage
-
-- Log in with `POST /auth/login` and use `Authorization: Bearer <token>`.
-- Use `npm run seed:admin` to create the first account.
-- Optional dev fallback:
-  - set `DEV_AUTH_X_USER_ID_FALLBACK=true`
-  - then `x-user-id` header is accepted for local migration/testing.
-
-## Auth endpoints
-
-- `POST /auth/login`
-- `GET /auth/me`
-- `POST /auth/logout`
-
-## CRUD endpoints (Phase 3 start)
-
-- `GET /trips`
-- `POST /trips`
-- `GET /trips/:tripId`
-- `PATCH /trips/:tripId`
-- `DELETE /trips/:tripId`
-- `GET /trips/:tripId/flights`
-- `POST /trips/:tripId/flights`
-- `PATCH /trips/:tripId/flights/:flightId`
-- `DELETE /trips/:tripId/flights/:flightId`
-- `GET /trips/:tripId/hotels`
-- `POST /trips/:tripId/hotels`
-- `PATCH /trips/:tripId/hotels/:hotelId`
-- `DELETE /trips/:tripId/hotels/:hotelId`
-- `GET /trips/:tripId/passengers`
-
-## Legacy sync bridge (for current frontend)
-
-- `GET /sync/trips`
-  - Returns trip payload in legacy JSON structure used by existing UI.
-- `PUT /sync/trips`
-  - Replaces current user data from legacy JSON array payload.
-  - Returns imported count and exported canonical payload.

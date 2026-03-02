@@ -43,7 +43,8 @@ to a Cloudflare-native architecture with D1 (SQLite).
 ```
 
 Worker serves `POST /auth/*`, `GET|POST|PATCH|DELETE /api/trips/*`,
-`/api/sync/trips` (legacy bridge), and `/health`.
+`/api/sync/trips` (legacy bridge), `/api/flights/lookup` (AviationStack proxy),
+and `/health`.
 
 ---
 
@@ -82,6 +83,9 @@ cd backend && npm run migrate:remote
 
 # Seed admin user (outputs SQL to run manually)
 ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=... node src/cli/seed-admin.js
+
+# Optional: enable AviationStack flight lookup (free tier: 100 req/month)
+wrangler secret put AVIATIONSTACK_API_KEY
 
 # Deploy Worker
 cd backend && npm run deploy
@@ -125,3 +129,6 @@ CI runs all four jobs automatically: `backend`, `frontend`,
 - Never log tokens, passwords, or personal identifiers.
 - Pin dependency versions.
 - Run `scripts/security-scan.sh` (ripgrep-based secret scan) before every push.
+- Third-party API keys (e.g. `AVIATIONSTACK_API_KEY`) go in Cloudflare secrets
+  (`wrangler secret put`) for production and in `.dev.vars` (gitignored) for
+  local dev. Never hardcode or commit them.
