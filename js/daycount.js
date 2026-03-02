@@ -137,3 +137,38 @@ export function calculateDaysByCountry(trips, passengerName, year) {
 
   return { countries, years: getPassengerYears(trips, passengerName), rangesByCountry };
 }
+
+export function buildDailyCountryMap(trips, passenger, year) {
+  const flights = getPassengerFlights(trips, passenger);
+  if (!flights.length) return {};
+  const yearStr = String(year);
+  const yearStart = `${yearStr}-01-01`;
+
+  // One event per flight: country changes on departure date (matches calculateDaysByCountry)
+  const events = flights
+    .filter(f => f.arrivalCountry)
+    .map(f => ({
+      dateStr: `${f.date.getUTCFullYear()}-${String(f.date.getUTCMonth() + 1).padStart(2, "0")}-${String(f.date.getUTCDate()).padStart(2, "0")}`,
+      country: f.arrivalCountry
+    }));
+
+  // Determine starting country (last arrival before the year)
+  let currentCountry = flights[0].departureCountry || null;
+  for (const e of events) {
+    if (e.dateStr < yearStart) { currentCountry = e.country; } else { break; }
+  }
+
+  // Walk every day of the year, applying arrival events as they occur
+  const result = {};
+  let ei = events.findIndex(e => e.dateStr >= yearStart);
+  if (ei === -1) ei = events.length;
+  for (let m = 0; m < 12; m++) {
+    const dim = new Date(Date.UTC(year, m + 1, 0)).getUTCDate();
+    for (let d = 1; d <= dim; d++) {
+      const ds = `${yearStr}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      while (ei < events.length && events[ei].dateStr <= ds) { currentCountry = events[ei++].country; }
+      if (currentCountry) result[ds] = currentCountry;
+    }
+  }
+  return result;
+}

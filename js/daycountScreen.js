@@ -1,5 +1,6 @@
 import { getAllPassengers } from "./data.js";
 import { calculateDaysByCountry, getPassengerYears } from "./daycount.js";
+import { renderCalendarView } from "./calendarView.js";
 
 const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -55,6 +56,14 @@ export function renderDaycountView({ trips, daycountState, els }) {
     const active = y === daycountState.year ? "active" : "";
     return `<button class="chip-button ${active}" data-year="${y}">${y}</button>`;
   }).join("");
+
+  const toggleBtn = document.getElementById("daycount-view-toggle");
+  if (toggleBtn) toggleBtn.textContent = daycountState.viewMode === "calendar" ? "List view" : "Calendar view";
+  if (daycountState.viewMode === "calendar") {
+    emptyEl.classList.add("hidden");
+    renderCalendarView({ trips, daycountState, els });
+    return;
+  }
 
   const { countries, rangesByCountry } = calculateDaysByCountry(trips, daycountState.passenger, daycountState.year);
   const countryNames = Object.keys(countries || {}).sort();

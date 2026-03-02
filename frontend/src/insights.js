@@ -36,7 +36,7 @@ export function createInsightsController() {
     els: null,
     legacyTrips: [],
     detailsByTripId: new Map(),
-    daycountState: { passenger: "", year: new Date().getFullYear(), monthSelection: null },
+    daycountState: { passenger: "", year: new Date().getFullYear(), monthSelection: null, viewMode: "list" },
     upcomingState: { passenger: "" },
     mapState: { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false },
     mapController: createMapScreenController()
@@ -105,6 +105,10 @@ export function createInsightsController() {
       state.daycountState.monthSelection = null;
       render();
     });
+    document.getElementById("daycount-view-toggle")?.addEventListener("click", () => {
+      state.daycountState.viewMode = state.daycountState.viewMode === "calendar" ? "list" : "calendar";
+      render();
+    });
     daycountResults?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-country][data-month]");
       if (!button) return;
@@ -144,7 +148,7 @@ export function createInsightsController() {
   function reset() {
     state.legacyTrips = [];
     state.detailsByTripId = new Map();
-    state.daycountState = { passenger: "", year: new Date().getFullYear(), monthSelection: null };
+    state.daycountState = { passenger: "", year: new Date().getFullYear(), monthSelection: null, viewMode: "list" };
     state.upcomingState = { passenger: "" };
     state.mapState = { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false };
     render();
