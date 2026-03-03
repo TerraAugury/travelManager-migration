@@ -1,8 +1,4 @@
 import * as api from "./api.js";
-import { renderDaycountView } from "../../js/daycountScreen.js";
-import { createMapScreenController } from "../../js/mapScreen.js";
-import { renderUpcomingScreen } from "../../js/upcomingScreen.js";
-import { renderAllTripsDetails } from "../../js/tripStats.js";
 
 function getElements() {
   const ids = [
@@ -31,6 +27,7 @@ function getElements() {
 }
 
 export function createInsightsController() {
+  const noop = () => {};
   const state = {
     els: null,
     legacyTrips: [],
@@ -38,14 +35,57 @@ export function createInsightsController() {
     daycountState: { passenger: "", year: new Date().getFullYear(), monthSelection: null, viewMode: "list" },
     upcomingState: { passenger: "" },
     mapState: { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false },
-    mapController: createMapScreenController()
+    mapController: { renderMapScreen: noop, setMapFullscreen: noop },
+    renderDaycountView: noop,
+    renderUpcomingScreen: noop,
+    renderAllTripsDetails: noop,
+    modulesReady: false,
+    modulesPromise: null
   };
+
+  async function importScriptModule(path) {
+    try {
+      const response = await fetch(path, { cache: "no-store" });
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      if (!response.ok || !contentType.includes("javascript")) return null;
+      return import(path);
+    } catch {
+      return null;
+    }
+  }
+
+  function ensureModules() {
+    if (state.modulesReady) return Promise.resolve();
+    if (state.modulesPromise) return state.modulesPromise;
+    state.modulesPromise = (async () => {
+      const [daycountMod, mapMod, upcomingMod, tripStatsMod] = await Promise.all([
+        importScriptModule("/js/daycountScreen.js"),
+        importScriptModule("/js/mapScreen.js"),
+        importScriptModule("/js/upcomingScreen.js"),
+        importScriptModule("/js/tripStats.js")
+      ]);
+      if (typeof daycountMod?.renderDaycountView === "function") {
+        state.renderDaycountView = daycountMod.renderDaycountView;
+      }
+      if (typeof mapMod?.createMapScreenController === "function") {
+        state.mapController = mapMod.createMapScreenController();
+      }
+      if (typeof upcomingMod?.renderUpcomingScreen === "function") {
+        state.renderUpcomingScreen = upcomingMod.renderUpcomingScreen;
+      }
+      if (typeof tripStatsMod?.renderAllTripsDetails === "function") {
+        state.renderAllTripsDetails = tripStatsMod.renderAllTripsDetails;
+      }
+      state.modulesReady = true;
+    })();
+    return state.modulesPromise;
+  }
 
   function render() {
     if (!state.els?.["upcoming-list"]) return;
-    renderUpcomingScreen({ trips: state.legacyTrips, upcomingState: state.upcomingState, els: state.els });
-    renderDaycountView({ trips: state.legacyTrips, daycountState: state.daycountState, els: state.els });
-    renderAllTripsDetails(
+    state.renderUpcomingScreen({ trips: state.legacyTrips, upcomingState: state.upcomingState, els: state.els });
+    state.renderDaycountView({ trips: state.legacyTrips, daycountState: state.daycountState, els: state.els });
+    state.renderAllTripsDetails(
       state.legacyTrips,
       state.els["trip-stats-container"],
       state.els["trip-pax-container"],
@@ -120,9 +160,11 @@ export function createInsightsController() {
           : { country, monthIndex };
       render();
     });
+    void ensureModules().then(render);
   }
 
   async function refresh(token, trips) {
+    await ensureModules();
     if (!token || !Array.isArray(trips)) {
       state.legacyTrips = [];
       render();

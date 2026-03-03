@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
-# dev.sh — run the full app locally (backend Worker + frontend Pages dev)
+# dev.sh — run the full app locally (backend Worker + frontend static assets)
 #
 # Usage:
-#   ./dev.sh              # start both servers
+#   ./dev.sh              # start local app server
 #   ./dev.sh --migrate    # apply local D1 migrations first, then start
 #
 # Requires:
 #   wrangler (npm i -g wrangler  OR  available via npx)
 #
-# Ports:
-#   8787  — Cloudflare Worker (backend API + D1)
-#   8788  — Cloudflare Pages dev (frontend; proxies /api/* to Worker)
+# Port:
+#   8788  — Cloudflare Worker (backend API + frontend static assets)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend"
-WORKER_PORT=8787
-PAGES_PORT=8788
+APP_PORT=8788
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,9 +25,10 @@ err()  { printf '\033[1;31m[dev]\033[0m %s\n' "$*" >&2; }
 die()  { err "$*"; exit 1; }
 
 have() { command -v "$1" >/dev/null 2>&1; }
+have_bin() { type -P "$1" >/dev/null 2>&1; }
 
 wrangler() {
-  if have wrangler; then
+  if have_bin wrangler; then
     command wrangler "$@"
   elif have npx; then
     npx --yes wrangler "$@"
@@ -42,7 +41,7 @@ wait_for_port() {
   local port=$1 label=$2 tries=30
   log "Waiting for $label on :$port …"
   for _ in $(seq 1 $tries); do
-    if curl -sf "http://localhost:$port/health" >/dev/null 2>&1; then
+    if curl -sf "http://localhost:$port/" >/dev/null 2>&1; then
       ok "$label is ready on :$port"
       return 0
     fi
@@ -77,17 +76,14 @@ if [[ "${1:-}" == "--migrate" ]]; then
   ok "Migrations applied."
 fi
 
-# ── start Worker ──────────────────────────────────────────────────────────────
+# ── start unified app server ──────────────────────────────────────────────────
 
-log "Starting Worker on :$WORKER_PORT …"
-(cd "$BACKEND" && wrangler dev --port "$WORKER_PORT" --log-level warn) &
+log "Starting app server on :$APP_PORT …"
+log "  Open http://localhost:$APP_PORT in your browser"
+(
+  cd "$BACKEND" &&
+  wrangler dev --port "$APP_PORT" --assets "$FRONTEND" --log-level warn
+) &
 
-wait_for_port "$WORKER_PORT" "Worker"
-
-# ── start Pages dev ───────────────────────────────────────────────────────────
-
-log "Starting Pages dev on :$PAGES_PORT …"
-log "  Open http://localhost:$PAGES_PORT in your browser"
-wrangler pages dev "$FRONTEND" \
-  --proxy "$WORKER_PORT" \
-  --port  "$PAGES_PORT"
+wait_for_port "$APP_PORT" "App server"
+wait

@@ -38,9 +38,12 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const { method } = e.request;
-  const { pathname } = new URL(e.request.url);
+  const url = new URL(e.request.url);
+  const { pathname, protocol, origin } = url;
   if (
     method !== "GET" ||
+    (protocol !== "http:" && protocol !== "https:") ||
+    origin !== self.location.origin ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/health")
   ) {
@@ -51,8 +54,12 @@ self.addEventListener("fetch", (e) => {
       if (cached) return cached;
       return fetch(e.request).then((res) => {
         if (res.ok) {
+          const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+          const badJsFallback = pathname.endsWith(".js") && contentType.includes("text/html");
           const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, clone));
+          if (!badJsFallback) {
+            caches.open(CACHE).then((c) => c.put(e.request, clone)).catch(() => {});
+          }
         }
         return res;
       });
