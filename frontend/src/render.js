@@ -1,4 +1,5 @@
 import { getState } from "./state.js";
+import { renderAdminUsers } from "./adminUsers.js";
 import { syncTripForms } from "./ui.js";
 
 function fmtDate(v) { return v ? String(v).slice(0, 10) : "–"; }
@@ -119,4 +120,6 @@ export function render(actions = {}) {
     const list = document.getElementById("trip-events-list");
     if (list) list.innerHTML = '<div class="tiles-empty">Select a trip to start adding flights and hotels.</div>';
   }
+
+  renderAdminUsers();
 }

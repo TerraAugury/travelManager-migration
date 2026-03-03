@@ -35,12 +35,11 @@ function syncTripForms() {
 export { syncTripForms };
 
 export function bindUI(actions) {
-  // Screen switching
-  document.querySelectorAll(".tab-btn,.nav-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const screen = btn.dataset.screen;
-      if (screen) switchScreen(screen);
-    });
+  // Screen switching (supports dynamically inserted buttons)
+  document.addEventListener("click", (event) => {
+    const btn = event.target.closest(".tab-btn,.nav-btn");
+    const screen = btn?.dataset?.screen;
+    if (screen) switchScreen(screen);
   });
 
   // Open overlays

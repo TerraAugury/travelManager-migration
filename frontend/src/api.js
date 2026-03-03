@@ -125,3 +125,34 @@ export async function importLegacyTrips(token, trips) {
     body: JSON.stringify(trips)
   }, token);
 }
+
+export async function listUsers(token, filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.role) params.set("role", filters.role);
+  if (filters.active === "true" || filters.active === "false") {
+    params.set("active", filters.active);
+  }
+  const query = params.toString();
+  const payload = await request(`/admin/users${query ? `?${query}` : ""}`, {}, token);
+  return payload?.items || [];
+}
+
+export async function createUser(token, body) {
+  return request("/admin/users", {
+    method: "POST",
+    body: JSON.stringify(body)
+  }, token);
+}
+
+export async function updateUser(token, userId, body) {
+  return request(`/admin/users/${encodeURIComponent(userId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body)
+  }, token);
+}
+
+export async function deleteUser(token, userId) {
+  return request(`/admin/users/${encodeURIComponent(userId)}`, {
+    method: "DELETE"
+  }, token);
+}
