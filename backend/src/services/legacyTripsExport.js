@@ -63,14 +63,34 @@ export function buildLegacyTripsExportService(deps) {
       hotelsByTrip.set(hotel.trip_id, list);
     }
 
-    return trips.map((trip) => ({
-      id: trip.id,
-      name: trip.name,
-      createdAt: trip.created_at,
-      updatedAt: trip.updated_at,
-      records: (flightsByTrip.get(trip.id) || []).map(flightToLegacyRecord),
-      hotels: (hotelsByTrip.get(trip.id) || []).map(hotelToLegacyRecord)
-    }));
+    return Promise.all(
+      trips.map(async (trip) => {
+        const records = await Promise.all(
+          (flightsByTrip.get(trip.id) || []).map(async (flight) =>
+            flightToLegacyRecord(
+              flight,
+              await passengersRepository.listPassengersForFlight(flight.id)
+            )
+          )
+        );
+        const hotelsOut = await Promise.all(
+          (hotelsByTrip.get(trip.id) || []).map(async (hotel) =>
+            hotelToLegacyRecord(
+              hotel,
+              await passengersRepository.listPassengersForHotel(hotel.id)
+            )
+          )
+        );
+        return {
+          id: trip.id,
+          name: trip.name,
+          createdAt: trip.created_at,
+          updatedAt: trip.updated_at,
+          records,
+          hotels: hotelsOut
+        };
+      })
+    );
   }
 
   return {

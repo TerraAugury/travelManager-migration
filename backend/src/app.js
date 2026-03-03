@@ -6,6 +6,7 @@ import { registerFlightRoutes } from "./routes/flights.js";
 import { registerHotelRoutes } from "./routes/hotels.js";
 import { registerPassengerRoutes } from "./routes/passengers.js";
 import { registerSyncRoutes } from "./routes/sync.js";
+import { registerAdminUsersRoutes } from "./routes/adminUsers.js";
 import { buildUsersRepository } from "./repositories/usersRepository.js";
 import { buildSessionsRepository } from "./repositories/sessionsRepository.js";
 import { buildTripsRepository } from "./repositories/tripsRepository.js";
@@ -52,6 +53,7 @@ export function buildApp({ db: d1, env }) {
   registerHotelRoutes(app, context);
   registerPassengerRoutes(app, context);
   registerSyncRoutes(app, context);
+  registerAdminUsersRoutes(app, context);
 
   app.onError((err, c) => {
     console.error("Unhandled error", err);
