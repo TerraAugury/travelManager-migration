@@ -35,6 +35,9 @@ config.json
 secrets/
 secret/
 
+# ---- Cloudflare / Wrangler ----
+.wrangler/
+
 # ---- Node / frontend ----
 node_modules/
 dist/
@@ -63,7 +66,7 @@ venv/
 *.dump
 *.bak
 backups/
-!backend/migrations/003_trips_owner_index.sql
+!backend/migrations/*.sql
 
 # ---- Runtime / temp ----
 tmp/
