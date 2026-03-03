@@ -22,6 +22,7 @@ test("initial schema defines required tables and safety constraints", async () =
   assert.match(normalized, /create table if not exists flight_records/);
   assert.match(normalized, /create table if not exists hotel_records/);
   assert.match(normalized, /create table if not exists sessions/);
+  assert.match(normalized, /default 'user' check \(role in \('admin', 'user'\)\)/);
   assert.match(normalized, /check \(pax_count > 0\)/);
   assert.match(normalized, /check \(check_out_date >= check_in_date\)/);
   assert.match(normalized, /references users\(id\) on delete restrict/);

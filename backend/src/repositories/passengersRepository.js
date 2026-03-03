@@ -8,7 +8,7 @@ export function buildPassengersRepository({ pool }) {
       const insert = await pool.query(
         `INSERT INTO passengers (id, name)
          VALUES ($1, $2)
-         ON CONFLICT (name_lower) DO UPDATE SET name = excluded.name
+         ON CONFLICT(name COLLATE NOCASE) DO UPDATE SET name = excluded.name
          RETURNING id, name`,
         [id, name]
       );
