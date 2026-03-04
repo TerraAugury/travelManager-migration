@@ -73,12 +73,17 @@ export function registerFlightRoutes(app, deps) {
       const key = c.env?.AVIATIONSTACK_API_KEY;
       if (!key) return sendError(c, 503, "Flight lookup not configured on this server.");
       // Use header auth to avoid leaking the key in URLs.
-      const res = await fetch(`https://api.aviationstack.com/v1/flights?flight_iata=${encodeURIComponent(fn)}`, {
+      const baseUrl = `https://api.aviationstack.com/v1/flights?flight_iata=${encodeURIComponent(fn)}`;
+      let res = await fetch(baseUrl, {
         headers: {
           "X-Api-Key": key,
           Authorization: `Bearer ${key}`
         }
       });
+      // Compatibility fallback for AviationStack plans/endpoints that still require access_key in query.
+      if (!res.ok) {
+        res = await fetch(`${baseUrl}&access_key=${encodeURIComponent(key)}`);
+      }
       if (!res.ok) return sendError(c, 502, "Upstream flight lookup error.");
       const json = await res.json();
       const f = json?.data?.[0];
