@@ -6,6 +6,7 @@
   <title>Travel Manager</title>
   <link rel="stylesheet" href="./styles.css"/>
   <link rel="stylesheet" href="./layout.css"/>
+  <link rel="stylesheet" href="./tripTiles.css"/>
   <link rel="stylesheet" href="./overlays.css"/>
   <link rel="stylesheet" href="./insights.css"/>
   <link rel="stylesheet" href="./map.css"/>
@@ -58,18 +59,14 @@
       <main id="screen-trips" class="screen active-screen layout-columns">
         <div class="card-trip-container">
           <div class="card card-trip">
-            <div class="card-head"><div class="card-title">Control Center</div><div id="trip-edit-actions" class="card-head-actions hidden"><button type="submit" form="trip-edit-form" id="trip-save-btn" class="btn btn-primary btn-xs mobile-icon-btn mobile-icon-save" aria-label="Save trip" title="Save trip"><span class="mobile-icon-text">Save</span></button><button type="button" id="trip-delete-btn" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete trip" title="Delete trip"><span class="mobile-icon-text">Delete</span></button></div></div>
+            <div class="card-head"><div class="card-title">Control Center</div><div id="trip-edit-actions" class="card-head-actions hidden"><button type="button" id="trip-delete-btn" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete trip" title="Delete trip"><span class="mobile-icon-text">Delete</span></button></div></div>
             <div class="field"><label for="trip-select">Trip</label><select id="trip-select"><option value="">Select a trip…</option></select></div>
             <form id="trip-form" class="new-trip-form hidden form-stack">
               <div class="field"><label for="trip-name">Trip Name</label><input id="trip-name" type="text" maxlength="120" required/></div>
-              <div class="field-row"><div class="field"><label for="trip-start">Start</label><input id="trip-start" type="date"/></div><div class="field"><label for="trip-end">End</label><input id="trip-end" type="date"/></div></div>
-              <div class="field"><label for="trip-notes">Notes</label><textarea id="trip-notes" rows="2" maxlength="4000"></textarea></div>
               <button type="submit" class="btn btn-primary btn-full">Create Trip</button>
             </form>
             <form id="trip-edit-form" class="trip-edit-form hidden form-stack">
               <div class="field"><label for="trip-edit-name">Trip Name</label><input id="trip-edit-name" type="text" maxlength="120"/></div>
-              <div class="field-row"><div class="field"><label for="trip-edit-start">Start</label><input id="trip-edit-start" type="date"/></div><div class="field"><label for="trip-edit-end">End</label><input id="trip-edit-end" type="date"/></div></div>
-              <div class="field"><label for="trip-edit-notes">Notes</label><textarea id="trip-edit-notes" rows="2" maxlength="4000"></textarea></div>
             </form>
             <div class="control-grid"><button id="add-flight-btn" class="btn btn-primary" type="button" disabled>✈︎ Add Flight</button><button id="add-hotel-btn" class="btn btn-primary" type="button" disabled>🛏 Add Hotel</button></div>
             <div class="summary-bar"><span id="trip-events-summary">Select a trip to begin</span></div>

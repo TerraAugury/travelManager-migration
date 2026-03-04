@@ -79,6 +79,12 @@ body {
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .field-row > .field { min-width: 0; }
 .field-row input[type="date"] { width: 100%; min-width: 0; max-width: 100%; }
+@media (max-width: 520px) {
+  #trip-form .field-row,
+  #trip-edit-form .field-row {
+    grid-template-columns: 1fr;
+  }
+}
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
 input,select,textarea {

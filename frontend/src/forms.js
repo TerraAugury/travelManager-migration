@@ -68,40 +68,31 @@ export function parsePassengerNames(raw) {
 
 export function readCreateTripBody() {
   return {
-    name: textValue("trip-name"),
-    notes: textValue("trip-notes") || null,
-    startDate: dateValue("trip-start"),
-    endDate: dateValue("trip-end")
+    name: textValue("trip-name")
   };
 }
 
 export function readUpdateTripBody() {
   return {
-    name: textValue("trip-edit-name") || undefined,
-    notes: textValue("trip-edit-notes") || undefined,
-    startDate: dateValue("trip-edit-start") || undefined,
-    endDate: dateValue("trip-edit-end") || undefined
+    name: textValue("trip-edit-name") || undefined
   };
 }
 
 export function fillTripEditor(trip) {
   const name = document.getElementById("trip-edit-name");
-  const notes = document.getElementById("trip-edit-notes");
   const start = document.getElementById("trip-edit-start");
   const end = document.getElementById("trip-edit-end");
-  if (!name || !notes || !start || !end) return;
+  if (!name) return;
   if (!trip) {
     name.value = "";
-    notes.value = "";
-    start.value = "";
-    end.value = "";
+    if (start) start.value = "";
+    if (end) end.value = "";
     return;
   }
   name.value = trip.name || "";
-  notes.value = trip.notes || "";
   const fallback = deriveTripRangeFromDetails();
-  start.value = toIsoDay(trip.start_date) || fallback.start || "";
-  end.value = toIsoDay(trip.end_date) || fallback.end || "";
+  if (start) start.value = toIsoDay(trip.start_date) || fallback.start || "";
+  if (end) end.value = toIsoDay(trip.end_date) || fallback.end || "";
 }
 
 export function fillFlightForm(flight) {

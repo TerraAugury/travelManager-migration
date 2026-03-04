@@ -1,8 +1,9 @@
-const CACHE = "tm-v13";
+const CACHE = "tm-v16";
 const STATIC = [
   "/",
   "/styles.css",
   "/layout.css",
+  "/tripTiles.css",
   "/overlays.css",
   "/insights.css",
   "/map.css",
@@ -28,6 +29,7 @@ const STATIC = [
   "/src/legacyAdapter.js",
   "/src/render.js",
   "/src/state.js",
+  "/src/tripEventTiles.js",
   "/src/ui.js",
   "/vendor/leaflet.css",
   "/vendor/leaflet.js"

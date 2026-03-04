@@ -33,7 +33,7 @@ function syncTripForms() {
   const isNew = selectVal === "__new__";
   const hasTrip = !!getState().selectedTripId && !isNew;
   document.getElementById("trip-form")?.classList.toggle("hidden", !isNew);
-  document.getElementById("trip-edit-form")?.classList.toggle("hidden", !hasTrip);
+  document.getElementById("trip-edit-form")?.classList.add("hidden");
   document.getElementById("trip-edit-actions")?.classList.toggle("hidden", !hasTrip);
 }
 
