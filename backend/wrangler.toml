@@ -4,7 +4,7 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
-binding = "travel_manager"
+binding = "DB"
 database_name = "travel-manager"
 database_id = "36e70ba2-0aab-43ef-bc68-985d0977941f"
 
