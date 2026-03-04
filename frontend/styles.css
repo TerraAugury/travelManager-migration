@@ -76,7 +76,8 @@ body {
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > label { font-size: 13px; font-weight: 500; color: var(--muted); }
 .field-group { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px; }
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.field-row > .field { min-width: 0; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
 input,select,textarea {
