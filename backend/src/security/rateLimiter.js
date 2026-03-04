@@ -1,60 +1,60 @@
-export function buildFixedWindowRateLimiter({
-  windowMs = 15 * 60 * 1000,
-  maxAttempts = 10
-} = {}) {
-  if (!Number.isInteger(windowMs) || windowMs <= 0) {
-    throw new Error("windowMs must be a positive integer.");
+function asPositiveInteger(value, field) {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${field} must be a positive integer.`);
   }
-  if (!Number.isInteger(maxAttempts) || maxAttempts <= 0) {
-    throw new Error("maxAttempts must be a positive integer.");
+  return value;
+}
+
+function readSelectRow(selectResult) {
+  const rows = Array.isArray(selectResult?.results)
+    ? selectResult.results
+    : Array.isArray(selectResult)
+      ? selectResult
+      : [];
+  return rows[0] || null;
+}
+
+async function maybeCleanupExpired(db, nowMs) {
+  if (Math.random() >= 0.01) return;
+  await db
+    .prepare("DELETE FROM rate_limits WHERE reset_at <= ?")
+    .bind(nowMs)
+    .run();
+}
+
+export async function checkRateLimit(db, key, maxRequests, windowMs) {
+  if (!db || typeof db.prepare !== "function" || typeof db.batch !== "function") {
+    throw new Error("db must be a D1 binding.");
   }
+  const safeMaxRequests = asPositiveInteger(maxRequests, "maxRequests");
+  const safeWindowMs = asPositiveInteger(windowMs, "windowMs");
+  const now = Date.now();
+  const bucketKey = String(key || "unknown");
+  const resetAt = now + safeWindowMs;
 
-  const buckets = new Map();
+  const statements = [
+    db
+      .prepare("DELETE FROM rate_limits WHERE key = ? AND reset_at <= ?")
+      .bind(bucketKey, now),
+    db
+      .prepare(
+        "INSERT INTO rate_limits (key, count, reset_at) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = count + 1"
+      )
+      .bind(bucketKey, resetAt),
+    db
+      .prepare("SELECT count, reset_at FROM rate_limits WHERE key = ?")
+      .bind(bucketKey)
+  ];
+  const batchResults = await db.batch(statements);
+  const row = readSelectRow(batchResults?.[2]);
+  const count = Number(row?.count || 0);
+  const finalResetAt = Number(row?.reset_at || resetAt);
 
-  function cleanup(now) {
-    for (const [key, value] of buckets.entries()) {
-      if (value.resetAt <= now) {
-        buckets.delete(key);
-      }
-    }
-  }
-
-  function consume(key) {
-    const now = Date.now();
-    cleanup(now);
-    const bucketKey = String(key || "unknown");
-    const existing = buckets.get(bucketKey);
-
-    if (!existing || existing.resetAt <= now) {
-      buckets.set(bucketKey, {
-        count: 1,
-        resetAt: now + windowMs
-      });
-      return {
-        allowed: true,
-        retryAfterSeconds: 0
-      };
-    }
-
-    existing.count += 1;
-    if (existing.count > maxAttempts) {
-      const retryAfterSeconds = Math.max(
-        1,
-        Math.ceil((existing.resetAt - now) / 1000)
-      );
-      return {
-        allowed: false,
-        retryAfterSeconds
-      };
-    }
-
-    return {
-      allowed: true,
-      retryAfterSeconds: 0
-    };
-  }
+  await maybeCleanupExpired(db, now);
 
   return {
-    consume
+    allowed: count <= safeMaxRequests,
+    remaining: Math.max(0, safeMaxRequests - count),
+    resetAt: finalResetAt
   };
 }

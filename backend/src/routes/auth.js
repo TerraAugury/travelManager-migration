@@ -2,7 +2,7 @@ import { requireRequestUser } from "../auth/requestUser.js";
 import { sendError } from "../http/responses.js";
 import { toTrimmedString } from "../http/validation.js";
 import { verifyPassword } from "../security/passwords.js";
-import { buildFixedWindowRateLimiter } from "../security/rateLimiter.js";
+import { checkRateLimit } from "../security/rateLimiter.js";
 import { generateAuthToken } from "../security/tokens.js";
 
 function parseLoginBody(body) {
@@ -43,10 +43,6 @@ export async function registerAuthRoutes(app, deps) {
     authLoginRateLimitWindowMs = 15 * 60 * 1000,
     authLoginRateLimitMaxAttempts = 10
   } = deps;
-  const loginLimiter = buildFixedWindowRateLimiter({
-    windowMs: authLoginRateLimitWindowMs,
-    maxAttempts: authLoginRateLimitMaxAttempts
-  });
 
   app.post("/api/auth/login", async (c) => {
     const parsed = parseLoginBody(await c.req.json());
@@ -54,9 +50,18 @@ export async function registerAuthRoutes(app, deps) {
 
     const emailForKey = parsed.value?.email || "unknown";
     const rateLimitKey = `${getClientIp(c)}|${emailForKey}`;
-    const limit = loginLimiter.consume(rateLimitKey);
+    const limit = await checkRateLimit(
+      c.env.DB,
+      rateLimitKey,
+      authLoginRateLimitMaxAttempts,
+      authLoginRateLimitWindowMs
+    );
     if (!limit.allowed) {
-      c.header("Retry-After", String(limit.retryAfterSeconds));
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((limit.resetAt - Date.now()) / 1000)
+      );
+      c.header("Retry-After", String(retryAfterSeconds));
       return sendError(c, 429, "Too many login attempts. Please try again later.");
     }
 

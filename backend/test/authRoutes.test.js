@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { registerAuthRoutes } from "../src/routes/auth.js";
 import { hashPassword } from "../src/security/passwords.js";
+import { createRateLimitsDbMock } from "./d1RateLimitsMock.js";
 
 function appMock() {
   const routes = new Map();
@@ -12,9 +13,10 @@ function appMock() {
   };
 }
 
-function cMock({ jsonBody = null, headers = {} } = {}) {
+function cMock({ jsonBody = null, headers = {}, env = {} } = {}) {
   const responseHeaders = {};
   return {
+    env,
     req: {
       async json() { return jsonBody; },
       header(name) { return headers[name.toLowerCase()] ?? null; }
@@ -27,6 +29,7 @@ function cMock({ jsonBody = null, headers = {} } = {}) {
 
 test("POST /auth/login returns token for valid credentials", async () => {
   const app = appMock();
+  const env = { DB: createRateLimitsDbMock() };
   const passwordHash = await hashPassword("super-secret-pass");
   await registerAuthRoutes(app, {
     allowDevHeaderAuth: false,
@@ -44,7 +47,7 @@ test("POST /auth/login returns token for valid credentials", async () => {
   });
 
   const handler = app.routes.get("POST /api/auth/login");
-  const result = await handler(cMock({ jsonBody: { email: "a@b.com", password: "super-secret-pass" } }));
+  const result = await handler(cMock({ env, jsonBody: { email: "a@b.com", password: "super-secret-pass" } }));
   assert.equal(result.status, 200);
   assert.ok(result.data.token);
   assert.equal(result.data.user.email, "a@b.com");
@@ -52,6 +55,7 @@ test("POST /auth/login returns token for valid credentials", async () => {
 
 test("POST /auth/login rejects invalid credentials", async () => {
   const app = appMock();
+  const env = { DB: createRateLimitsDbMock() };
   await registerAuthRoutes(app, {
     allowDevHeaderAuth: false,
     usersRepository: { async findAuthByEmail() { return null; }, async findActiveById() { return null; } },
@@ -59,13 +63,14 @@ test("POST /auth/login rejects invalid credentials", async () => {
   });
 
   const handler = app.routes.get("POST /api/auth/login");
-  const result = await handler(cMock({ jsonBody: { email: "bad@bad.com", password: "wrong-pass" } }));
+  const result = await handler(cMock({ env, jsonBody: { email: "bad@bad.com", password: "wrong-pass" } }));
   assert.equal(result.status, 401);
   assert.match(result.data.error, /Invalid email or password/);
 });
 
 test("POST /auth/login applies rate limit", async () => {
   const app = appMock();
+  const env = { DB: createRateLimitsDbMock() };
   await registerAuthRoutes(app, {
     allowDevHeaderAuth: false,
     authLoginRateLimitWindowMs: 60_000,
@@ -75,11 +80,11 @@ test("POST /auth/login applies rate limit", async () => {
   });
 
   const handler = app.routes.get("POST /api/auth/login");
-  const firstCtx = cMock({ jsonBody: { email: "a@b.com", password: "bad-pass" } });
+  const firstCtx = cMock({ env, jsonBody: { email: "a@b.com", password: "bad-pass" } });
   const firstResult = await handler(firstCtx);
   assert.equal(firstResult.status, 401);
 
-  const secondCtx = cMock({ jsonBody: { email: "a@b.com", password: "bad-pass" } });
+  const secondCtx = cMock({ env, jsonBody: { email: "a@b.com", password: "bad-pass" } });
   const secondResult = await handler(secondCtx);
   assert.equal(secondResult.status, 429);
   assert.match(secondResult.data.error, /Too many login attempts/);

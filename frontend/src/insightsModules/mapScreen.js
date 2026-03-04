@@ -1,11 +1,10 @@
 import { getPassengerFlights, dedupeFlightsForMap, normalizePassengerNames } from "./flightUtils.js";
 import {
   buildCityIndexFromAirportCoords,
-  getMapNodeFromAirportCode,
+  mapFlightToCityRoute,
   computeBearingDegrees,
   buildGreatCircleArcLatLngs,
-  estimateArcSegments,
-  getProjectedPolylinePointAtFraction
+  estimateArcSegments
 } from "./mapGeo.js";
 import { renderMapFlightsLayers, repositionBadges } from "./mapRender.js";
 function esc(value) {
@@ -17,15 +16,8 @@ function getPassengerNamesFromFlights(flights) {
   return normalizePassengerNames(all);
 }
 
-function mapFlightToCityRoute(flight, cityIndex) {
-  const dep = getMapNodeFromAirportCode(flight.departureCode, cityIndex);
-  const arr = getMapNodeFromAirportCode(flight.arrivalCode, cityIndex);
-  if (!dep || !arr || dep.key === arr.key) return null;
-  const [aKey, bKey] = [dep.key, arr.key].sort((x, y) => x.localeCompare(y));
-  return { dep, arr, aKey, bKey, routeKey: `${aKey}__${bKey}` };
-}
-
 export function createMapScreenController() {
+  const cityIndex = buildCityIndexFromAirportCoords();
   let mapInstance = null;
   let mapRoutesLayer = null;
   let mapAirportsLayer = null;
@@ -71,7 +63,6 @@ export function createMapScreenController() {
     const routeSelect = els["map-route"];
     const yearList = els["map-year-list"];
     const allFlights = dedupeFlightsForMap(getPassengerFlights(trips, null));
-    const cityIndex = buildCityIndexFromAirportCoords();
     const yearsSet = new Set();
     for (const flight of allFlights) {
       if (mapState.passenger && !(flight.paxNames || []).includes(mapState.passenger)) continue;
@@ -94,17 +85,6 @@ export function createMapScreenController() {
       .map((flight) => ({ flight, info: mapFlightToCityRoute(flight, cityIndex) }))
       .filter((row) => row.info);
 
-    const paxSource = mapState.routeKey
-      ? mappedForYear.filter((row) => row.info.routeKey === mapState.routeKey).map((row) => row.flight)
-      : mappedForYear.map((row) => row.flight);
-    const paxOptions = getPassengerNamesFromFlights(paxSource);
-    if (mapState.passenger && !paxOptions.includes(mapState.passenger)) mapState.passenger = null;
-    if (passSelect) {
-      passSelect.innerHTML = '<option value="__all__">All passengers</option>';
-      paxOptions.forEach((name) => passSelect.insertAdjacentHTML("beforeend", `<option value="${esc(name)}">${esc(name)}</option>`));
-      passSelect.value = mapState.passenger || "__all__";
-    }
-
     const routeRows = mapState.passenger
       ? mappedForYear.filter((row) => (row.flight.paxNames || []).includes(mapState.passenger))
       : mappedForYear;
@@ -114,7 +94,7 @@ export function createMapScreenController() {
     if (mapState.routeKey && !routes.includes(mapState.routeKey)) mapState.routeKey = null;
     if (routeSelect) {
       routeSelect.innerHTML = '<option value="__all__">All routes</option>';
-      routes.forEach((key) => routeSelect.insertAdjacentHTML("beforeend", `<option value="${esc(key)}">${esc(key.replace("__", " <-> "))}</option>`));
+      routes.forEach((key) => routeSelect.insertAdjacentHTML("beforeend", `<option value="${esc(key)}">${esc(key.replace(/__/g, " <-> "))}</option>`));
       routeSelect.value = mapState.routeKey || "__all__";
     }
 
@@ -144,10 +124,9 @@ export function createMapScreenController() {
     }
     lastMapState = mapState;
     lastBadgeData = renderMapFlightsLayers({
-      trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer,
-      getPassengerFlights, dedupeFlightsForMap, buildCityIndexFromAirportCoords, mapFlightToCityRoute,
-      getMapNodeFromAirportCode,
-      computeBearingDegrees, buildGreatCircleArcLatLngs, estimateArcSegments, getProjectedPolylinePointAtFraction, esc
+      trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer, cityIndex,
+      getPassengerFlights, dedupeFlightsForMap,
+      computeBearingDegrees, buildGreatCircleArcLatLngs, estimateArcSegments, esc
     }) || [];
     if (mapRoutesLayer?.getBounds) {
       const bounds = mapRoutesLayer.getBounds();

@@ -6,6 +6,7 @@ import {
   toTrimmedString
 } from "../http/validation.js";
 import { sendError } from "../http/responses.js";
+import { validateIataCode, validatePassengerName } from "../validation.js";
 
 function parseFlightBody(body) {
   const flightNumber = toTrimmedString(body?.flightNumber, {
@@ -31,6 +32,18 @@ function parseFlightBody(body) {
   const arrAt = toOptionalDateTime(body?.arrivalScheduled, { field: "arrivalScheduled" });
   if (arrAt.error) return { error: arrAt.error };
   const names = toPassengerNames(body?.passengerNames);
+  for (const name of names.value) {
+    const nameValidation = validatePassengerName(name);
+    if (!nameValidation.valid) return { error: nameValidation.error };
+  }
+  if (depCode.value) {
+    const depValidation = validateIataCode(depCode.value.toUpperCase());
+    if (!depValidation.valid) return { error: depValidation.error };
+  }
+  if (arrCode.value) {
+    const arrValidation = validateIataCode(arrCode.value.toUpperCase());
+    if (!arrValidation.valid) return { error: arrValidation.error };
+  }
   return {
     value: {
       flightNumber: flightNumber.value?.toUpperCase(),
@@ -59,7 +72,10 @@ export function registerFlightRoutes(app, deps) {
       if (!fn || !/^[A-Z0-9]{2,8}$/.test(fn)) return sendError(c, 400, "Invalid or missing flight number (fn).");
       const key = c.env?.AVIATIONSTACK_API_KEY;
       if (!key) return sendError(c, 503, "Flight lookup not configured on this server.");
-      const res = await fetch(`https://api.aviationstack.com/v1/flights?access_key=${encodeURIComponent(key)}&flight_iata=${encodeURIComponent(fn)}`);
+      // AviationStack docs still show query auth; use header auth here to avoid leaking the key in URLs.
+      const res = await fetch(`https://api.aviationstack.com/v1/flights?flight_iata=${encodeURIComponent(fn)}`, {
+        headers: { Authorization: `Bearer ${key}` }
+      });
       if (!res.ok) return sendError(c, 502, "Upstream flight lookup error.");
       const json = await res.json();
       const f = json?.data?.[0];

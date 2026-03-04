@@ -20,6 +20,7 @@ function clusterCellSize(zoom) {
   if (zoom < 3) return 170;
   if (zoom < 4) return 145;
   if (zoom < 5) return 120;
+  // Used only at zoom 5 because zoom >= 6 skips clustering.
   return 95;
 }
 
@@ -40,8 +41,7 @@ export function layoutBadgesForZoom(candidates, mapInstance, zoom) {
   const out = [];
   for (const bucket of grid.values()) {
     if (bucket.length === 1) {
-      const single = bucket[0];
-      delete single._px;
+      const { _px: _ignored, ...single } = bucket[0];
       out.push(single);
       continue;
     }
@@ -59,5 +59,6 @@ export function layoutBadgesForZoom(candidates, mapInstance, zoom) {
     });
   }
 
+  // Final overlap pass is still needed in sparse zoom<6 views where buckets may not cluster.
   return keepNonOverlappingByCount(out, mapInstance);
 }

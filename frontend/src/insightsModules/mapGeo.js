@@ -58,6 +58,14 @@ export function getMapNodeFromAirportCode(codeRaw, cityIndex) {
   };
 }
 
+export function mapFlightToCityRoute(flight, cityIndex) {
+  const dep = getMapNodeFromAirportCode(flight?.departureCode, cityIndex);
+  const arr = getMapNodeFromAirportCode(flight?.arrivalCode, cityIndex);
+  if (!dep || !arr || dep.key === arr.key) return null;
+  const [aKey, bKey] = [dep.key, arr.key].sort((x, y) => x.localeCompare(y));
+  return { dep, arr, aKey, bKey, routeKey: `${aKey}__${bKey}` };
+}
+
 export function computeBearingDegrees(lat1, lon1, lat2, lon2) {
   const toRad = (deg) => (deg * Math.PI) / 180;
   const toDeg = (rad) => (rad * 180) / Math.PI;

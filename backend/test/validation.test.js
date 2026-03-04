@@ -8,6 +8,7 @@ import {
   toPositiveInt,
   toTrimmedString
 } from "../src/http/validation.js";
+import { validateIataCode, validatePassengerName } from "../src/validation.js";
 
 test("isUuid validates canonical UUID strings", () => {
   assert.equal(isUuid("5f8ce478-0fb5-4f84-9df4-c7bc844f039f"), true);
@@ -38,3 +39,14 @@ test("toPositiveInt validates positive integers", () => {
   assert.match(toPositiveInt("3.2", { field: "paxCount" }).error, /positive integer/);
 });
 
+test("validatePassengerName enforces strict whitelist", () => {
+  assert.deepEqual(validatePassengerName("Jean-Luc O'Neill"), { valid: true });
+  assert.deepEqual(validatePassengerName("Мария"), { valid: true });
+  assert.deepEqual(validatePassengerName("Alice123"), { valid: false, error: "Invalid passenger name" });
+});
+
+test("validateIataCode requires 3 uppercase letters", () => {
+  assert.deepEqual(validateIataCode("CDG"), { valid: true });
+  assert.deepEqual(validateIataCode("cdg"), { valid: false, error: "Invalid IATA code" });
+  assert.deepEqual(validateIataCode("CDG1"), { valid: false, error: "Invalid IATA code" });
+});

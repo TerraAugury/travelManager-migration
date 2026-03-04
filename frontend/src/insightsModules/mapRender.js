@@ -1,6 +1,16 @@
 import { layoutBadgesForZoom } from "./mapBadgeLayout.js";
+import {
+  getMapNodeFromAirportCode,
+  getProjectedPolylinePointAtFraction,
+  mapFlightToCityRoute
+} from "./mapGeo.js";
 
 const ROUTE_COLORS = ["#D32F2F", "#1565C0", "#2E7D32", "#F57F17", "#6A1B9A", "#00838F", "#E65100", "#37474F"];
+const ROUTE_COLOR_SET = new Set(ROUTE_COLORS);
+// Guard: only palette colors may appear in inline style attributes.
+function safeRouteColor(color) {
+  return ROUTE_COLOR_SET.has(color) ? color : "#37474F";
+}
 function buildFlightsList(flights, esc) {
   const lines = (flights || [])
     .slice()
@@ -40,17 +50,17 @@ export function repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapSt
   for (const badge of Array.isArray(badgeData) ? badgeData : []) {
     if (badge.isDimmed) continue;
     const arcPx = (badge.arc || []).map((latLng) => mapInstance.project(window.L.latLng(latLng[0], latLng[1]), zoom));
-    const pAB = badge.countAB ? badge.getProjectedPolylinePointAtFraction(arcPx, 1 / 3) : null;
-    const pBA = badge.countBA ? badge.getProjectedPolylinePointAtFraction(arcPx, 2 / 3) : null;
+    const pAB = badge.countAB ? getProjectedPolylinePointAtFraction(arcPx, 1 / 3) : null;
+    const pBA = badge.countBA ? getProjectedPolylinePointAtFraction(arcPx, 2 / 3) : null;
     const offset = 12;
     if (pAB && badge.countAB) {
       const llAB = mapInstance.unproject(window.L.point(pAB.point.x - pAB.dir.y * offset, pAB.point.y + pAB.dir.x * offset), zoom);
-      const html = `<div class="route-count-badge" style="color:${badge.color};"><div class="route-count-num">${badge.countAB}</div><div class="route-count-arrow" style="transform:rotate(${badge.rotAB}deg);">&#9992;</div></div>`;
+      const html = `<div class="route-count-badge" style="color:${safeRouteColor(badge.color)};"><div class="route-count-num">${badge.countAB}</div><div class="route-count-arrow" style="transform:rotate(${badge.rotAB}deg);">&#9992;</div></div>`;
       candidates.push({ latLng: llAB, count: badge.countAB, html, popup: badge.popupForward, routeKey: badge.routeKey });
     }
     if (pBA && badge.countBA) {
       const llBA = mapInstance.unproject(window.L.point(pBA.point.x + pBA.dir.y * offset, pBA.point.y - pBA.dir.x * offset), zoom);
-      const html = `<div class="route-count-badge" style="color:${badge.color};"><div class="route-count-num">${badge.countBA}</div><div class="route-count-arrow" style="transform:rotate(${badge.rotBA}deg);">&#9992;</div></div>`;
+      const html = `<div class="route-count-badge" style="color:${safeRouteColor(badge.color)};"><div class="route-count-num">${badge.countBA}</div><div class="route-count-arrow" style="transform:rotate(${badge.rotBA}deg);">&#9992;</div></div>`;
       candidates.push({ latLng: llBA, count: badge.countBA, html, popup: badge.popupBack, routeKey: badge.routeKey });
     }
   }
@@ -66,9 +76,9 @@ export function repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapSt
 
 export function renderMapFlightsLayers(opts) {
   const {
-    trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer,
-    getPassengerFlights, dedupeFlightsForMap, buildCityIndexFromAirportCoords, mapFlightToCityRoute, getMapNodeFromAirportCode,
-    computeBearingDegrees, buildGreatCircleArcLatLngs, estimateArcSegments, getProjectedPolylinePointAtFraction, esc
+    trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer, cityIndex,
+    getPassengerFlights, dedupeFlightsForMap,
+    computeBearingDegrees, buildGreatCircleArcLatLngs, estimateArcSegments, esc
   } = opts;
   const emptyEl = els["map-empty"];
   const warnEl = els["map-warning"];
@@ -79,7 +89,6 @@ export function renderMapFlightsLayers(opts) {
   resetMapLayers({ mapRoutesLayer, mapAirportsLayer, mapLabelsLayer });
   if (!filtered.length) return showEmpty({ emptyEl, warnEl, mapEl, mapInstance, text: "No flights for this selection." });
 
-  const cityIndex = buildCityIndexFromAirportCoords();
   const routesMap = new Map();
   const nodesUsed = new Map();
   const missingCodes = new Set();
@@ -114,9 +123,7 @@ export function renderMapFlightsLayers(opts) {
 
   emptyEl.classList.add("hidden");
   mapEl.classList.remove("hidden");
-  mapInstance.invalidateSize();
-  const bounds = [];
-  routeBuckets.forEach((route) => bounds.push([route.a.lat, route.a.lon], [route.b.lat, route.b.lon]));
+  const bounds = routeBuckets.flatMap((route) => [[route.a.lat, route.a.lon], [route.b.lat, route.b.lon]]);
   if (bounds.length) mapInstance.fitBounds(window.L.latLngBounds(bounds), { padding: [18, 18] });
 
   const badgeData = [];
@@ -152,10 +159,9 @@ export function renderMapFlightsLayers(opts) {
       popupBack,
       rotAB,
       rotBA,
-      color: assignedColor,
+      color: safeRouteColor(assignedColor),
       routeKey,
-      isDimmed,
-      getProjectedPolylinePointAtFraction
+      isDimmed
     });
   }
 
@@ -166,18 +172,16 @@ export function renderMapFlightsLayers(opts) {
       .addTo(mapAirportsLayer);
   }
 
-  if (missingCodes.size) {
+  const warningParts = [];
+  if (skippedMissing > 0) warningParts.push(`${skippedMissing} missing coordinates were skipped.`);
+  if (missingCodes.size) warningParts.push(`Missing coordinates for: ${Array.from(missingCodes).filter(Boolean).sort().join(", ")}.`);
+  if (skippedSameCity > 0) warningParts.push(`${skippedSameCity} within the same city were skipped.`);
+  if (warningParts.length) {
     warnEl.classList.remove("hidden");
-    warnEl.textContent = `Showing ${mappedFlights} of ${filtered.length} flights on the map. Missing coordinates for: ${Array.from(missingCodes).filter(Boolean).sort().join(", ")}.`;
+    warnEl.textContent = `Showing ${mappedFlights} of ${filtered.length} flights on the map. ${warningParts.join(" ")}`;
   } else {
-    const skipped = skippedMissing + skippedSameCity;
-    if (skipped > 0) {
-      warnEl.classList.remove("hidden");
-      warnEl.textContent = `Showing ${mappedFlights} of ${filtered.length} flights on the map. ${skippedSameCity ? `${skippedSameCity} within the same city were skipped. ` : ""}${skippedMissing ? `${skippedMissing} missing coordinates were skipped.` : ""}`.trim();
-    } else {
-      warnEl.classList.add("hidden");
-      warnEl.textContent = "";
-    }
+    warnEl.classList.add("hidden");
+    warnEl.textContent = "";
   }
   repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapState });
   setTimeout(() => mapInstance && mapInstance.invalidateSize(), 0);
