@@ -1,3 +1,5 @@
+import { airportToCountry } from "./airportCountries.js";
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function esc(value) {
@@ -6,15 +8,6 @@ function esc(value) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-function toDate(value) {
-  const d = new Date(value || "");
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function toIsoDay(value) {
-  return String(value || "").slice(0, 10);
 }
 
 function getPassengers(trips) {
@@ -41,43 +34,72 @@ function hasPassenger(entry, passenger) {
   return names.some((name) => String(name || "").trim() === passenger);
 }
 
-function addMonthCount(out, country, date) {
-  if (!date) return;
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth();
-  if (!out[year]) out[year] = {};
-  if (!out[year][country]) out[year][country] = new Array(12).fill(0);
-  out[year][country][month] += 1;
+function mapIataToCountry(code) {
+  const iata = String(code || "").trim().toUpperCase();
+  return airportToCountry[iata] || "Other";
 }
 
-function addHotelNights(out, hotel) {
-  const inDate = toDate(hotel?.checkInDate);
-  const outDate = toDate(hotel?.checkOutDate);
-  if (!inDate || !outDate || outDate <= inDate) return;
-  for (let cursor = new Date(inDate); cursor < outDate; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
-    addMonthCount(out, "Hotel stay", new Date(cursor));
-  }
+function startOfUtcDay(date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-function countryFromFlight(record) {
-  const iata = String(record?.route?.arrival?.iata || "").trim().toUpperCase();
-  if (iata) return iata;
-  const airport = String(record?.route?.arrival?.airport || "").trim();
-  return airport || "Unknown";
-}
-
-function buildMonthSummary(trips, passenger) {
-  const out = {};
+function getPassengerFlights(trips, passenger) {
+  const flights = [];
   for (const trip of Array.isArray(trips) ? trips : []) {
     for (const record of Array.isArray(trip?.records) ? trip.records : []) {
       if (!hasPassenger(record, passenger)) continue;
-      const date = toDate(record?.route?.departure?.scheduled || toIsoDay(record?.flightDate) || record?.createdAt);
-      addMonthCount(out, countryFromFlight(record), date);
+      const dateRaw = record?.route?.departure?.scheduled || record?.flightDate || record?.createdAt;
+      const date = new Date(dateRaw || "");
+      if (Number.isNaN(date.getTime())) continue;
+      flights.push({
+        date,
+        departureCountry: mapIataToCountry(record?.route?.departure?.iata),
+        arrivalCountry: mapIataToCountry(record?.route?.arrival?.iata)
+      });
     }
-    for (const hotel of Array.isArray(trip?.hotels) ? trip.hotels : []) {
-      if (!hasPassenger(hotel, passenger)) continue;
-      addHotelNights(out, hotel);
+  }
+  flights.sort((a, b) => a.date.getTime() - b.date.getTime());
+  return flights;
+}
+
+function addStay(out, year, country, start, end) {
+  if (!(start < end)) return;
+  const key = country || "Other";
+  if (!out[year]) out[year] = {};
+  if (!out[year][key]) out[year][key] = new Array(12).fill(0);
+  for (let cursor = new Date(start); cursor < end;) {
+    const monthEnd = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
+    const sliceEnd = monthEnd < end ? monthEnd : end;
+    const days = Math.round((sliceEnd - cursor) / 86400000);
+    if (days > 0) out[year][key][cursor.getUTCMonth()] += days;
+    cursor = sliceEnd;
+  }
+}
+
+export function buildMonthSummary(trips, passenger) {
+  const flights = getPassengerFlights(trips, passenger);
+  if (!flights.length) return {};
+  const years = Array.from(new Set(flights.map((f) => f.date.getUTCFullYear()))).sort((a, b) => a - b);
+  const out = {};
+  for (const year of years) {
+    const yearStart = new Date(Date.UTC(year, 0, 1));
+    const yearEnd = new Date(Date.UTC(year + 1, 0, 1));
+    let currentCountry = flights[0].departureCountry || "Other";
+    for (const flight of flights) {
+      const depDay = startOfUtcDay(flight.date);
+      if (depDay < yearStart) currentCountry = flight.arrivalCountry || "Other";
+      else break;
     }
+    let cursor = new Date(yearStart);
+    for (const flight of flights) {
+      const depDay = startOfUtcDay(flight.date);
+      if (depDay < yearStart) continue;
+      if (depDay >= yearEnd) break;
+      addStay(out, year, currentCountry, cursor, depDay);
+      currentCountry = flight.arrivalCountry || "Other";
+      cursor = new Date(depDay);
+    }
+    addStay(out, year, currentCountry, cursor, yearEnd);
   }
   return out;
 }
