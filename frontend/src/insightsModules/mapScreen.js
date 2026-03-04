@@ -1,143 +1,164 @@
+import { getPassengerFlights, dedupeFlightsForMap, normalizePassengerNames } from "./flightUtils.js";
+import {
+  buildCityIndexFromAirportCoords,
+  getMapNodeFromAirportCode,
+  computeBearingDegrees,
+  buildGreatCircleArcLatLngs,
+  estimateArcSegments,
+  getProjectedPolylinePointAtFraction
+} from "./mapGeo.js";
+import { renderMapFlightsLayers } from "./mapRender.js";
+
 function esc(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function toDate(value) {
-  const d = new Date(value || "");
-  return Number.isNaN(d.getTime()) ? null : d;
+function getPassengerNamesFromFlights(flights) {
+  const all = [];
+  for (const flight of flights || []) all.push(...(flight.paxNames || []));
+  return normalizePassengerNames(all);
 }
 
-function getPassengers(trips) {
-  const names = new Set();
-  for (const trip of Array.isArray(trips) ? trips : []) {
-    for (const record of Array.isArray(trip?.records) ? trip.records : []) {
-      for (const name of Array.isArray(record?.paxNames) ? record.paxNames : []) {
-        const n = String(name || "").trim();
-        if (n) names.add(n);
-      }
-    }
-  }
-  return Array.from(names).sort((a, b) => a.localeCompare(b));
-}
-
-function collectFlights(trips, filters) {
-  const rows = [];
-  for (const trip of Array.isArray(trips) ? trips : []) {
-    for (const record of Array.isArray(trip?.records) ? trip.records : []) {
-      const names = Array.isArray(record?.paxNames) ? record.paxNames : [];
-      if (filters.passenger && !names.some((name) => String(name || "").trim() === filters.passenger)) continue;
-      const depAt = toDate(record?.route?.departure?.scheduled || record?.flightDate || record?.createdAt);
-      if (!depAt) continue;
-      if (filters.year && depAt.getFullYear() !== filters.year) continue;
-      const depCode = String(record?.route?.departure?.iata || record?.route?.departure?.airport || "?").trim();
-      const arrCode = String(record?.route?.arrival?.iata || record?.route?.arrival?.airport || "?").trim();
-      const routeKey = `${depCode} -> ${arrCode}`;
-      if (filters.routeKey && filters.routeKey !== routeKey) continue;
-      rows.push({ depAt, routeKey, depCode, arrCode, pax: names });
-    }
-  }
-  rows.sort((a, b) => a.depAt.getTime() - b.depAt.getTime());
-  return rows;
-}
-
-function syncPassengerSelect(select, passengers, selectedPassenger) {
-  if (!select) return selectedPassenger || null;
-  select.innerHTML = '<option value="__all__">All passengers</option>';
-  for (const passenger of passengers) {
-    const selected = passenger === selectedPassenger ? " selected" : "";
-    select.insertAdjacentHTML("beforeend", `<option value="${esc(passenger)}"${selected}>${esc(passenger)}</option>`);
-  }
-  if (selectedPassenger && !passengers.includes(selectedPassenger)) {
-    select.value = "__all__";
-    return null;
-  }
-  return select.value === "__all__" ? null : select.value;
-}
-
-function syncYearButtons(container, years, selectedYear) {
-  if (!container) return selectedYear;
-  if (!years.length) {
-    container.innerHTML = "";
-    return selectedYear;
-  }
-  const effective = years.includes(selectedYear) ? selectedYear : years[0];
-  container.innerHTML = years
-    .map((year) => `<button class="chip-button ${year === effective ? "active" : ""}" data-year="${year}">${year}</button>`)
-    .join("");
-  return effective;
-}
-
-function syncRouteSelect(select, routes, selectedRoute) {
-  if (!select) return selectedRoute || null;
-  select.innerHTML = '<option value="__all__">All routes</option>';
-  for (const route of routes) {
-    const selected = route === selectedRoute ? " selected" : "";
-    select.insertAdjacentHTML("beforeend", `<option value="${esc(route)}"${selected}>${esc(route)}</option>`);
-  }
-  if (selectedRoute && !routes.includes(selectedRoute)) {
-    select.value = "__all__";
-    return null;
-  }
-  return select.value === "__all__" ? null : select.value;
+function mapFlightToCityRoute(flight, cityIndex) {
+  const dep = getMapNodeFromAirportCode(flight.departureCode, cityIndex);
+  const arr = getMapNodeFromAirportCode(flight.arrivalCode, cityIndex);
+  if (!dep || !arr || dep.key === arr.key) return null;
+  const [aKey, bKey] = [dep.key, arr.key].sort((x, y) => x.localeCompare(y));
+  return { dep, arr, aKey, bKey, routeKey: `${aKey}__${bKey}` };
 }
 
 export function createMapScreenController() {
-  function setMapFullscreen({ on, mapState, els }) {
-    const enabled = Boolean(on);
-    mapState.fullscreen = enabled;
-    document.body.classList.toggle("map-fullscreen", enabled);
-    if (els["map-fullscreen-btn"]) {
-      els["map-fullscreen-btn"].textContent = enabled ? "Exit full screen" : "Full screen";
+  let mapInstance = null;
+  let mapRoutesLayer = null;
+  let mapAirportsLayer = null;
+  let mapLabelsLayer = null;
+
+  function ensureMapInitialized(els) {
+    const mapEl = els["map-canvas"];
+    if (!mapEl) return false;
+    if (mapInstance) return true;
+    if (!window.L || typeof window.L.map !== "function") return false;
+    mapInstance = window.L.map(mapEl, { zoomControl: true });
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mapInstance);
+    mapInstance.createPane("routesPane").style.zIndex = 300;
+    mapInstance.createPane("airportsPane").style.zIndex = 450;
+    mapInstance.createPane("labelsPane").style.zIndex = 500;
+    mapRoutesLayer = window.L.layerGroup().addTo(mapInstance);
+    mapAirportsLayer = window.L.layerGroup().addTo(mapInstance);
+    mapLabelsLayer = window.L.layerGroup().addTo(mapInstance);
+    mapInstance.setView([20, 0], 2);
+    return true;
+  }
+
+  function renderMapControls({ trips, mapState, els }) {
+    const passSelect = els["map-passenger"];
+    const routeSelect = els["map-route"];
+    const yearList = els["map-year-list"];
+    const allFlights = dedupeFlightsForMap(getPassengerFlights(trips, null));
+    const cityIndex = buildCityIndexFromAirportCoords();
+    const yearsSet = new Set();
+    for (const flight of allFlights) {
+      if (mapState.passenger && !(flight.paxNames || []).includes(mapState.passenger)) continue;
+      const info = mapFlightToCityRoute(flight, cityIndex);
+      if (!info) continue;
+      if (mapState.routeKey && info.routeKey !== mapState.routeKey) continue;
+      yearsSet.add(flight.date.getFullYear());
     }
+    const years = Array.from(yearsSet).sort((a, b) => a - b);
+    const currentYear = new Date().getFullYear();
+    mapState.year = years.length
+      ? (years.includes(mapState.year) ? mapState.year : (years.includes(currentYear) ? currentYear : years[years.length - 1]))
+      : currentYear;
+    if (yearList) {
+      yearList.innerHTML = years.map((y) => `<button class="chip-button ${y === mapState.year ? "active" : ""}" data-year="${y}">${y}</button>`).join("");
+    }
+
+    const mappedForYear = allFlights
+      .filter((flight) => flight.date.getFullYear() === mapState.year)
+      .map((flight) => ({ flight, info: mapFlightToCityRoute(flight, cityIndex) }))
+      .filter((row) => row.info);
+
+    const paxSource = mapState.routeKey
+      ? mappedForYear.filter((row) => row.info.routeKey === mapState.routeKey).map((row) => row.flight)
+      : mappedForYear.map((row) => row.flight);
+    const paxOptions = getPassengerNamesFromFlights(paxSource);
+    if (mapState.passenger && !paxOptions.includes(mapState.passenger)) mapState.passenger = null;
+    if (passSelect) {
+      passSelect.innerHTML = '<option value="__all__">All passengers</option>';
+      paxOptions.forEach((name) => passSelect.insertAdjacentHTML("beforeend", `<option value="${esc(name)}">${esc(name)}</option>`));
+      passSelect.value = mapState.passenger || "__all__";
+    }
+
+    const routeRows = mapState.passenger
+      ? mappedForYear.filter((row) => (row.flight.paxNames || []).includes(mapState.passenger))
+      : mappedForYear;
+    const routesMap = new Map();
+    routeRows.forEach((row) => routesMap.set(row.info.routeKey, (routesMap.get(row.info.routeKey) || 0) + 1));
+    const routes = Array.from(routesMap.entries()).sort((a, b) => b[1] - a[1]).map(([key]) => key);
+    if (mapState.routeKey && !routes.includes(mapState.routeKey)) mapState.routeKey = null;
+    if (routeSelect) {
+      routeSelect.innerHTML = '<option value="__all__">All routes</option>';
+      routes.forEach((key) => routeSelect.insertAdjacentHTML("beforeend", `<option value="${esc(key)}">${esc(key.replace("__", " <-> "))}</option>`));
+      routeSelect.value = mapState.routeKey || "__all__";
+    }
+
+    const paxOptions2 = getPassengerNamesFromFlights(
+      mapState.routeKey ? mappedForYear.filter((row) => row.info.routeKey === mapState.routeKey).map((row) => row.flight) : mappedForYear.map((row) => row.flight)
+    );
+    if (mapState.passenger && !paxOptions2.includes(mapState.passenger)) mapState.passenger = null;
+    if (passSelect) {
+      passSelect.innerHTML = '<option value="__all__">All passengers</option>';
+      paxOptions2.forEach((name) => passSelect.insertAdjacentHTML("beforeend", `<option value="${esc(name)}">${esc(name)}</option>`));
+      passSelect.value = mapState.passenger || "__all__";
+    }
+  }
+
+  function renderMapFlights({ trips, mapState, els }) {
+    const mapEl = els["map-canvas"];
+    const emptyEl = els["map-empty"];
+    const warnEl = els["map-warning"];
+    if (!mapEl || !emptyEl || !warnEl) return;
+    if (!ensureMapInitialized(els)) {
+      emptyEl.textContent = "Map library not loaded. Check your internet connection or Leaflet import.";
+      emptyEl.classList.remove("hidden");
+      mapEl.classList.add("hidden");
+      warnEl.classList.add("hidden");
+      warnEl.textContent = "";
+      return;
+    }
+    renderMapFlightsLayers({
+      trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer,
+      getPassengerFlights, dedupeFlightsForMap, buildCityIndexFromAirportCoords, mapFlightToCityRoute,
+      getMapNodeFromAirportCode,
+      computeBearingDegrees, buildGreatCircleArcLatLngs, estimateArcSegments, getProjectedPolylinePointAtFraction, esc
+    });
+  }
+
+  function syncMapActionButtons({ mapState, els }) {
+    const fsBtn = els["map-fullscreen-btn"];
+    const badgesBtn = els["map-badges-btn"];
+    if (fsBtn) fsBtn.textContent = mapState.fullscreen ? "Exit full screen" : "Full screen";
+    if (badgesBtn) {
+      badgesBtn.textContent = mapState.showBadges ? "Hide badges" : "Show badges";
+      badgesBtn.setAttribute("aria-pressed", mapState.showBadges ? "true" : "false");
+    }
+  }
+
+  function setMapFullscreen({ on, mapState, els }) {
+    mapState.fullscreen = !!on;
+    document.body.classList.toggle("map-fullscreen", mapState.fullscreen);
+    syncMapActionButtons({ mapState, els });
+    if (mapInstance) setTimeout(() => mapInstance.invalidateSize(), 0);
   }
 
   function renderMapScreen({ trips, mapState, els }) {
-    const mapCanvas = els["map-canvas"];
-    const emptyEl = els["map-empty"];
-    const warningEl = els["map-warning"];
-    const passengerSelect = els["map-passenger"];
-    const routeSelect = els["map-route"];
-    const yearList = els["map-year-list"];
-    const badgesBtn = els["map-badges-btn"];
-    if (!mapCanvas || !emptyEl || !warningEl) return;
-
-    const passengers = getPassengers(trips);
-    mapState.passenger = syncPassengerSelect(passengerSelect, passengers, mapState.passenger);
-    const allFlights = collectFlights(trips, { passenger: mapState.passenger, year: null, routeKey: null });
-    const years = Array.from(new Set(allFlights.map((f) => f.depAt.getFullYear()))).sort((a, b) => b - a);
-    mapState.year = syncYearButtons(yearList, years, mapState.year);
-    const yearFlights = collectFlights(trips, { passenger: mapState.passenger, year: mapState.year, routeKey: null });
-    const routes = Array.from(new Set(yearFlights.map((f) => f.routeKey))).sort((a, b) => a.localeCompare(b));
-    mapState.routeKey = syncRouteSelect(routeSelect, routes, mapState.routeKey);
-    const flights = collectFlights(trips, {
-      passenger: mapState.passenger,
-      year: mapState.year,
-      routeKey: mapState.routeKey
-    });
-
-    if (badgesBtn) badgesBtn.textContent = mapState.showBadges ? "Hide badges" : "Show badges";
-    if (!flights.length) {
-      mapCanvas.classList.add("hidden");
-      emptyEl.classList.remove("hidden");
-      warningEl.classList.add("hidden");
-      return;
-    }
-
-    emptyEl.classList.add("hidden");
-    mapCanvas.classList.remove("hidden");
-    warningEl.classList.remove("hidden");
-    warningEl.textContent = "Map route list mode is active for this build.";
-    const totals = new Map();
-    for (const flight of flights) {
-      totals.set(flight.routeKey, (totals.get(flight.routeKey) || 0) + 1);
-    }
-    const rows = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
-    mapCanvas.innerHTML = `<div class="insight-list">${rows.map(([route, count]) => `<div class="flight-tile"><div class="flight-tile-header"><span>${esc(route)}</span>${mapState.showBadges ? `<span class="tag-soft">${count}</span>` : ""}</div></div>`).join("")}</div>`;
+    renderMapControls({ trips, mapState, els });
+    renderMapFlights({ trips, mapState, els });
+    syncMapActionButtons({ mapState, els });
   }
 
-  return { renderMapScreen, setMapFullscreen };
+  return { renderMapControls, renderMapFlights, renderMapScreen, setMapFullscreen, syncMapActionButtons };
 }

@@ -1,5 +1,5 @@
 .map-canvas {
-  min-height: 360px;
+  min-height: 400px;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
