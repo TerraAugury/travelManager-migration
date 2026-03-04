@@ -59,10 +59,10 @@ export function createInsightsController() {
     if (state.modulesPromise) return state.modulesPromise;
     state.modulesPromise = (async () => {
       const [daycountMod, mapMod, upcomingMod, tripStatsMod] = await Promise.all([
-        importScriptModule("/js/daycountScreen.js"),
-        importScriptModule("/js/mapScreen.js"),
-        importScriptModule("/js/upcomingScreen.js"),
-        importScriptModule("/js/tripStats.js")
+        importScriptModule("/src/insightsModules/daycountScreen.js"),
+        importScriptModule("/src/insightsModules/mapScreen.js"),
+        importScriptModule("/src/insightsModules/upcomingScreen.js"),
+        importScriptModule("/src/insightsModules/tripStats.js")
       ]);
       if (typeof daycountMod?.renderDaycountView === "function") {
         state.renderDaycountView = daycountMod.renderDaycountView;
