@@ -4,9 +4,10 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
-binding = "DB"
+binding = "travel_manager"
 database_name = "travel-manager"
-database_id = "REPLACE_AFTER_CREATION"
+database_id = "36e70ba2-0aab-43ef-bc68-985d0977941f"
+
 
 # Optional: AviationStack flight lookup (GET /flights/lookup?fn=XX123)
 # Set with: wrangler secret put AVIATIONSTACK_API_KEY
