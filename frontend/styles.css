@@ -78,6 +78,7 @@ body {
 .field-group { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px; }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .field-row > .field { min-width: 0; }
+.field-row input[type="date"] { width: 100%; min-width: 0; max-width: 100%; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
 input,select,textarea {

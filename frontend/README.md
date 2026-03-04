@@ -50,11 +50,24 @@ Deployed automatically via Cloudflare Pages connected to this repository.
 Manual deploy:
 
 ```bash
-wrangler pages deploy frontend/
+cd frontend
+npx wrangler pages deploy . --project-name travelmanager
 ```
 
-Ensure the Pages project has its Worker route configured so `/api/*`,
-`/auth/*`, and `/health` proxy to the travel-manager-api Worker.
+This project uses a Pages Function proxy at `frontend/functions/api/[[path]].js`
+to forward `/api/*` requests to the backend Worker.
+
+After deploy, test API routing on the production domain:
+
+```bash
+curl -i -X POST "https://travelmanager-1wx.pages.dev/api/auth/login" \
+  -H "content-type: application/json" \
+  --data '{"email":"<email>","password":"<password>"}'
+```
+
+Expected status is `200` (or `401` for wrong credentials), not `405`.
+If you see `405`, the deployment is serving static assets without the Function
+proxy active; redeploy from `frontend/` with the command above.
 
 ## Features
 
