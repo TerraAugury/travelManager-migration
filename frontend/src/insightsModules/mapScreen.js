@@ -7,12 +7,10 @@ import {
   estimateArcSegments,
   getProjectedPolylinePointAtFraction
 } from "./mapGeo.js";
-import { renderMapFlightsLayers } from "./mapRender.js";
-
+import { renderMapFlightsLayers, repositionBadges } from "./mapRender.js";
 function esc(value) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-
 function getPassengerNamesFromFlights(flights) {
   const all = [];
   for (const flight of flights || []) all.push(...(flight.paxNames || []));
@@ -32,6 +30,11 @@ export function createMapScreenController() {
   let mapRoutesLayer = null;
   let mapAirportsLayer = null;
   let mapLabelsLayer = null;
+  let mapEventsBound = false;
+  let mapTabEventsBound = false;
+  let lastBadgeData = [];
+  let lastMapState = null;
+  let lastBounds = null;
 
   function ensureMapInitialized(els) {
     const mapEl = els["map-canvas"];
@@ -46,11 +49,21 @@ export function createMapScreenController() {
     mapInstance.createPane("routesPane").style.zIndex = 300;
     mapInstance.createPane("airportsPane").style.zIndex = 450;
     mapInstance.createPane("labelsPane").style.zIndex = 500;
-    mapRoutesLayer = window.L.layerGroup().addTo(mapInstance);
+    mapRoutesLayer = window.L.featureGroup().addTo(mapInstance);
     mapAirportsLayer = window.L.layerGroup().addTo(mapInstance);
     mapLabelsLayer = window.L.layerGroup().addTo(mapInstance);
     mapInstance.setView([20, 0], 2);
     return true;
+  }
+
+  function refitMapToVisibleBounds() {
+    if (!mapInstance) return;
+    setTimeout(() => {
+      mapInstance.invalidateSize();
+      if (lastBounds && lastBounds.isValid && lastBounds.isValid()) {
+        mapInstance.fitBounds(lastBounds, { padding: [18, 18] });
+      }
+    }, 0);
   }
 
   function renderMapControls({ trips, mapState, els }) {
@@ -129,12 +142,35 @@ export function createMapScreenController() {
       warnEl.textContent = "";
       return;
     }
-    renderMapFlightsLayers({
+    lastMapState = mapState;
+    lastBadgeData = renderMapFlightsLayers({
       trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer,
       getPassengerFlights, dedupeFlightsForMap, buildCityIndexFromAirportCoords, mapFlightToCityRoute,
       getMapNodeFromAirportCode,
       computeBearingDegrees, buildGreatCircleArcLatLngs, estimateArcSegments, getProjectedPolylinePointAtFraction, esc
-    });
+    }) || [];
+    if (mapRoutesLayer?.getBounds) {
+      const bounds = mapRoutesLayer.getBounds();
+      lastBounds = bounds && bounds.isValid && bounds.isValid() ? bounds : null;
+    } else {
+      lastBounds = null;
+    }
+    if (!mapEventsBound) {
+      const onMapViewChange = () => {
+        repositionBadges({ mapInstance, mapLabelsLayer, badgeData: lastBadgeData, mapState: lastMapState, esc });
+      };
+      mapInstance.on("zoomend", onMapViewChange);
+      mapInstance.on("moveend", onMapViewChange);
+      mapEventsBound = true;
+    }
+    if (!mapTabEventsBound) {
+      document.addEventListener("click", (event) => {
+        const btn = event.target instanceof Element ? event.target.closest('[data-screen="map"]') : null;
+        if (!btn) return;
+        refitMapToVisibleBounds();
+      });
+      mapTabEventsBound = true;
+    }
   }
 
   function syncMapActionButtons({ mapState, els }) {
@@ -151,7 +187,7 @@ export function createMapScreenController() {
     mapState.fullscreen = !!on;
     document.body.classList.toggle("map-fullscreen", mapState.fullscreen);
     syncMapActionButtons({ mapState, els });
-    if (mapInstance) setTimeout(() => mapInstance.invalidateSize(), 0);
+    refitMapToVisibleBounds();
   }
 
   function renderMapScreen({ trips, mapState, els }) {
