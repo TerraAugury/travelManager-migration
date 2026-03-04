@@ -72,9 +72,12 @@ export function registerFlightRoutes(app, deps) {
       if (!fn || !/^[A-Z0-9]{2,8}$/.test(fn)) return sendError(c, 400, "Invalid or missing flight number (fn).");
       const key = c.env?.AVIATIONSTACK_API_KEY;
       if (!key) return sendError(c, 503, "Flight lookup not configured on this server.");
-      // AviationStack docs still show query auth; use header auth here to avoid leaking the key in URLs.
+      // Use header auth to avoid leaking the key in URLs.
       const res = await fetch(`https://api.aviationstack.com/v1/flights?flight_iata=${encodeURIComponent(fn)}`, {
-        headers: { Authorization: `Bearer ${key}` }
+        headers: {
+          "X-Api-Key": key,
+          Authorization: `Bearer ${key}`
+        }
       });
       if (!res.ok) return sendError(c, 502, "Upstream flight lookup error.");
       const json = await res.json();
