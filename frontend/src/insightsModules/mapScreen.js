@@ -157,7 +157,7 @@ export function createMapScreenController() {
     }
     if (!mapEventsBound) {
       const onMapViewChange = () => {
-        repositionBadges({ mapInstance, mapLabelsLayer, badgeData: lastBadgeData, mapState: lastMapState, esc });
+        repositionBadges({ mapInstance, mapLabelsLayer, badgeData: lastBadgeData, mapState: lastMapState });
       };
       mapInstance.on("zoomend", onMapViewChange);
       mapInstance.on("moveend", onMapViewChange);

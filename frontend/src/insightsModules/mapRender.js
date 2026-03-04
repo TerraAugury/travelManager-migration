@@ -1,3 +1,5 @@
+import { layoutBadgesForZoom } from "./mapBadgeLayout.js";
+
 const ROUTE_COLORS = ["#D32F2F", "#1565C0", "#2E7D32", "#F57F17", "#6A1B9A", "#00838F", "#E65100", "#37474F"];
 function buildFlightsList(flights, esc) {
   const lines = (flights || [])
@@ -30,30 +32,13 @@ function showEmpty({ emptyEl, warnEl, mapEl, mapInstance, text }) {
   mapInstance.setView([20, 0], 2);
   return [];
 }
-function keepNonOverlappingByCount(items, mapInstance) {
-  const sorted = (items || []).slice().sort((a, b) => b.count - a.count);
-  const kept = [];
-  for (const item of sorted) {
-    const p = mapInstance.latLngToContainerPoint(item.latLng);
-    let collides = false;
-    for (const keptItem of kept) {
-      const kp = mapInstance.latLngToContainerPoint(keptItem.latLng);
-      if (Math.hypot(p.x - kp.x, p.y - kp.y) < 30) { collides = true; break; }
-    }
-    if (!collides) kept.push(item);
-  }
-  return kept;
-}
 export function repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapState }) {
   mapLabelsLayer?.clearLayers();
   if (!mapInstance || !mapState?.showBadges) return;
   const zoom = mapInstance.getZoom();
-  if (zoom < 4) return;
   const candidates = [];
   for (const badge of Array.isArray(badgeData) ? badgeData : []) {
     if (badge.isDimmed) continue;
-    const total = (badge.countAB || 0) + (badge.countBA || 0);
-    if (zoom < 6 && total < 3) continue;
     const arcPx = (badge.arc || []).map((latLng) => mapInstance.project(window.L.latLng(latLng[0], latLng[1]), zoom));
     const pAB = badge.countAB ? badge.getProjectedPolylinePointAtFraction(arcPx, 1 / 3) : null;
     const pBA = badge.countBA ? badge.getProjectedPolylinePointAtFraction(arcPx, 2 / 3) : null;
@@ -61,17 +46,20 @@ export function repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapSt
     if (pAB && badge.countAB) {
       const llAB = mapInstance.unproject(window.L.point(pAB.point.x - pAB.dir.y * offset, pAB.point.y + pAB.dir.x * offset), zoom);
       const html = `<div class="route-count-badge" style="color:${badge.color};"><div class="route-count-num">${badge.countAB}</div><div class="route-count-arrow" style="transform:rotate(${badge.rotAB}deg);">&#9992;</div></div>`;
-      candidates.push({ latLng: llAB, count: badge.countAB, html, popup: badge.popupForward });
+      candidates.push({ latLng: llAB, count: badge.countAB, html, popup: badge.popupForward, routeKey: badge.routeKey });
     }
     if (pBA && badge.countBA) {
       const llBA = mapInstance.unproject(window.L.point(pBA.point.x + pBA.dir.y * offset, pBA.point.y - pBA.dir.x * offset), zoom);
       const html = `<div class="route-count-badge" style="color:${badge.color};"><div class="route-count-num">${badge.countBA}</div><div class="route-count-arrow" style="transform:rotate(${badge.rotBA}deg);">&#9992;</div></div>`;
-      candidates.push({ latLng: llBA, count: badge.countBA, html, popup: badge.popupBack });
+      candidates.push({ latLng: llBA, count: badge.countBA, html, popup: badge.popupBack, routeKey: badge.routeKey });
     }
   }
-  const visible = keepNonOverlappingByCount(candidates, mapInstance);
+  const visible = layoutBadgesForZoom(candidates, mapInstance, zoom);
   for (const badge of visible) {
-    window.L.marker(badge.latLng, { pane: "labelsPane", zIndexOffset: badge.count, icon: window.L.divIcon({ className: "route-count-icon", html: badge.html, iconSize: [50, 50], iconAnchor: [25, 25] }) })
+    const html = badge.isCluster
+      ? `<div class="route-count-badge route-count-badge-cluster" style="color:${badge.color};"><div class="route-count-num">${badge.count}</div><div class="route-count-meta">${badge.routeCount}r</div></div>`
+      : badge.html;
+    window.L.marker(badge.latLng, { pane: "labelsPane", zIndexOffset: badge.count, icon: window.L.divIcon({ className: "route-count-icon", html, iconSize: [50, 50], iconAnchor: [25, 25] }) })
       .bindPopup(badge.popup).addTo(mapLabelsLayer);
   }
 }
@@ -165,6 +153,7 @@ export function renderMapFlightsLayers(opts) {
       rotAB,
       rotBA,
       color: assignedColor,
+      routeKey,
       isDimmed,
       getProjectedPolylinePointAtFraction
     });
@@ -190,7 +179,7 @@ export function renderMapFlightsLayers(opts) {
       warnEl.textContent = "";
     }
   }
-  repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapState, esc });
+  repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapState });
   setTimeout(() => mapInstance && mapInstance.invalidateSize(), 0);
   return badgeData;
 }
