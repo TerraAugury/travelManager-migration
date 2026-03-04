@@ -11,14 +11,20 @@ function toDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function toIsoDay(date) {
+  if (!(date instanceof Date)) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function uniqNames(input) {
+  return Array.from(new Set((Array.isArray(input) ? input : []).map((x) => String(x || "").trim()).filter(Boolean)));
+}
+
 function getPassengers(trips) {
   const names = new Set();
   for (const trip of Array.isArray(trips) ? trips : []) {
     for (const record of Array.isArray(trip?.records) ? trip.records : []) {
-      for (const name of Array.isArray(record?.paxNames) ? record.paxNames : []) {
-        const n = String(name || "").trim();
-        if (n) names.add(n);
-      }
+      for (const name of uniqNames(record?.paxNames)) names.add(name);
     }
   }
   return Array.from(names).sort((a, b) => a.localeCompare(b));
@@ -28,22 +34,24 @@ function flightRows(trips, passenger) {
   const rows = [];
   for (const trip of Array.isArray(trips) ? trips : []) {
     for (const record of Array.isArray(trip?.records) ? trip.records : []) {
-      const names = Array.isArray(record?.paxNames) ? record.paxNames : [];
-      if (passenger && !names.some((name) => String(name || "").trim() === passenger)) continue;
+      const pax = uniqNames(record?.paxNames);
+      if (passenger && !pax.includes(passenger)) continue;
       const departure = record?.route?.departure || {};
       const arrival = record?.route?.arrival || {};
       const depAt = toDate(departure?.scheduled || record?.flightDate || record?.createdAt);
       if (!depAt) continue;
       rows.push({
         depAt,
+        arrAt: toDate(arrival?.scheduled),
+        depDay: toIsoDay(depAt),
         departureAirport: departure.airport || departure.iata || "?",
         departureIata: departure.iata || "?",
         arrivalAirport: arrival.airport || arrival.iata || "?",
         arrivalIata: arrival.iata || "?",
         flightNumber: record?.route?.flightNumber || "Flight",
         airline: record?.route?.airline || "",
-        pnr: record?.pnr || "",
-        pax: names
+        pnr: String(record?.pnr || "").trim(),
+        pax
       });
     }
   }
@@ -51,16 +59,84 @@ function flightRows(trips, passenger) {
   return rows;
 }
 
-function formatDate(value) {
-  const d = toDate(value);
-  if (!d) return "Unknown date";
-  return d.toLocaleString(undefined, {
+function intersectNames(rows) {
+  if (!rows.length) return [];
+  return rows[0].pax.filter((name) => rows.every((row) => row.pax.includes(name)));
+}
+
+export function formatLayover(start, end) {
+  const diffMs = end.getTime() - start.getTime();
+  if (!Number.isFinite(diffMs) || diffMs <= 0) return "";
+  const mins = Math.floor(diffMs / 60000);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h ${String(m).padStart(2, "0")}m`;
+}
+
+export function buildUpcomingBuckets(rows) {
+  const grouped = new Map();
+  const singles = [];
+  for (const row of rows) {
+    if (!row.pnr) {
+      singles.push({ type: "single", flights: [row], pax: row.pax });
+      continue;
+    }
+    const key = `${row.depDay}__${row.pnr}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(row);
+  }
+
+  const out = [...singles];
+  for (const group of grouped.values()) {
+    group.sort((a, b) => a.depAt.getTime() - b.depAt.getTime());
+    const commonPax = intersectNames(group);
+    if (group.length > 1 && commonPax.length > 0) {
+      out.push({ type: "connecting", flights: group, pax: commonPax });
+    } else {
+      for (const row of group) out.push({ type: "single", flights: [row], pax: row.pax });
+    }
+  }
+  out.sort((a, b) => a.flights[0].depAt.getTime() - b.flights[0].depAt.getTime());
+  return out;
+}
+
+function fmtDateTime(date) {
+  return date.toLocaleString(undefined, {
     year: "numeric",
     month: "short",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit"
   });
+}
+
+function fmtTime(date) {
+  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function renderFlightLeg(row) {
+  const airline = row.airline ? ` (${esc(row.airline)})` : "";
+  return `<div class="segment-main-row"><div>${esc(row.departureAirport)} (${esc(row.departureIata)})<div class="segment-time">${esc(fmtTime(row.depAt))}</div></div><div class="segment-icon">→</div><div class="segment-side-right">${esc(row.arrivalAirport)} (${esc(row.arrivalIata)})<div class="segment-time">${row.arrAt ? esc(fmtTime(row.arrAt)) : "—"}</div></div></div><div class="segment-flight-code">${esc(row.flightNumber)}${airline}</div>`;
+}
+
+function renderBucket(bucket) {
+  const first = bucket.flights[0];
+  const pnrText = first.pnr ? `PNR ${esc(first.pnr)}` : "No PNR";
+  const paxText = bucket.pax.length ? ` · ${esc(bucket.pax.join(", "))}` : "";
+  const legs = [];
+  for (let i = 0; i < bucket.flights.length; i += 1) {
+    const current = bucket.flights[i];
+    legs.push(`<div class="itinerary-segment segment-flight">${renderFlightLeg(current)}</div>`);
+    if (i < bucket.flights.length - 1) {
+      const next = bucket.flights[i + 1];
+      const layoverBase = current.arrAt || current.depAt;
+      const layover = formatLayover(layoverBase, next.depAt);
+      const airport = current.arrivalIata || current.arrivalAirport || "transfer airport";
+      if (layover) legs.push(`<div class="segment-label">Layover ${esc(layover)} in ${esc(airport)}</div>`);
+    }
+  }
+  const title = bucket.type === "connecting" ? "Connecting flights" : "Upcoming flight";
+  return `<div class="flight-tile itinerary-tile"><div class="flight-tile-header"><div class="flight-tile-header-left"><span class="event-type-icon">✈︎</span><span>${esc(fmtDateTime(first.depAt))}</span></div><span class="segment-label">${title}</span></div><div class="segment-time">${pnrText}${paxText}</div><div class="itinerary-body">${legs.join("")}</div></div>`;
 }
 
 export function renderUpcomingScreen({ trips, upcomingState, els }) {
@@ -87,18 +163,13 @@ export function renderUpcomingScreen({ trips, upcomingState, els }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const rows = flightRows(trips, selectedPassenger || "").filter((row) => row.depAt >= today);
+  const buckets = buildUpcomingBuckets(rows);
 
-  if (!rows.length) {
+  if (!buckets.length) {
     emptyEl.classList.remove("hidden");
     listEl.innerHTML = "";
     return;
   }
-
   emptyEl.classList.add("hidden");
-  listEl.innerHTML = rows.map((row) => {
-    const airline = row.airline ? ` (${esc(row.airline)})` : "";
-    const pnr = row.pnr ? ` · PNR ${esc(row.pnr)}` : "";
-    const pax = row.pax.length ? ` · ${esc(row.pax.join(", "))}` : "";
-    return `<div class="flight-tile"><div class="flight-tile-header"><div class="flight-tile-header-left"><span class="event-type-icon">✈︎</span><span>${esc(formatDate(row.depAt))}</span></div><span>${esc(row.flightNumber)}${airline}</span></div><div class="segment-main-row"><div>${esc(row.departureAirport)} (${esc(row.departureIata)})</div><div class="segment-icon">→</div><div class="segment-side-right">${esc(row.arrivalAirport)} (${esc(row.arrivalIata)})</div></div><div class="segment-time">${pnr}${pax}</div></div>`;
-  }).join("");
+  listEl.innerHTML = buckets.map(renderBucket).join("");
 }

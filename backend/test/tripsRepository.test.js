@@ -52,3 +52,26 @@ test("remove returns true only when DELETE removed rows", async () => {
   assert.match(calls[0].text, /DELETE FROM trips/);
   assert.deepEqual(calls[0].params, ["trip-2", "user-2"]);
 });
+
+test("listByOwner derives start_date and end_date when base trip dates are null", async () => {
+  const calls = [];
+  const repo = buildTripsRepository({
+    pool: {
+      async query(text, params) {
+        calls.push({ text, params });
+        return { rows: [{ id: "trip-3", start_date: "2026-02-12", end_date: "2026-02-18" }], rowCount: 1 };
+      }
+    }
+  });
+
+  const rows = await repo.listByOwner("user-3");
+  assert.equal(rows[0].start_date, "2026-02-12");
+  assert.equal(rows[0].end_date, "2026-02-18");
+  assert.match(calls[0].text, /COALESCE\(\s*t\.start_date/i);
+  assert.match(calls[0].text, /substr\(fr\.departure_scheduled, 1, 10\)/i);
+  assert.match(calls[0].text, /hr\.check_in_date/i);
+  assert.match(calls[0].text, /COALESCE\(\s*t\.end_date/i);
+  assert.match(calls[0].text, /substr\(fr\.arrival_scheduled, 1, 10\)/i);
+  assert.match(calls[0].text, /hr\.check_out_date/i);
+  assert.deepEqual(calls[0].params, ["user-3"]);
+});

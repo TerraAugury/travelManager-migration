@@ -1,10 +1,30 @@
 import { getState } from "./state.js";
 import { renderAdminUsers } from "./adminUsers.js";
+import { buildFlightDisplayBuckets, formatLayover } from "./flightGrouping.js";
 import { syncTripForms } from "./ui.js";
 
 function fmtDate(v) { return v ? String(v).slice(0, 10) : "–"; }
 function fmtDT(v) { return v ? String(v).replace("T", " ").slice(0, 16) : "–"; }
 function esc(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function toDate(v) { const d = new Date(v || ""); return Number.isNaN(d.getTime()) ? null : d; }
+
+function formatTripMonthYear(startDate) {
+  const raw = String(startDate || "").trim();
+  if (!raw) return "";
+  const isoDate = /^(\d{4})-(\d{2})-\d{2}$/.exec(raw);
+  if (isoDate) return `${isoDate[2]}/${isoDate[1]}`;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear());
+  return `${month}/${year}`;
+}
+
+export function buildTripSelectLabel(trip) {
+  const name = String(trip?.name || "").trim() || "Unnamed trip";
+  const monthYear = formatTripMonthYear(trip?.start_date);
+  return monthYear ? `${name} (${monthYear})` : name;
+}
 
 function renderTripSelect(trips, selectedTripId) {
   const select = document.getElementById("trip-select");
@@ -13,7 +33,7 @@ function renderTripSelect(trips, selectedTripId) {
   trips.forEach((trip) => {
     const opt = document.createElement("option");
     opt.value = trip.id;
-    opt.textContent = trip.name;
+    opt.textContent = buildTripSelectLabel(trip);
     if (trip.id === selectedTripId) opt.selected = true;
     select.appendChild(opt);
   });
@@ -24,8 +44,9 @@ function renderEventTiles(flights, hotels, actions) {
   if (!list) return;
   list.innerHTML = "";
 
+  const flightBuckets = buildFlightDisplayBuckets(flights);
   const events = [
-    ...flights.map((f) => ({ type: "flight", date: f.departure_scheduled || "", data: f })),
+    ...flightBuckets.map((f) => ({ type: "flight", date: f.flights[0]?.departure_scheduled || "", data: f })),
     ...hotels.map((h) => ({ type: "hotel", date: h.check_in_date || "", data: h }))
   ].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
@@ -38,21 +59,49 @@ function renderEventTiles(flights, hotels, actions) {
     const tile = document.createElement("div");
     tile.className = "event-tile";
     if (type === "flight") {
-      const dep = esc(data.departure_airport_code || "?");
-      const arr = esc(data.arrival_airport_code || "?");
-      const fl  = esc(data.flight_number || "Flight");
-      const al  = data.airline ? ` (${esc(data.airline)})` : "";
-      const pax = Array.isArray(data.passenger_names) ? esc(data.passenger_names.join(", ")) : "";
-      const pnr = data.pnr ? ` · PNR: ${esc(data.pnr)}` : "";
-      const ed  = actions.isEditingFlight?.(data.id) ? " · ✏️ editing" : "";
-      tile.innerHTML = `<div class="event-tile-header"><div>
-        <div class="event-tile-title">${fl}${al} · ${dep} → ${arr}</div>
-        <div class="event-tile-meta">${fmtDT(data.departure_scheduled)}${pnr}${pax ? ` · ${pax}` : ""}${ed}</div>
-        </div><span class="event-tile-badge">✈︎ Flight</span></div>
-        <div class="event-tile-actions">
-          <button type="button" class="btn btn-ghost btn-xs" data-edit-flight="${esc(data.id)}">Edit</button>
-          <button type="button" class="btn btn-danger btn-xs" data-del-flight="${esc(data.id)}">Delete</button>
-        </div>`;
+      const first = data.flights[0];
+      if (!first) {
+        return;
+      }
+      if (data.type === "connecting" && data.flights.length > 1) {
+        const last = data.flights[data.flights.length - 1];
+        const pnr = data.pnr ? ` · PNR: ${esc(data.pnr)}` : "";
+        const pax = Array.isArray(data.pax) && data.pax.length ? ` · ${esc(data.pax.join(", "))}` : "";
+        const legs = [];
+        for (let i = 0; i < data.flights.length; i += 1) {
+          const leg = data.flights[i];
+          const dep = esc(leg.departure_airport_code || "?");
+          const arr = esc(leg.arrival_airport_code || "?");
+          const fl = esc(leg.flight_number || "Flight");
+          const al = leg.airline ? ` (${esc(leg.airline)})` : "";
+          const ed = actions.isEditingFlight?.(leg.id) ? " · ✏️ editing" : "";
+          legs.push(`<div class="event-tile-meta">${fl}${al} · ${dep} → ${arr} · ${fmtDT(leg.departure_scheduled)} → ${fmtDT(leg.arrival_scheduled)}${ed}</div>`);
+          legs.push(`<div class="event-tile-actions"><button type="button" class="btn btn-ghost btn-xs event-action-btn event-action-edit" aria-label="Edit flight leg" title="Edit flight leg" data-edit-flight="${esc(leg.id)}"><span class="event-action-text">Edit leg</span></button><button type="button" class="btn btn-danger btn-xs event-action-btn event-action-delete" aria-label="Delete flight leg" title="Delete flight leg" data-del-flight="${esc(leg.id)}"><span class="event-action-text">Delete leg</span></button></div>`);
+          if (i < data.flights.length - 1) {
+            const next = data.flights[i + 1];
+            const layover = formatLayover(toDate(leg.arrival_scheduled) || toDate(leg.departure_scheduled) || first.depAt, toDate(next.departure_scheduled) || next.depAt);
+            const airport = esc(leg.arrival_airport_code || "transfer airport");
+            if (layover) legs.push(`<div class="event-tile-meta">Layover ${esc(layover)} in ${airport}</div>`);
+          }
+        }
+        tile.innerHTML = `<div class="event-tile-header"><div><div class="event-tile-title">Connecting flights · ${esc(first.departure_airport_code || "?")} → ${esc(last.arrival_airport_code || "?")}</div><div class="event-tile-meta">${fmtDT(first.departure_scheduled)}${pnr}${pax}</div></div><span class="event-tile-badge">✈︎ Flight</span></div>${legs.join("")}`;
+      } else {
+        const dep = esc(first.departure_airport_code || "?");
+        const arr = esc(first.arrival_airport_code || "?");
+        const fl = esc(first.flight_number || "Flight");
+        const al = first.airline ? ` (${esc(first.airline)})` : "";
+        const pax = Array.isArray(first.passenger_names) ? esc(first.passenger_names.join(", ")) : "";
+        const pnr = first.pnr ? ` · PNR: ${esc(first.pnr)}` : "";
+        const ed = actions.isEditingFlight?.(first.id) ? " · ✏️ editing" : "";
+        tile.innerHTML = `<div class="event-tile-header"><div>
+          <div class="event-tile-title">${fl}${al} · ${dep} → ${arr}</div>
+          <div class="event-tile-meta">${fmtDT(first.departure_scheduled)}${pnr}${pax ? ` · ${pax}` : ""}${ed}</div>
+          </div><span class="event-tile-badge">✈︎ Flight</span></div>
+          <div class="event-tile-actions">
+            <button type="button" class="btn btn-ghost btn-xs event-action-btn event-action-edit" aria-label="Edit flight" title="Edit flight" data-edit-flight="${esc(first.id)}"><span class="event-action-text">Edit</span></button>
+            <button type="button" class="btn btn-danger btn-xs event-action-btn event-action-delete" aria-label="Delete flight" title="Delete flight" data-del-flight="${esc(first.id)}"><span class="event-action-text">Delete</span></button>
+          </div>`;
+      }
     } else {
       const name = esc(data.hotel_name || "Hotel");
       const conf = data.confirmation_id ? ` · #${esc(data.confirmation_id)}` : "";
@@ -63,8 +112,8 @@ function renderEventTiles(flights, hotels, actions) {
         <div class="event-tile-meta">${fmtDate(data.check_in_date)} → ${fmtDate(data.check_out_date)} · ${data.pax_count ?? "?"} guests · ${esc(data.payment_type || "")}${conf}${pax ? ` · ${pax}` : ""}${ed}</div>
         </div><span class="event-tile-badge hotel">🛏 Hotel</span></div>
         <div class="event-tile-actions">
-          <button type="button" class="btn btn-ghost btn-xs" data-edit-hotel="${esc(data.id)}">Edit</button>
-          <button type="button" class="btn btn-danger btn-xs" data-del-hotel="${esc(data.id)}">Delete</button>
+          <button type="button" class="btn btn-ghost btn-xs event-action-btn event-action-edit" aria-label="Edit hotel" title="Edit hotel" data-edit-hotel="${esc(data.id)}"><span class="event-action-text">Edit</span></button>
+          <button type="button" class="btn btn-danger btn-xs event-action-btn event-action-delete" aria-label="Delete hotel" title="Delete hotel" data-del-hotel="${esc(data.id)}"><span class="event-action-text">Delete</span></button>
         </div>`;
     }
     list.appendChild(tile);

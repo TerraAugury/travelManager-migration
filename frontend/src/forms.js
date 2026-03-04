@@ -1,3 +1,5 @@
+import { getState } from "./state.js";
+
 function textValue(id) {
   return (document.getElementById(id)?.value || "").trim();
 }
@@ -16,6 +18,44 @@ function toDateTimeLocal(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+function toIsoDay(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+function minIsoDay(current, candidate) {
+  if (!candidate) return current;
+  return !current || candidate < current ? candidate : current;
+}
+
+function maxIsoDay(current, candidate) {
+  if (!candidate) return current;
+  return !current || candidate > current ? candidate : current;
+}
+
+function deriveTripRangeFromDetails() {
+  const { flights, hotels } = getState();
+  let start = "";
+  let end = "";
+  for (const flight of Array.isArray(flights) ? flights : []) {
+    const dep = toIsoDay(flight?.departure_scheduled);
+    const arr = toIsoDay(flight?.arrival_scheduled);
+    start = minIsoDay(start, dep || arr);
+    end = maxIsoDay(end, arr || dep);
+  }
+  for (const hotel of Array.isArray(hotels) ? hotels : []) {
+    const checkIn = toIsoDay(hotel?.check_in_date);
+    const checkOut = toIsoDay(hotel?.check_out_date);
+    start = minIsoDay(start, checkIn || checkOut);
+    end = maxIsoDay(end, checkOut || checkIn);
+  }
+  return { start, end };
 }
 
 export function parsePassengerNames(raw) {
@@ -59,8 +99,9 @@ export function fillTripEditor(trip) {
   }
   name.value = trip.name || "";
   notes.value = trip.notes || "";
-  start.value = trip.start_date ? String(trip.start_date).slice(0, 10) : "";
-  end.value = trip.end_date ? String(trip.end_date).slice(0, 10) : "";
+  const fallback = deriveTripRangeFromDetails();
+  start.value = toIsoDay(trip.start_date) || fallback.start || "";
+  end.value = toIsoDay(trip.end_date) || fallback.end || "";
 }
 
 export function fillFlightForm(flight) {
