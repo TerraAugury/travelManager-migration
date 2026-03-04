@@ -47,4 +47,21 @@ test("replaceForOwner deletes old trips and imports new payload", async () => {
   assert.equal(result.importedTrips, 1);
   assert.match(calls[0].text, /DELETE FROM trips/);
   assert.match(calls[1].text, /INSERT INTO trips/);
+  const hotelInsert = calls.find((c) => /INSERT INTO hotel_records/.test(c.text));
+  assert.ok(hotelInsert);
+  assert.equal(hotelInsert.params[7], 2);
+});
+
+test("replaceForOwner normalizes invalid paxCount to 1", async () => {
+  const { pool, calls } = createPoolMock();
+  const service = buildLegacyTripsImportService({ pool });
+  await service.replaceForOwner("user-1", [{
+    name: "X",
+    records: [],
+    hotels: [{ hotelName: "H", checkInDate: "2026-04-01", checkOutDate: "2026-04-03", paxCount: "abc" }]
+  }]);
+
+  const hotelInsert = calls.find((c) => /INSERT INTO hotel_records/.test(c.text));
+  assert.ok(hotelInsert);
+  assert.equal(hotelInsert.params[7], 1);
 });

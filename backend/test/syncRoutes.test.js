@@ -56,3 +56,29 @@ test("PUT /sync/trips rejects non-array body", async () => {
   assert.equal(result.status, 400);
   assert.match(result.data.error, /array of trips/);
 });
+
+test("PUT /sync/trips accepts object body with items", async () => {
+  const app = appMock();
+  const calls = [];
+  const deps = {
+    ...depsMock(),
+    legacyTripsImportService: {
+      async replaceForOwner(userId, payload) {
+        calls.push({ userId, payload });
+        return { importedTrips: payload.length };
+      }
+    }
+  };
+  registerSyncRoutes(app, deps);
+
+  const handler = app.routes.get("PUT /api/sync/trips");
+  const result = await handler(cMock({
+    headers: { authorization: "Bearer token" },
+    jsonBody: { items: [{ name: "Trip A" }] }
+  }));
+
+  assert.equal(result.status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].payload.length, 1);
+  assert.equal(calls[0].payload[0].name, "Trip A");
+});

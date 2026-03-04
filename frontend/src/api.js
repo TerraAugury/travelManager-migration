@@ -119,10 +119,18 @@ export async function exportLegacyTrips(token) {
   return request("/sync/trips", {}, token);
 }
 
+function normalizeImportTripsPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.trips)) return payload.trips;
+  return payload;
+}
+
 export async function importLegacyTrips(token, trips) {
+  const normalized = normalizeImportTripsPayload(trips);
   return request("/sync/trips", {
     method: "PUT",
-    body: JSON.stringify(trips)
+    body: JSON.stringify(normalized)
   }, token);
 }
 

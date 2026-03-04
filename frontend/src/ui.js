@@ -1,5 +1,9 @@
 import { getState } from "./state.js";
 
+function eventElement(event) {
+  return event.target instanceof Element ? event.target : null;
+}
+
 function switchScreen(screen) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active-screen"));
   document.querySelectorAll(".tab-btn,.nav-btn").forEach((b) => b.classList.remove("active"));
@@ -37,9 +41,11 @@ export { syncTripForms };
 export function bindUI(actions) {
   // Screen switching (supports dynamically inserted buttons)
   document.addEventListener("click", (event) => {
-    const btn = event.target.closest(".tab-btn,.nav-btn");
+    const btn = eventElement(event)?.closest(".tab-btn,.nav-btn");
     const screen = btn?.dataset?.screen;
-    if (screen) switchScreen(screen);
+    if (!screen) return;
+    event.preventDefault();
+    switchScreen(screen);
   });
 
   // Open overlays
@@ -70,10 +76,14 @@ export function bindUI(actions) {
   const menuBtn = document.getElementById("topbar-menu-btn");
   const menuPanel = document.getElementById("topbar-menu-panel");
   menuBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
     e.stopPropagation();
     menuPanel?.classList.toggle("hidden");
   });
-  document.addEventListener("click", () => menuPanel?.classList.add("hidden"));
+  document.addEventListener("click", (event) => {
+    if (eventElement(event)?.closest(".topbar-menu")) return;
+    menuPanel?.classList.add("hidden");
+  });
 
   // Stats toggle
   const statsToggle = document.getElementById("toggle-alltrips-btn");

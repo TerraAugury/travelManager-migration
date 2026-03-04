@@ -28,6 +28,11 @@ function normalizeIso(input, fallbackDate = null) {
   return null;
 }
 
+function normalizePaxCount(value) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
 async function ensurePassenger(pool, name) {
   const id = crypto.randomUUID();
   const result = await pool.query(
@@ -118,7 +123,7 @@ export function buildLegacyTripsImportService({ pool }) {
             normText(hotel?.hotelName || "Hotel", 180) || "Hotel",
             normText(hotel?.confirmationId || hotel?.id, 64) || null,
             checkInDate, checkOutDate,
-            Math.max(1, Number(hotel?.paxCount || 1)),
+            normalizePaxCount(hotel?.paxCount),
             hotel?.paymentType === "pay_at_hotel" ? "pay_at_hotel" : "prepaid"
           ]
         );

@@ -43,16 +43,21 @@ test("findAll applies role and active filters", async () => {
     pool: {
       async query(text, params) {
         calls.push({ text, params });
-        return { rows: [{ id: "u3" }] };
+        if (/sqlite_master/.test(text)) {
+          return { rows: [{ sql: "CREATE TABLE users (role TEXT CHECK (role IN ('admin', 'member')))" }] };
+        }
+        return { rows: [{ id: "u3", role: "member" }] };
       }
     }
   });
 
   const rows = await repo.findAll({ role: "user", active: 1 });
   assert.equal(rows[0].id, "u3");
-  assert.match(calls[0].text, /\(\$1 IS NULL OR role = \$1\)/);
-  assert.match(calls[0].text, /\(\$2 IS NULL OR is_active = \$2\)/);
-  assert.deepEqual(calls[0].params, ["user", 1]);
+  assert.equal(rows[0].role, "user");
+  const listCall = calls.find((c) => /\(\$1 IS NULL OR role = \$1\)/.test(c.text));
+  assert.ok(listCall);
+  assert.match(listCall.text, /\(\$2 IS NULL OR is_active = \$2\)/);
+  assert.deepEqual(listCall.params, ["member", 1]);
 });
 
 test("create inserts user and returns public fields", async () => {
@@ -86,7 +91,10 @@ test("update applies patch values using COALESCE", async () => {
     pool: {
       async query(text, params) {
         calls.push({ text, params });
-        return { rows: [{ id: "u5", display_name: "Updated" }] };
+        if (/sqlite_master/.test(text)) {
+          return { rows: [{ sql: "CREATE TABLE users (role TEXT CHECK (role IN ('admin', 'member')))" }] };
+        }
+        return { rows: [{ id: "u5", display_name: "Updated", role: "member" }] };
       }
     }
   });
@@ -98,7 +106,9 @@ test("update applies patch values using COALESCE", async () => {
     passwordHash: "new-hash"
   });
   assert.equal(row.id, "u5");
-  assert.match(calls[0].text, /UPDATE users/);
-  assert.match(calls[0].text, /display_name = COALESCE/);
-  assert.deepEqual(calls[0].params, ["u5", "Updated", "user", 0, "new-hash"]);
+  assert.equal(row.role, "user");
+  const updateCall = calls.find((c) => /UPDATE users/.test(c.text));
+  assert.ok(updateCall);
+  assert.match(updateCall.text, /display_name = COALESCE/);
+  assert.deepEqual(updateCall.params, ["u5", "Updated", "member", 0, "new-hash"]);
 });
