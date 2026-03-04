@@ -122,3 +122,23 @@ input:focus,select:focus,textarea:focus {
 }
 .card-title   { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; }
 .card-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 14px; margin-top: -10px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.card-head .card-title { margin-bottom: 0; }
+.card-head-actions { display: flex; gap: 6px; }
+@media (max-width: 899px) {
+  .mobile-icon-btn { width: 34px; min-width: 34px; height: 30px; padding: 0; font-size: 0; line-height: 0; }
+  .mobile-icon-text { display: none; }
+  .mobile-icon-edit::before { content: "\270E"; font-size: 14px; line-height: 1; }
+  .mobile-icon-save::before { content: "\2713"; font-size: 15px; line-height: 1; }
+  .mobile-icon-delete {
+    background: #ffaaa5;
+    border-color: #ffc0bc;
+  }
+  .mobile-icon-delete::before {
+    content: "\1F5D1";
+    font-size: 14px;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28);
+  }
+}

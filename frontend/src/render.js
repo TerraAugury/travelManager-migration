@@ -7,6 +7,12 @@ function fmtDate(v) { return v ? String(v).slice(0, 10) : "–"; }
 function fmtDT(v) { return v ? String(v).replace("T", " ").slice(0, 16) : "–"; }
 function esc(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function toDate(v) { const d = new Date(v || ""); return Number.isNaN(d.getTime()) ? null : d; }
+function syncAdminMenu(user) {
+  const isAdmin = user?.role === "admin";
+  document.querySelectorAll(".admin-only-menu").forEach((el) => {
+    el.classList.toggle("hidden", !isAdmin);
+  });
+}
 
 function formatTripMonthYear(startDate) {
   const raw = String(startDate || "").trim();
@@ -76,7 +82,7 @@ function renderEventTiles(flights, hotels, actions) {
           const al = leg.airline ? ` (${esc(leg.airline)})` : "";
           const ed = actions.isEditingFlight?.(leg.id) ? " · ✏️ editing" : "";
           legs.push(`<div class="event-tile-meta">${fl}${al} · ${dep} → ${arr} · ${fmtDT(leg.departure_scheduled)} → ${fmtDT(leg.arrival_scheduled)}${ed}</div>`);
-          legs.push(`<div class="event-tile-actions"><button type="button" class="btn btn-ghost btn-xs event-action-btn event-action-edit" aria-label="Edit flight leg" title="Edit flight leg" data-edit-flight="${esc(leg.id)}"><span class="event-action-text">Edit leg</span></button><button type="button" class="btn btn-danger btn-xs event-action-btn event-action-delete" aria-label="Delete flight leg" title="Delete flight leg" data-del-flight="${esc(leg.id)}"><span class="event-action-text">Delete leg</span></button></div>`);
+          legs.push(`<div class="event-tile-actions"><button type="button" class="btn btn-ghost btn-xs mobile-icon-btn mobile-icon-edit" aria-label="Edit flight leg" title="Edit flight leg" data-edit-flight="${esc(leg.id)}"><span class="mobile-icon-text">Edit leg</span></button><button type="button" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete flight leg" title="Delete flight leg" data-del-flight="${esc(leg.id)}"><span class="mobile-icon-text">Delete leg</span></button></div>`);
           if (i < data.flights.length - 1) {
             const next = data.flights[i + 1];
             const layover = formatLayover(toDate(leg.arrival_scheduled) || toDate(leg.departure_scheduled) || first.depAt, toDate(next.departure_scheduled) || next.depAt);
@@ -98,8 +104,8 @@ function renderEventTiles(flights, hotels, actions) {
           <div class="event-tile-meta">${fmtDT(first.departure_scheduled)}${pnr}${pax ? ` · ${pax}` : ""}${ed}</div>
           </div><span class="event-tile-badge">✈︎ Flight</span></div>
           <div class="event-tile-actions">
-            <button type="button" class="btn btn-ghost btn-xs event-action-btn event-action-edit" aria-label="Edit flight" title="Edit flight" data-edit-flight="${esc(first.id)}"><span class="event-action-text">Edit</span></button>
-            <button type="button" class="btn btn-danger btn-xs event-action-btn event-action-delete" aria-label="Delete flight" title="Delete flight" data-del-flight="${esc(first.id)}"><span class="event-action-text">Delete</span></button>
+            <button type="button" class="btn btn-ghost btn-xs mobile-icon-btn mobile-icon-edit" aria-label="Edit flight" title="Edit flight" data-edit-flight="${esc(first.id)}"><span class="mobile-icon-text">Edit</span></button>
+            <button type="button" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete flight" title="Delete flight" data-del-flight="${esc(first.id)}"><span class="mobile-icon-text">Delete</span></button>
           </div>`;
       }
     } else {
@@ -112,8 +118,8 @@ function renderEventTiles(flights, hotels, actions) {
         <div class="event-tile-meta">${fmtDate(data.check_in_date)} → ${fmtDate(data.check_out_date)} · ${data.pax_count ?? "?"} guests · ${esc(data.payment_type || "")}${conf}${pax ? ` · ${pax}` : ""}${ed}</div>
         </div><span class="event-tile-badge hotel">🛏 Hotel</span></div>
         <div class="event-tile-actions">
-          <button type="button" class="btn btn-ghost btn-xs event-action-btn event-action-edit" aria-label="Edit hotel" title="Edit hotel" data-edit-hotel="${esc(data.id)}"><span class="event-action-text">Edit</span></button>
-          <button type="button" class="btn btn-danger btn-xs event-action-btn event-action-delete" aria-label="Delete hotel" title="Delete hotel" data-del-hotel="${esc(data.id)}"><span class="event-action-text">Delete</span></button>
+          <button type="button" class="btn btn-ghost btn-xs mobile-icon-btn mobile-icon-edit" aria-label="Edit hotel" title="Edit hotel" data-edit-hotel="${esc(data.id)}"><span class="mobile-icon-text">Edit</span></button>
+          <button type="button" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete hotel" title="Delete hotel" data-del-hotel="${esc(data.id)}"><span class="mobile-icon-text">Delete</span></button>
         </div>`;
     }
     list.appendChild(tile);
@@ -146,6 +152,7 @@ export function render(actions = {}) {
     appPanel.classList.add("hidden");
     userLine.textContent = "";
   }
+  syncAdminMenu(state.user);
 
   renderTripSelect(state.trips, state.selectedTripId);
   syncTripForms();

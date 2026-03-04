@@ -128,38 +128,6 @@
 }
 .event-tile-badge.hotel { background: rgba(52,199,89,0.12); color: #34c759; }
 .event-tile-actions { display: flex; gap: 6px; }
-@media (max-width: 899px) {
-  .event-tile-actions [data-edit-flight],
-  .event-tile-actions [data-del-flight],
-  .event-tile-actions [data-edit-hotel],
-  .event-tile-actions [data-del-hotel] {
-    width: 34px; min-width: 34px; height: 30px;
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 0;
-    font-size: 0;
-    line-height: 0;
-  }
-  .event-tile-actions .event-action-text { display: none; }
-  .event-tile-actions [data-edit-flight]::before,
-  .event-tile-actions [data-edit-hotel]::before {
-    content: "\270E";
-    font-size: 14px;
-    line-height: 1;
-  }
-  .event-tile-actions [data-del-flight]::before,
-  .event-tile-actions [data-del-hotel]::before {
-    content: "\1F5D1";
-    font-size: 14px;
-    line-height: 1;
-    color: #fff;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28);
-  }
-  .event-tile-actions [data-del-flight],
-  .event-tile-actions [data-del-hotel] {
-    background: #ffaaa5;
-    border-color: #ffc0bc;
-  }
-}
 
 /* ── Bottom nav ── */
 .bottom-nav {

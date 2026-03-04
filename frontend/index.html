@@ -41,11 +41,11 @@
         <div class="topbar-menu">
           <button id="topbar-menu-btn" class="btn btn-ghost btn-xs" type="button">Menu</button>
           <div id="topbar-menu-panel" class="menu-panel hidden">
-            <button id="export-btn" class="menu-item" type="button">Export JSON</button>
-            <label class="menu-item" style="cursor:pointer">Import JSON<input id="import-file" type="file" accept="application/json" style="display:none"/></label>
+            <button id="export-btn" class="menu-item admin-only-menu hidden" type="button">Export JSON</button>
+            <label class="menu-item admin-only-menu hidden" style="cursor:pointer">Import JSON<input id="import-file" type="file" accept="application/json" style="display:none"/></label>
+            <button id="logout-btn" class="menu-item" type="button">Sign out</button>
           </div>
         </div>
-        <button id="logout-btn" class="btn btn-ghost btn-xs" type="button">Sign out</button>
       </div>
     </header>
     <div class="screen-tabs desktop-tabs">
@@ -58,7 +58,7 @@
       <main id="screen-trips" class="screen active-screen layout-columns">
         <div class="card-trip-container">
           <div class="card card-trip">
-            <div class="card-title">Control Center</div>
+            <div class="card-head"><div class="card-title">Control Center</div><div id="trip-edit-actions" class="card-head-actions hidden"><button type="submit" form="trip-edit-form" id="trip-save-btn" class="btn btn-primary btn-xs mobile-icon-btn mobile-icon-save" aria-label="Save trip" title="Save trip"><span class="mobile-icon-text">Save</span></button><button type="button" id="trip-delete-btn" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete trip" title="Delete trip"><span class="mobile-icon-text">Delete</span></button></div></div>
             <div class="field"><label for="trip-select">Trip</label><select id="trip-select"><option value="">Select a trip…</option></select></div>
             <form id="trip-form" class="new-trip-form hidden form-stack">
               <div class="field"><label for="trip-name">Trip Name</label><input id="trip-name" type="text" maxlength="120" required/></div>
@@ -70,7 +70,6 @@
               <div class="field"><label for="trip-edit-name">Trip Name</label><input id="trip-edit-name" type="text" maxlength="120"/></div>
               <div class="field-row"><div class="field"><label for="trip-edit-start">Start</label><input id="trip-edit-start" type="date"/></div><div class="field"><label for="trip-edit-end">End</label><input id="trip-edit-end" type="date"/></div></div>
               <div class="field"><label for="trip-edit-notes">Notes</label><textarea id="trip-edit-notes" rows="2" maxlength="4000"></textarea></div>
-              <div class="btn-row"><button type="submit" class="btn btn-primary">Save</button><button type="button" id="trip-delete-btn" class="btn btn-danger">Delete</button></div>
             </form>
             <div class="control-grid"><button id="add-flight-btn" class="btn btn-primary" type="button" disabled>✈︎ Add Flight</button><button id="add-hotel-btn" class="btn btn-primary" type="button" disabled>🛏 Add Hotel</button></div>
             <div class="summary-bar"><span id="trip-events-summary">Select a trip to begin</span></div>
