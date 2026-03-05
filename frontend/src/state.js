@@ -8,7 +8,7 @@ const state = {
   flights: [],
   hotels: [],
   passengers: [],
-  flightProvider: "aviationstack"
+  flightProvider: "aerodatabox"
 };
 
 function getLocalStorage() {
@@ -81,12 +81,12 @@ export function setPassengers(passengers) {
 
 export function loadFlightProvider() {
   const raw = getLocalStorage()?.getItem(FLIGHT_PROVIDER_STORAGE_KEY) || "";
-  state.flightProvider = raw === "aerodatabox" ? "aerodatabox" : "aviationstack";
+  state.flightProvider = raw === "aviationstack" ? "aviationstack" : "aerodatabox";
   return state.flightProvider;
 }
 
 export function setFlightProvider(provider) {
-  const value = provider === "aerodatabox" ? "aerodatabox" : "aviationstack";
+  const value = provider === "aviationstack" ? "aviationstack" : "aerodatabox";
   state.flightProvider = value;
   getLocalStorage()?.setItem(FLIGHT_PROVIDER_STORAGE_KEY, value);
 }

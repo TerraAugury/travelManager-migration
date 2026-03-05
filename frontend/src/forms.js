@@ -100,6 +100,7 @@ export function fillFlightForm(flight) {
     "flight-number": flight?.flight_number || "",
     "flight-airline": flight?.airline || "",
     "flight-pnr": flight?.pnr || "",
+    "flight-lookup-date": toIsoDay(flight?.departure_scheduled),
     "flight-dep-name": flight?.departure_airport_name || "",
     "flight-dep-code": flight?.departure_airport_code || "",
     "flight-arr-name": flight?.arrival_airport_name || "",
@@ -135,10 +136,13 @@ export function bindFlightLookup(lookupFn) {
   if (!btn) return;
   btn.addEventListener("click", async () => {
     const fn = (document.getElementById("flight-number")?.value || "").trim();
-    if (!fn) return;
-    const rawDepTime = document.getElementById("flight-dep-time")?.value || "";
-    const date = rawDepTime.length >= 10 ? rawDepTime.slice(0, 10) : null;
+    const date = document.getElementById("flight-lookup-date")?.value || "";
     const status = document.getElementById("flight-lookup-status");
+    if (!fn) return;
+    if (!date) {
+      if (status) status.textContent = "⚠ Select a travel date for lookup.";
+      return;
+    }
     btn.disabled = true; btn.textContent = "…";
     try {
       fillFlightForm(await lookupFn(fn, date));

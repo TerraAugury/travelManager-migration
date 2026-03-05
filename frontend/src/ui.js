@@ -58,6 +58,9 @@ export function bindUI(actions) {
   // Open overlays
   document.getElementById("add-flight-btn")?.addEventListener("click", () => {
     document.getElementById("flight-overlay-title").textContent = "Add Flight";
+    document.getElementById("flight-form")?.reset();
+    const status = document.getElementById("flight-lookup-status");
+    if (status) status.textContent = "";
     openOverlay("flight-overlay");
   });
   document.getElementById("add-hotel-btn")?.addEventListener("click", () => {

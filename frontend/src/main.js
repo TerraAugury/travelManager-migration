@@ -135,7 +135,7 @@ async function bootstrap() {
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
       const body = readCreateFlightBody();
-      if (editingFlightId) await api.updateFlight(getState().token, tripId, editingFlightId, body);
+      if (editingFlightId && (document.getElementById("flight-overlay-title")?.textContent || "").startsWith("Edit")) await api.updateFlight(getState().token, tripId, editingFlightId, body);
       else                 await api.createFlight(getState().token, tripId, body);
       event.target.reset();
       editingFlightId = null;

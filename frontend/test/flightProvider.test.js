@@ -12,16 +12,16 @@ function makeMockLocalStorage() {
   };
 }
 
-test("loadFlightProvider defaults to aviationstack when storage is empty", () => {
+test("loadFlightProvider defaults to aerodatabox when storage is empty", () => {
   const previousWindow = globalThis.window;
   const ls = makeMockLocalStorage();
   try {
     globalThis.window = { localStorage: ls };
-    setFlightProvider("aviationstack"); // reset module state
+    setFlightProvider("aerodatabox"); // reset module state
     ls._store.clear();
     const result = loadFlightProvider();
-    assert.equal(result, "aviationstack");
-    assert.equal(getFlightProvider(), "aviationstack");
+    assert.equal(result, "aerodatabox");
+    assert.equal(getFlightProvider(), "aerodatabox");
   } finally {
     globalThis.window = previousWindow;
   }
@@ -40,13 +40,13 @@ test("setFlightProvider persists aerodatabox to localStorage", () => {
   }
 });
 
-test("setFlightProvider normalizes unknown values to aviationstack", () => {
+test("setFlightProvider normalizes unknown values to aerodatabox", () => {
   const previousWindow = globalThis.window;
   const ls = makeMockLocalStorage();
   try {
     globalThis.window = { localStorage: ls };
     setFlightProvider("unknown");
-    assert.equal(getFlightProvider(), "aviationstack");
+    assert.equal(getFlightProvider(), "aerodatabox");
   } finally {
     globalThis.window = previousWindow;
   }
