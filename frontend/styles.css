@@ -74,7 +74,7 @@ body {
 /* ── Form primitives ── */
 .form-stack { display: flex; flex-direction: column; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field > label { font-size: 13px; font-weight: 500; color: var(--muted); }
+.field > label { font-size: 11px; font-weight: 500; color: var(--muted); }
 .field-group { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px; }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .field-row > .field { min-width: 0; }
@@ -91,19 +91,22 @@ input,select,textarea {
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   padding: 9px 12px;
-  font: inherit; font-size: 16px;
+  font: inherit; font-size: 14px;
   background: var(--card-bg); color: var(--text);
   min-height: 44px;
 }
 input:focus,select:focus,textarea:focus {
   outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent;
 }
+@media (max-width: 720px) {
+  input,select,textarea { font-size: 16px; }
+}
 
 /* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 10px 16px; border-radius: var(--r-md); border: 1px solid transparent;
-  font: inherit; font-size: 15px; font-weight: 600;
+  font: inherit; font-size: 14px; font-weight: 600;
   cursor: pointer; min-height: 44px; transition: opacity 0.15s;
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
@@ -118,7 +121,7 @@ input:focus,select:focus,textarea:focus {
 /* ── Utilities ── */
 .hidden { display: none !important; }
 .hint { font-size: 13px; color: var(--muted); margin: 0; }
-.field-error { font-size: 12px; color: var(--danger); }
+.field-error { font-size: 11px; color: var(--danger); }
 
 /* ── Cards ── */
 .card {
@@ -129,7 +132,7 @@ input:focus,select:focus,textarea:focus {
   box-shadow: var(--shadow);
 }
 .card-title   { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; }
-.card-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 14px; margin-top: -10px; }
+.card-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 14px; margin-top: -10px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 .card-head .card-title { margin-bottom: 0; }
 .card-head-actions { display: flex; gap: 6px; }

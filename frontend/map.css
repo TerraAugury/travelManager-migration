@@ -23,13 +23,13 @@
 }
 
 .route-count-num {
-  font-size: 0.8rem;
+  font-size: 14px;
   line-height: 1;
   font-weight: 700;
 }
 
 .route-count-arrow {
-  font-size: 1.5rem;
+  font-size: 13px;
   line-height: 1;
 }
 
@@ -38,7 +38,7 @@
 }
 
 .route-count-meta {
-  font-size: 0.62rem;
+  font-size: 11px;
   line-height: 1;
   font-weight: 700;
   letter-spacing: 0.01em;

@@ -9,6 +9,7 @@
   min-height: 34px;
   border-radius: 999px;
   padding: 6px 12px;
+  font-size: 13px;
   border: 1px solid var(--border);
   background: var(--card-bg);
   color: var(--text);
@@ -74,10 +75,14 @@
 
 .pax-text,
 .pnr-text,
-.segment-label,
 .segment-flight-code,
 .segment-time {
-  font-size: 0.85rem;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.segment-label {
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -122,12 +127,12 @@
 }
 
 .daycount-month .label {
-  font-size: 0.72rem;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .daycount-month .value {
-  font-size: 1rem;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -137,7 +142,7 @@
 
 .daycount-month-detail {
   margin-top: 8px;
-  font-size: 0.85rem;
+  font-size: 12px;
   color: var(--muted);
   display: grid;
   gap: 6px;
@@ -162,7 +167,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 8px;
-  font-size: 0.75rem;
+  font-size: 11px;
   color: var(--muted);
 }
 
