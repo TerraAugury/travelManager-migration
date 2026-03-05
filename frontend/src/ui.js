@@ -21,6 +21,13 @@ function openOverlay(id) {
   document.body.style.overflow = "hidden";
 }
 
+function setFlightDateInputsEditable(editing) {
+  ["flight-dep-time", "flight-arr-time"].forEach((id) => {
+    const input = document.getElementById(id);
+    if (input) input.disabled = !editing;
+  });
+}
+
 export function closeOverlay(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
@@ -57,11 +64,10 @@ export function bindUI(actions) {
 
   // Open overlays
   document.getElementById("add-flight-btn")?.addEventListener("click", () => {
-    document.getElementById("flight-overlay-title").textContent = "Add Flight";
     document.getElementById("flight-form")?.reset();
     const status = document.getElementById("flight-lookup-status");
     if (status) status.textContent = "";
-    openOverlay("flight-overlay");
+    setOverlayEditMode("flight", false);
   });
   document.getElementById("add-hotel-btn")?.addEventListener("click", () => {
     document.getElementById("hotel-overlay-title").textContent = "Add Hotel";
@@ -143,5 +149,6 @@ export function bindUI(actions) {
 export function setOverlayEditMode(type, editing) {
   const titleEl = document.getElementById(`${type}-overlay-title`);
   if (titleEl) titleEl.textContent = editing ? `Edit ${type === "flight" ? "Flight" : "Hotel"}` : `Add ${type === "flight" ? "Flight" : "Hotel"}`;
+  if (type === "flight") setFlightDateInputsEditable(editing);
   openOverlay(`${type}-overlay`);
 }
