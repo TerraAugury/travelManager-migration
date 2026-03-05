@@ -1,5 +1,6 @@
 import * as api from "./api.js";
 import { getState } from "./state.js";
+import { confirmAction } from "./confirmDialog.js";
 import {
   ensureAdminUsersMarkup,
   paintAdminUsersList,
@@ -117,7 +118,16 @@ function bindEvents() {
     if (cancel) adminState.editingId = null;
     if (deleteId) {
       try {
-        if (!window.confirm("Deactivate this user?")) return;
+        const user = adminState.users.find((row) => row.id === deleteId);
+        const label = user?.email || "this user";
+        const confirmed = await confirmAction({
+          title: "Deactivate user?",
+          message: `You are about to deactivate ${label}. They will no longer be able to sign in.`,
+          confirmText: "Confirm",
+          cancelText: "Cancel",
+          danger: true
+        });
+        if (!confirmed) return;
         await api.deleteUser(getState().token, deleteId);
         adminState.editingId = null;
         adminState.message = "User deactivated.";

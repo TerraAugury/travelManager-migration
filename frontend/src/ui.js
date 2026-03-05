@@ -1,4 +1,5 @@
 import { getState } from "./state.js";
+import { confirmAction } from "./confirmDialog.js";
 
 function eventElement(event) {
   return event.target instanceof Element ? event.target : null;
@@ -104,7 +105,18 @@ export function bindUI(actions) {
   // Trip delete
   document.getElementById("trip-delete-btn")?.addEventListener("click", async () => {
     const id = getState().selectedTripId;
-    if (id) await actions.onDeleteTrip(id);
+    if (!id) return;
+    const trip = getState().trips.find((row) => row.id === id);
+    const label = trip?.name ? `"${trip.name}"` : "this trip";
+    const confirmed = await confirmAction({
+      title: "Delete trip?",
+      message: `You are about to delete ${label} and all linked flights and hotels.`,
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      danger: true
+    });
+    if (!confirmed) return;
+    await actions.onDeleteTrip(id);
   });
 }
 

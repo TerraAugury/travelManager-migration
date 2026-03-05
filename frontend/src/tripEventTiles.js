@@ -1,4 +1,5 @@
 import { buildFlightDisplayBuckets, formatLayover } from "./flightGrouping.js";
+import { confirmAction } from "./confirmDialog.js";
 
 const DAY_FMT = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 function esc(v) { return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -115,15 +116,40 @@ export function renderTripEvents(flights, hotels, actions = {}) {
     }).join("");
     return `<section class="day-tile"><header class="day-head"><div class="day-head-main"><span class="day-icon">✈︎</span><h3 class="day-title">${esc(dayLabel(day.key))}</h3></div><span class="day-summary-chip">${esc(summaryText(day.flights, day.hotels))}</span></header><div class="day-divider"></div><div class="day-events">${events}</div></section>`;
   }).join("");
-  list.onclick = (event) => {
+  list.onclick = async (event) => {
     const target = event.target instanceof Element ? event.target : null;
     const editFlight = target?.closest("[data-edit-flight]")?.dataset.editFlight;
     const delFlight = target?.closest("[data-del-flight]")?.dataset.delFlight;
     const delHotel = target?.closest("[data-del-hotel]")?.dataset.delHotel;
     const copyHotelId = target?.closest("[data-copy-hotel-id]")?.dataset.copyHotelId;
-    if (editFlight) actions.onEditFlight?.(editFlight);
-    if (delFlight) actions.onDeleteFlight?.(delFlight);
-    if (delHotel) actions.onDeleteHotel?.(delHotel);
+    if (editFlight) {
+      actions.onEditFlight?.(editFlight);
+      return;
+    }
+    if (delFlight) {
+      const confirmed = await confirmAction({
+        title: "Delete flight?",
+        message: "You are about to delete this flight record.",
+        confirmText: "Confirm",
+        cancelText: "Cancel",
+        danger: true
+      });
+      if (!confirmed) return;
+      await actions.onDeleteFlight?.(delFlight);
+      return;
+    }
+    if (delHotel) {
+      const confirmed = await confirmAction({
+        title: "Delete hotel?",
+        message: "You are about to delete this hotel booking record.",
+        confirmText: "Confirm",
+        cancelText: "Cancel",
+        danger: true
+      });
+      if (!confirmed) return;
+      await actions.onDeleteHotel?.(delHotel);
+      return;
+    }
     if (copyHotelId) copyText(copyHotelId);
   };
 }
