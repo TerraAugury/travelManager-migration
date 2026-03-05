@@ -2,8 +2,8 @@ import * as api from "./api.js";
 import { bindFlightLookup, fillFlightForm, fillHotelForm, fillTripEditor, readCreateFlightBody, readCreateHotelBody, readCreateTripBody, readUpdateTripBody } from "./forms.js";
 import { createInsightsController } from "./insights.js";
 import { render } from "./render.js";
-import { bindUI, closeOverlay, setOverlayEditMode } from "./ui.js";
-import { getState, loadToken, setFlights, setHotels, setPassengers, setSelectedTripId, setToken, setTrips, setUser } from "./state.js";
+import { bindUI, closeOverlay, setOverlayEditMode, syncFlightProviderSelect } from "./ui.js";
+import { getState, getFlightProvider, loadFlightProvider, loadToken, setFlights, setHotels, setPassengers, setSelectedTripId, setToken, setTrips, setUser } from "./state.js";
 
 let editingFlightId = null;
 let editingHotelId  = null;
@@ -49,11 +49,11 @@ function bindForms(actions) {
   document.getElementById("trip-select").addEventListener("change", actions.onSelectTripChange);
   document.getElementById("export-btn").addEventListener("click",   actions.onExport);
   document.getElementById("import-file").addEventListener("change", actions.onImport);
-  bindFlightLookup((fn) => api.lookupFlight(getState().token, fn));
+  bindFlightLookup((fn, date) => api.lookupFlight(getState().token, fn, getFlightProvider(), date));
 }
 
 async function bootstrap() {
-  loadToken();
+  loadToken(); loadFlightProvider(); syncFlightProviderSelect();
   const actions = {
     onSelectTrip: async (tripId) => {
       setSelectedTripId(tripId);

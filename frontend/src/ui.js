@@ -1,4 +1,4 @@
-import { getState } from "./state.js";
+import { getState, getFlightProvider, setFlightProvider } from "./state.js";
 
 function eventElement(event) {
   return event.target instanceof Element ? event.target : null;
@@ -39,6 +39,11 @@ function syncTripForms() {
 
 export { syncTripForms };
 
+export function syncFlightProviderSelect() {
+  const sel = document.getElementById("flight-provider-select");
+  if (sel) sel.value = getFlightProvider();
+}
+
 export function bindUI(actions) {
   // Screen switching (supports dynamically inserted buttons)
   document.addEventListener("click", (event) => {
@@ -70,6 +75,7 @@ export function bindUI(actions) {
     bd.addEventListener("click", () => {
       closeOverlay("flight-overlay");
       closeOverlay("hotel-overlay");
+      closeOverlay("settings-overlay");
     })
   );
 
@@ -105,6 +111,17 @@ export function bindUI(actions) {
   document.getElementById("trip-delete-btn")?.addEventListener("click", async () => {
     const id = getState().selectedTripId;
     if (id) await actions.onDeleteTrip(id);
+  });
+
+  // Settings overlay
+  document.getElementById("settings-btn")?.addEventListener("click", () => {
+    syncFlightProviderSelect();
+    openOverlay("settings-overlay");
+    menuPanel?.classList.add("hidden");
+  });
+  document.getElementById("close-settings-overlay")?.addEventListener("click", () => closeOverlay("settings-overlay"));
+  document.getElementById("flight-provider-select")?.addEventListener("change", (e) => {
+    setFlightProvider(e.target.value);
   });
 }
 

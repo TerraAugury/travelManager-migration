@@ -43,7 +43,7 @@ to a Cloudflare-native architecture with D1 (SQLite).
 ```
 
 Worker serves `POST /auth/*`, `GET|POST|PATCH|DELETE /api/trips/*`,
-`/api/sync/trips` (legacy bridge), `/api/flights/lookup` (AviationStack proxy),
+`/api/sync/trips` (legacy bridge), `/api/flights/lookup?fn=XX123[&provider=aerodatabox][&date=YYYY-MM-DD]` (AviationStack or AeroDataBox; keys in Cloudflare secrets),
 and `/health`.
 
 ---

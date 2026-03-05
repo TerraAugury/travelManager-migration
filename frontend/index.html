@@ -44,6 +44,7 @@
           <div id="topbar-menu-panel" class="menu-panel hidden">
             <button id="export-btn" class="menu-item admin-only-menu hidden" type="button">Export JSON</button>
             <label class="menu-item admin-only-menu hidden" style="cursor:pointer">Import JSON<input id="import-file" type="file" accept="application/json" style="display:none"/></label>
+            <button id="settings-btn" class="menu-item" type="button">Settings</button>
             <button id="logout-btn" class="menu-item" type="button">Sign out</button>
           </div>
         </div>
@@ -172,12 +173,8 @@
     <form id="hotel-form" class="form-stack">
       <div class="field"><label for="hotel-name">Hotel Name</label><input id="hotel-name" type="text" required/></div>
       <div class="field"><label for="hotel-confirmation">Confirmation #</label><input id="hotel-confirmation" type="text" maxlength="64"/></div>
-      <div class="field-group">
-        <div class="field"><label for="hotel-checkin">Check-in</label><input id="hotel-checkin" type="date" required/></div>
-        <div class="field"><label for="hotel-checkout">Check-out</label><input id="hotel-checkout" type="date" required/></div>
-        <div class="field"><label for="hotel-pax">Guests</label><input id="hotel-pax" type="number" min="1" value="1" required/></div>
-        <div class="field"><label for="hotel-payment">Payment</label><select id="hotel-payment"><option value="prepaid">Already paid</option><option value="pay_at_hotel">Pay at hotel</option></select></div>
-      </div>
+      <div class="field-group"><div class="field"><label for="hotel-checkin">Check-in</label><input id="hotel-checkin" type="date" required/></div><div class="field"><label for="hotel-checkout">Check-out</label><input id="hotel-checkout" type="date" required/></div>
+      <div class="field"><label for="hotel-pax">Guests</label><input id="hotel-pax" type="number" min="1" value="1" required/></div><div class="field"><label for="hotel-payment">Payment</label><select id="hotel-payment"><option value="prepaid">Already paid</option><option value="pay_at_hotel">Pay at hotel</option></select></div></div>
       <div class="field"><label for="hotel-passengers">Passengers (comma-separated)</label><input id="hotel-passengers" type="text"/></div>
       <div class="overlay-actions">
         <button type="button" class="btn btn-ghost" id="cancel-hotel-btn">Cancel</button>
@@ -186,6 +183,15 @@
     </form>
   </section>
 </div>
+<div id="settings-overlay" class="overlay hidden" aria-hidden="true">
+<div class="overlay-backdrop"></div>
+<section class="overlay-card" role="dialog" aria-modal="true">
+<button type="button" id="close-settings-overlay" class="overlay-close-btn" aria-label="Close">×</button>
+<div class="card-title">Settings</div>
+<div class="form-stack">
+<div class="field"><label for="flight-provider-select">Flight data source</label><select id="flight-provider-select"><option value="aviationstack">AviationStack</option><option value="aerodatabox">AeroDataBox (RapidAPI)</option></select></div>
+<p class="hint">Choose which API to use for the Lookup button. The selected provider must be configured on the server.</p>
+</div></section></div>
 <script src="./vendor/leaflet.js"></script>
 <script src="./sw-register.js"></script>
 <script type="module" src="./src/main.js"></script>

@@ -1,3 +1,4 @@
+import { lookupAviationStack, lookupAeroDataBox } from "../services/flightProviders.js";
 import { requireRequestUser } from "../auth/requestUser.js";
 import {
   isUuid,
@@ -70,34 +71,23 @@ export function registerFlightRoutes(app, deps) {
       if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
       const fn = (c.req.query("fn") || "").trim().toUpperCase().replace(/\s+/g, "");
       if (!fn || !/^[A-Z0-9]{2,8}$/.test(fn)) return sendError(c, 400, "Invalid or missing flight number (fn).");
-      const key = c.env?.AVIATIONSTACK_API_KEY;
-      if (!key) return sendError(c, 503, "Flight lookup not configured on this server.");
-      // Use header auth to avoid leaking the key in URLs.
-      const baseUrl = `https://api.aviationstack.com/v1/flights?flight_iata=${encodeURIComponent(fn)}`;
-      let res = await fetch(baseUrl, {
-        headers: {
-          "X-Api-Key": key,
-          Authorization: `Bearer ${key}`
-        }
-      });
-      // Compatibility fallback for AviationStack plans/endpoints that still require access_key in query.
-      if (!res.ok) {
-        res = await fetch(`${baseUrl}&access_key=${encodeURIComponent(key)}`);
+      const rawDate = (c.req.query("date") || "").trim();
+      if (rawDate && !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return sendError(c, 400, "date must be YYYY-MM-DD.");
+      const rawProvider = (c.req.query("provider") || "aviationstack").trim().toLowerCase();
+      if (rawProvider !== "aviationstack" && rawProvider !== "aerodatabox") {
+        return sendError(c, 400, "provider must be aviationstack or aerodatabox.");
       }
-      if (!res.ok) return sendError(c, 502, "Upstream flight lookup error.");
-      const json = await res.json();
-      const f = json?.data?.[0];
-      if (!f) return sendError(c, 404, `No flight found for ${fn}.`);
-      return c.json({
-        flight_number: f.flight?.iata || fn,
-        airline: f.airline?.name || null,
-        departure_airport_name: f.departure?.airport || null,
-        departure_airport_code: f.departure?.iata || null,
-        arrival_airport_name: f.arrival?.airport || null,
-        arrival_airport_code: f.arrival?.iata || null,
-        departure_scheduled: f.departure?.scheduled || null,
-        arrival_scheduled: f.arrival?.scheduled || null
-      });
+      const key = rawProvider === "aerodatabox" ? c.env?.AERODATABOX_API_KEY : c.env?.AVIATIONSTACK_API_KEY;
+      if (!key) return sendError(c, 503, "Flight lookup not configured on this server.");
+      try {
+        const result = rawProvider === "aerodatabox"
+          ? await lookupAeroDataBox(fn, rawDate || null, key)
+          : await lookupAviationStack(fn, key);
+        return c.json(result);
+      } catch (err) {
+        if (err?.status && err?.message) return sendError(c, err.status, err.message);
+        return sendError(c, 502, "Upstream flight lookup error.");
+      }
     });
 
     app.get(path("/trips/:tripId/flights"), async (c) => {
