@@ -1,4 +1,7 @@
 import * as api from "./api.js";
+import { getState } from "./state.js";
+
+function esc(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
 function getElements() {
   const ids = [
@@ -11,6 +14,7 @@ function getElements() {
     "upcoming-passenger",
     "upcoming-list",
     "upcoming-empty",
+    "today-empty", "today-flights",
     "map-passenger",
     "map-route",
     "map-year-list",
@@ -31,13 +35,13 @@ export function createInsightsController() {
   const state = {
     els: null,
     legacyTrips: [],
-    detailsByTripId: new Map(),
     daycountState: { passenger: "", year: new Date().getFullYear(), monthSelection: null, viewMode: "list" },
     upcomingState: { passenger: "" },
     mapState: { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false },
     mapController: { renderMapScreen: noop, setMapFullscreen: noop },
     renderDaycountView: noop,
     renderUpcomingScreen: noop,
+    renderTodayScreen: noop,
     renderAllTripsDetails: noop,
     modulesReady: false,
     modulesPromise: null
@@ -58,10 +62,11 @@ export function createInsightsController() {
     if (state.modulesReady) return Promise.resolve();
     if (state.modulesPromise) return state.modulesPromise;
     state.modulesPromise = (async () => {
-      const [daycountMod, mapMod, upcomingMod, tripStatsMod] = await Promise.all([
+      const [daycountMod, mapMod, upcomingMod, todayMod, tripStatsMod] = await Promise.all([
         importScriptModule("/src/insightsModules/daycountScreen.js"),
         importScriptModule("/src/insightsModules/mapScreen.js"),
         importScriptModule("/src/insightsModules/upcomingScreen.js"),
+        importScriptModule("/src/insightsModules/todayScreen.js"),
         importScriptModule("/src/insightsModules/tripStats.js")
       ]);
       if (typeof daycountMod?.renderDaycountView === "function") {
@@ -73,6 +78,7 @@ export function createInsightsController() {
       if (typeof upcomingMod?.renderUpcomingScreen === "function") {
         state.renderUpcomingScreen = upcomingMod.renderUpcomingScreen;
       }
+      if (typeof todayMod?.renderTodayScreen === "function") state.renderTodayScreen = todayMod.renderTodayScreen;
       if (typeof tripStatsMod?.renderAllTripsDetails === "function") {
         state.renderAllTripsDetails = tripStatsMod.renderAllTripsDetails;
       }
@@ -92,6 +98,9 @@ export function createInsightsController() {
       state.els["trip-details-empty"]
     );
     state.mapController.renderMapScreen({ trips: state.legacyTrips, mapState: state.mapState, els: state.els });
+    if (document.getElementById("screen-today")?.classList.contains("active-screen")) {
+      void state.renderTodayScreen({ els: state.els, token: getState().token, api, esc });
+    }
   }
 
   function bind() {
@@ -160,6 +169,10 @@ export function createInsightsController() {
           : { country, monthIndex };
       render();
     });
+    document.addEventListener("click", (event) => {
+      const btn = event.target instanceof Element ? event.target.closest(".tab-btn,.nav-btn") : null;
+      if (btn?.getAttribute("data-screen") === "today") setTimeout(render, 0);
+    });
     void ensureModules().then(render);
   }
 
@@ -177,7 +190,6 @@ export function createInsightsController() {
 
   function reset() {
     state.legacyTrips = [];
-    state.detailsByTripId = new Map();
     state.daycountState = { passenger: "", year: new Date().getFullYear(), monthSelection: null, viewMode: "list" };
     state.upcomingState = { passenger: "" };
     state.mapState = { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false };

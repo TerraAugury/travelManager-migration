@@ -50,12 +50,7 @@
         </div>
       </div>
     </header>
-    <div class="screen-tabs desktop-tabs">
-      <button class="tab-btn active" data-screen="trips">Trips</button>
-      <button class="tab-btn" data-screen="daycount">Days by Country</button>
-      <button class="tab-btn" data-screen="upcoming">Upcoming Flights</button>
-      <button class="tab-btn" data-screen="map">Map</button>
-    </div>
+    <div class="screen-tabs desktop-tabs"><button class="tab-btn active" data-screen="trips">Trips</button><button class="tab-btn" data-screen="daycount">Days by Country</button><button class="tab-btn" data-screen="upcoming">Upcoming Flights</button><button class="tab-btn" data-screen="today" type="button">Today</button><button class="tab-btn" data-screen="map">Map</button></div>
     <div class="screen-container">
       <main id="screen-trips" class="screen active-screen layout-columns">
         <div class="card-trip-container">
@@ -108,6 +103,10 @@
           <div id="upcoming-list" class="insight-list"></div>
         </div>
       </section>
+      <div id="screen-today" class="screen">
+        <div id="today-empty" class="empty-state hidden"></div>
+        <div id="today-flights" class="hidden"></div>
+      </div>
       <section id="screen-map" class="screen">
         <div class="card card-daycount">
           <div class="card-title">Map</div>
@@ -128,12 +127,7 @@
       </section>
     </div>
   </div>
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-screen="trips"><span class="nav-icon">✈︎</span><span class="nav-label">Trips</span></button>
-    <button class="nav-btn" data-screen="daycount"><span class="nav-icon">📅</span><span class="nav-label">Days</span></button>
-    <button class="nav-btn" data-screen="upcoming"><span class="nav-icon">🔜</span><span class="nav-label">Upcoming</span></button>
-    <button class="nav-btn" data-screen="map"><span class="nav-icon">🗺</span><span class="nav-label">Map</span></button>
-  </nav>
+  <nav class="bottom-nav"><button class="nav-btn active" data-screen="trips"><span class="nav-icon">✈︎</span><span class="nav-label">Trips</span></button><button class="nav-btn" data-screen="daycount"><span class="nav-icon">📅</span><span class="nav-label">Days</span></button><button class="nav-btn" data-screen="upcoming"><span class="nav-icon">🔜</span><span class="nav-label">Upcoming</span></button><button class="nav-btn" data-screen="today" type="button"><span class="nav-icon">📍</span><span class="nav-label">Today</span></button><button class="nav-btn" data-screen="map"><span class="nav-icon">🗺</span><span class="nav-label">Map</span></button></nav>
 </div>
 <div id="flight-overlay" class="overlay hidden" aria-hidden="true">
   <div class="overlay-backdrop"></div>

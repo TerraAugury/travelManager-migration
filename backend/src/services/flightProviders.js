@@ -15,6 +15,7 @@ export async function lookupAviationStack(fn, key) {
   if (!f) throw { status: 404, message: `No flight found for ${fn}.` };
   return {
     flight_number: f.flight?.iata || fn,
+    status: f.flight_status || null,
     airline: f.airline?.name || null,
     departure_airport_name: f.departure?.airport || null,
     departure_airport_code: f.departure?.iata || null,
@@ -40,6 +41,7 @@ export async function lookupAeroDataBox(fn, date, key) {
   if (!f) throw { status: 404, message: `No flight found for ${fn}.` };
   return {
     flight_number: f.number || fn,
+    status: f.status || null,
     airline: f.airline?.name || null,
     departure_airport_name: f.departure?.airport?.name || null,
     departure_airport_code: f.departure?.airport?.iata || null,

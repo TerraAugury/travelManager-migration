@@ -10,6 +10,7 @@ test("lookupAviationStack returns normalized result on first ok response", async
       json: async () => ({
         data: [{
           flight: { iata: "BA123" },
+          flight_status: "active",
           airline: { name: "British Airways" },
           departure: { airport: "London Heathrow", iata: "LHR", scheduled: "2026-03-05T10:00:00.000Z" },
           arrival: { airport: "New York JFK", iata: "JFK", scheduled: "2026-03-05T18:00:00.000Z" }
@@ -18,6 +19,7 @@ test("lookupAviationStack returns normalized result on first ok response", async
     });
     const result = await lookupAviationStack("BA123", "testkey");
     assert.equal(result.flight_number, "BA123");
+    assert.equal(result.status, "active");
     assert.equal(result.airline, "British Airways");
     assert.equal(result.departure_airport_code, "LHR");
     assert.equal(result.departure_airport_name, "London Heathrow");
@@ -72,6 +74,7 @@ test("lookupAeroDataBox returns normalized result", async () => {
       ok: true,
       json: async () => ([{
         number: "EK202",
+        status: "Landed",
         airline: { name: "Emirates" },
         departure: { airport: { name: "Dubai Intl", iata: "DXB" }, scheduledTime: { utc: "2026-03-05T02:00:00Z" } },
         arrival: { airport: { name: "London Heathrow", iata: "LHR" }, scheduledTime: { utc: "2026-03-05T06:15:00Z" } }
@@ -79,6 +82,7 @@ test("lookupAeroDataBox returns normalized result", async () => {
     });
     const result = await lookupAeroDataBox("EK202", "2026-03-05", "testkey");
     assert.equal(result.flight_number, "EK202");
+    assert.equal(result.status, "Landed");
     assert.equal(result.airline, "Emirates");
     assert.equal(result.departure_airport_code, "DXB");
     assert.equal(result.departure_airport_name, "Dubai Intl");

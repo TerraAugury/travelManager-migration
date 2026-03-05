@@ -7,7 +7,11 @@ import {
   toTrimmedString
 } from "../http/validation.js";
 import { sendError } from "../http/responses.js";
+import { checkRateLimit } from "../security/rateLimiter.js";
 import { validateIataCode, validatePassengerName } from "../validation.js";
+
+const LIVE_LOOKUP_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const LIVE_LOOKUP_RATE_LIMIT_MAX_REQUESTS = 1;
 
 function parseFlightBody(body) {
   const flightNumber = toTrimmedString(body?.flightNumber, {
@@ -71,9 +75,27 @@ export function registerFlightRoutes(app, deps) {
       if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
       const fn = (c.req.query("fn") || "").trim().toUpperCase().replace(/\s+/g, "");
       if (!fn || !/^[A-Z0-9]{2,8}$/.test(fn)) return sendError(c, 400, "Invalid or missing flight number (fn).");
+      const isLiveRefresh = c.req.query("live") === "1";
+      if (isLiveRefresh) {
+        const limit = await checkRateLimit(
+          c.env.DB,
+          `lookup:${auth.user.id}:${fn}`,
+          LIVE_LOOKUP_RATE_LIMIT_MAX_REQUESTS,
+          LIVE_LOOKUP_RATE_LIMIT_WINDOW_MS
+        );
+        if (!limit.allowed) {
+          return c.json({
+            error: "Rate limit: flight status may only be refreshed once every 15 minutes.",
+            resetAt: limit.resetAt
+          }, 429);
+        }
+      }
       const rawDate = (c.req.query("date") || "").trim();
       if (rawDate && !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return sendError(c, 400, "date must be YYYY-MM-DD.");
-      const rawProvider = (c.req.query("provider") || "aviationstack").trim().toLowerCase();
+      const rawProvider = (c.req.query("provider") || (isLiveRefresh ? "aerodatabox" : "aviationstack")).trim().toLowerCase();
+      if (isLiveRefresh && rawProvider !== "aerodatabox") {
+        return sendError(c, 400, "live status lookup only supports aerodatabox provider.");
+      }
       if (rawProvider !== "aviationstack" && rawProvider !== "aerodatabox") {
         return sendError(c, 400, "provider must be aviationstack or aerodatabox.");
       }

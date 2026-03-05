@@ -3,6 +3,7 @@ import { registerAuthRoutes } from "./routes/auth.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerTripRoutes } from "./routes/trips.js";
 import { registerFlightRoutes } from "./routes/flights.js";
+import { registerFlightsTodayRoutes } from "./routes/flightsToday.js";
 import { registerHotelRoutes } from "./routes/hotels.js";
 import { registerPassengerRoutes } from "./routes/passengers.js";
 import { registerSyncRoutes } from "./routes/sync.js";
@@ -50,6 +51,7 @@ export function buildApp({ db: d1, env }) {
   registerAuthRoutes(app, context);
   registerTripRoutes(app, context);
   registerFlightRoutes(app, context);
+  registerFlightsTodayRoutes(app, context);
   registerHotelRoutes(app, context);
   registerPassengerRoutes(app, context);
   registerSyncRoutes(app, context);

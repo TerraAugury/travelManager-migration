@@ -17,7 +17,11 @@ async function request(path, options = {}, token = null) {
   const body = text ? JSON.parse(text) : null;
   if (!response.ok) {
     const message = body?.error || `HTTP ${response.status}`;
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    error.body = body;
+    error.resetAt = Number(body?.resetAt || 0) || null;
+    throw error;
   }
   return body;
 }
@@ -111,11 +115,20 @@ export async function listPassengers(token, tripId) {
   return payload?.items || [];
 }
 
-export async function lookupFlight(token, flightNumber, provider, date) {
+export async function lookupFlight(token, flightNumber, provider, date, live = false) {
   const params = new URLSearchParams({ fn: flightNumber });
   if (provider && provider !== "aviationstack") params.set("provider", provider);
   if (date) params.set("date", date);
+  if (live === true) params.set("live", "1");
   return request(`/flights/lookup?${params.toString()}`, {}, token);
+}
+
+export async function listFlightsToday(token) {
+  const payload = await request("/flights/today", {}, token);
+  return {
+    date: payload?.date || "",
+    flights: Array.isArray(payload?.flights) ? payload.flights : []
+  };
 }
 
 export async function exportLegacyTrips(token) {
