@@ -9,7 +9,7 @@
     "migrate:local": "wrangler d1 migrations apply travel-manager --local",
     "migrate:remote": "wrangler d1 migrations apply travel-manager --remote",
     "seed:admin": "node src/cli/seed-admin.js",
-    "lint": "node --check src/app.js && node --check src/worker.js && node --check src/db.js && node --check src/auth/requestUser.js && node --check src/http/responses.js && node --check src/http/validation.js && node --check src/security/passwords.js && node --check src/security/tokens.js && node --check src/security/rateLimiter.js && node --check src/services/legacyTripsExport.js && node --check src/services/legacyTripsImport.js && node --check src/repositories/*.js && node --check src/routes/*.js && node --check src/cli/*.js && node --check test/*.test.js",
+    "lint": "node --check src/app.js && node --check src/worker.js && node --check src/db.js && node --check src/auth/requestUser.js && node --check src/http/responses.js && node --check src/http/validation.js && node --check src/security/passwords.js && node --check src/security/tokens.js && node --check src/security/rateLimiter.js && node --check src/services/legacyTripsExport.js && node --check src/services/legacyTripsImport.js && node --check src/services/flightProviders.js && node --check src/repositories/*.js && node --check src/routes/*.js && node --check src/cli/*.js && node --check test/*.test.js",
     "typecheck": "node -e \"console.log('No TypeScript files in backend; typecheck skipped.')\"",
     "test": "node --test",
     "build": "npm run lint && npm run test"

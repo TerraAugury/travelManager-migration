@@ -1,4 +1,4 @@
-import { TOKEN_STORAGE_KEY } from "./config.js";
+import { TOKEN_STORAGE_KEY, FLIGHT_PROVIDER_STORAGE_KEY } from "./config.js";
 
 const state = {
   token: null,
@@ -7,8 +7,18 @@ const state = {
   selectedTripId: null,
   flights: [],
   hotels: [],
-  passengers: []
+  passengers: [],
+  flightProvider: "aviationstack"
 };
+
+function getLocalStorage() {
+  try {
+    if (typeof window === "undefined") return null;
+    return window.localStorage || null;
+  } catch {
+    return null;
+  }
+}
 
 function getSessionStorage() {
   try {
@@ -67,4 +77,20 @@ export function setHotels(hotels) {
 
 export function setPassengers(passengers) {
   state.passengers = Array.isArray(passengers) ? passengers : [];
+}
+
+export function loadFlightProvider() {
+  const raw = getLocalStorage()?.getItem(FLIGHT_PROVIDER_STORAGE_KEY) || "";
+  state.flightProvider = raw === "aerodatabox" ? "aerodatabox" : "aviationstack";
+  return state.flightProvider;
+}
+
+export function setFlightProvider(provider) {
+  const value = provider === "aerodatabox" ? "aerodatabox" : "aviationstack";
+  state.flightProvider = value;
+  getLocalStorage()?.setItem(FLIGHT_PROVIDER_STORAGE_KEY, value);
+}
+
+export function getFlightProvider() {
+  return state.flightProvider;
 }

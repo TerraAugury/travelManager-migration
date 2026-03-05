@@ -111,8 +111,11 @@ export async function listPassengers(token, tripId) {
   return payload?.items || [];
 }
 
-export async function lookupFlight(token, flightNumber) {
-  return request(`/flights/lookup?fn=${encodeURIComponent(flightNumber)}`, {}, token);
+export async function lookupFlight(token, flightNumber, provider, date) {
+  const params = new URLSearchParams({ fn: flightNumber });
+  if (provider && provider !== "aviationstack") params.set("provider", provider);
+  if (date) params.set("date", date);
+  return request(`/flights/lookup?${params.toString()}`, {}, token);
 }
 
 export async function exportLegacyTrips(token) {

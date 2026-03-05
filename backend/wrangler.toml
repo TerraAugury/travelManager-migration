@@ -12,3 +12,7 @@ database_id = "36e70ba2-0aab-43ef-bc68-985d0977941f"
 # Optional: AviationStack flight lookup (GET /flights/lookup?fn=XX123)
 # Set with: wrangler secret put AVIATIONSTACK_API_KEY
 # Leave unset to disable the lookup feature.
+
+# Optional: AeroDataBox flight lookup via RapidAPI (GET /flights/lookup?fn=XX123&provider=aerodatabox)
+# Set with: wrangler secret put AERODATABOX_API_KEY
+# Leave unset to disable AeroDataBox lookup.

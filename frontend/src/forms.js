@@ -136,10 +136,12 @@ export function bindFlightLookup(lookupFn) {
   btn.addEventListener("click", async () => {
     const fn = (document.getElementById("flight-number")?.value || "").trim();
     if (!fn) return;
+    const rawDepTime = document.getElementById("flight-dep-time")?.value || "";
+    const date = rawDepTime.length >= 10 ? rawDepTime.slice(0, 10) : null;
     const status = document.getElementById("flight-lookup-status");
     btn.disabled = true; btn.textContent = "…";
     try {
-      fillFlightForm(await lookupFn(fn));
+      fillFlightForm(await lookupFn(fn, date));
       if (status) status.textContent = "✓ Details auto-filled";
     } catch (e) {
       if (status) status.textContent = `⚠ ${e.message}`;
