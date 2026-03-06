@@ -1,4 +1,4 @@
-const CACHE = "tm-v22";
+const CACHE = "tm-v21";
 const STATIC = [
   "/",
   "/styles.css",
@@ -6,6 +6,7 @@ const STATIC = [
   "/tripTiles.css",
   "/overlays.css",
   "/insights.css",
+  "/calendar.css",
   "/map.css",
   "/manifest.json",
   "/icons/icon.svg",
@@ -19,6 +20,9 @@ const STATIC = [
   "/src/insights.js",
   "/src/insightsModules/airportCountries.js",
   "/src/insightsModules/airportCoords.js",
+  "/src/insightsModules/countryFlags.js",
+  "/src/insightsModules/daycountData.js",
+  "/src/insightsModules/daycountCalendar.js",
   "/src/insightsModules/daycountScreen.js",
   "/src/insightsModules/flightUtils.js",
   "/src/insightsModules/mapGeo.js",

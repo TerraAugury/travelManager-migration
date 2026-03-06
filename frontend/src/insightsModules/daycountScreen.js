@@ -1,4 +1,5 @@
-import { airportToCountry } from "./airportCountries.js";
+import { getPassengerFlights, startOfUtcDay } from "./daycountData.js";
+import { renderCalendarView } from "./daycountCalendar.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -27,39 +28,6 @@ function getPassengers(trips) {
     }
   }
   return Array.from(names).sort((a, b) => a.localeCompare(b));
-}
-
-function hasPassenger(entry, passenger) {
-  const names = Array.isArray(entry?.paxNames) ? entry.paxNames : [];
-  return names.some((name) => String(name || "").trim() === passenger);
-}
-
-function mapIataToCountry(code) {
-  const iata = String(code || "").trim().toUpperCase();
-  return airportToCountry[iata] || "Other";
-}
-
-function startOfUtcDay(date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
-
-function getPassengerFlights(trips, passenger) {
-  const flights = [];
-  for (const trip of Array.isArray(trips) ? trips : []) {
-    for (const record of Array.isArray(trip?.records) ? trip.records : []) {
-      if (!hasPassenger(record, passenger)) continue;
-      const dateRaw = record?.route?.departure?.scheduled || record?.flightDate || record?.createdAt;
-      const date = new Date(dateRaw || "");
-      if (Number.isNaN(date.getTime())) continue;
-      flights.push({
-        date,
-        departureCountry: mapIataToCountry(record?.route?.departure?.iata),
-        arrivalCountry: mapIataToCountry(record?.route?.arrival?.iata)
-      });
-    }
-  }
-  flights.sort((a, b) => a.date.getTime() - b.date.getTime());
-  return flights;
 }
 
 function addStay(out, year, country, start, end) {
@@ -100,6 +68,48 @@ export function buildMonthSummary(trips, passenger) {
       cursor = new Date(depDay);
     }
     addStay(out, year, currentCountry, cursor, yearEnd);
+  }
+  return out;
+}
+
+function formatUtcDayKey(date) {
+  return startOfUtcDay(date).toISOString().slice(0, 10);
+}
+
+function addDailyCountry(out, country, start, end) {
+  if (!(start < end)) return;
+  const key = country || "Other";
+  for (let cursor = new Date(start); cursor < end; cursor = new Date(cursor.getTime() + 86400000)) {
+    out[formatUtcDayKey(cursor)] = key;
+  }
+}
+
+export function buildDailyCountryMap(trips, passenger) {
+  const flights = getPassengerFlights(trips, passenger);
+  if (!flights.length) return {};
+  const years = Array.from(new Set(flights.map((f) => f.date.getUTCFullYear()))).sort((a, b) => a - b);
+  const out = {};
+  for (const year of years) {
+    const yearStart = new Date(Date.UTC(year, 0, 1));
+    const yearEnd = new Date(Date.UTC(year + 1, 0, 1));
+    const byDay = {};
+    let currentCountry = flights[0].departureCountry || "Other";
+    for (const flight of flights) {
+      const depDay = startOfUtcDay(flight.date);
+      if (depDay < yearStart) currentCountry = flight.arrivalCountry || "Other";
+      else break;
+    }
+    let cursor = new Date(yearStart);
+    for (const flight of flights) {
+      const depDay = startOfUtcDay(flight.date);
+      if (depDay < yearStart) continue;
+      if (depDay >= yearEnd) break;
+      addDailyCountry(byDay, currentCountry, cursor, depDay);
+      currentCountry = flight.arrivalCountry || "Other";
+      cursor = new Date(depDay);
+    }
+    addDailyCountry(byDay, currentCountry, cursor, yearEnd);
+    out[year] = byDay;
   }
   return out;
 }
@@ -154,6 +164,12 @@ export function renderDaycountView({ trips, daycountState, els }) {
     daycountState.monthSelection = null;
   }
   renderYearChips(yearList, years, daycountState.year);
+  if (daycountState.viewMode === "calendar") {
+    const dailyMap = buildDailyCountryMap(trips, daycountState.passenger);
+    emptyEl.classList.add("hidden");
+    resultsEl.innerHTML = renderCalendarView(daycountState.year, dailyMap[daycountState.year] || {}, esc);
+    return;
+  }
 
   const byCountry = summary[daycountState.year] || {};
   const countries = Object.keys(byCountry).sort((a, b) => a.localeCompare(b));

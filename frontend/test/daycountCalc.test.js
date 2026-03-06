@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildMonthSummary } from "../src/insightsModules/daycountScreen.js";
+import { buildDailyCountryMap, buildMonthSummary } from "../src/insightsModules/daycountScreen.js";
 
 function flight({ date, from, to, pax = "Alice" }) {
   return {
@@ -82,4 +82,26 @@ test("total days per year are 365 or 366", () => {
   const summary = buildMonthSummary(trips, "Alice");
   assert.equal(getYearTotal(summary, 2024), 366);
   assert.equal(getYearTotal(summary, 2025), 365);
+});
+
+test("buildDailyCountryMap maps each day and switches country on departure day", () => {
+  const trips = tripsFromRecords([
+    flight({ date: "2025-01-10", from: "JFK", to: "CDG" })
+  ]);
+  const map = buildDailyCountryMap(trips, "Alice");
+  assert.equal(map[2025]["2025-01-09"], "United States");
+  assert.equal(map[2025]["2025-01-10"], "France");
+  assert.equal(map[2025]["2025-12-31"], "France");
+  assert.equal(Object.keys(map[2025]).length, 365);
+});
+
+test("buildDailyCountryMap carries prior-year arrival country into Jan 1", () => {
+  const trips = tripsFromRecords([
+    flight({ date: "2024-12-15", from: "JFK", to: "CDG" }),
+    flight({ date: "2025-03-10", from: "CDG", to: "FRA" })
+  ]);
+  const map = buildDailyCountryMap(trips, "Alice");
+  assert.equal(map[2025]["2025-01-01"], "France");
+  assert.equal(map[2025]["2025-03-09"], "France");
+  assert.equal(map[2025]["2025-03-10"], "Germany");
 });
