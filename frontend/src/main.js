@@ -1,18 +1,16 @@
 import * as api from "./api.js";
 import { bindFlightLookup, fillFlightForm, fillHotelForm, fillTripEditor, readCreateFlightBody, readCreateHotelBody, readCreateTripBody, readUpdateTripBody } from "./forms.js";
 import { createInsightsController } from "./insights.js";
+import { formatLegacyImportError, formatLegacyImportSuccess, importLegacyFromFile } from "./legacyImportFeedback.js";
 import { render } from "./render.js";
 import { bindUI, closeOverlay, setOverlayEditMode, syncFlightProviderSelect } from "./ui.js";
 import { getState, getFlightProvider, loadFlightProvider, loadToken, setFlights, setHotels, setPassengers, setSelectedTripId, setToken, setTrips, setUser } from "./state.js";
-
 let editingFlightId = null;
 let editingHotelId  = null;
 const insights = createInsightsController();
-
 function getActiveTrip() { return getState().trips.find((t) => t.id === getState().selectedTripId) || null; }
 function clearEventEditors() { editingFlightId = null; editingHotelId = null; fillFlightForm(null); fillHotelForm(null); }
 function syncTripEditor() { fillTripEditor(getActiveTrip()); }
-
 async function refreshTrips() {
   const trips = await api.listTrips(getState().token);
   setTrips(trips);
@@ -38,7 +36,6 @@ async function fullRefresh() {
   await insights.refresh(getState().token, getState().trips);
   syncTripEditor();
 }
-
 function bindForms(actions) {
   document.getElementById("login-form").addEventListener("submit", actions.onLogin);
   document.getElementById("logout-btn").addEventListener("click",  actions.onLogout);
@@ -51,7 +48,6 @@ function bindForms(actions) {
   document.getElementById("import-file").addEventListener("change", actions.onImport);
   bindFlightLookup((fn, date) => api.lookupFlight(getState().token, fn, getFlightProvider(), date));
 }
-
 async function bootstrap() {
   loadToken(); loadFlightProvider(); syncFlightProviderSelect();
   const actions = {
@@ -173,21 +169,24 @@ async function bootstrap() {
     },
     onImport: async (event) => {
       const file = event.target.files?.[0];
-      if (!file) return;
-      if (file.size > 5 * 1024 * 1024) throw new Error("Import file too large (max 5 MB).");
-      await api.importLegacyTrips(getState().token, JSON.parse(await file.text()));
-      event.target.value = "";
-      clearEventEditors();
-      await fullRefresh();
-      render(actions);
+      try {
+        const summary = await importLegacyFromFile(file, getState().token, api.importLegacyTrips);
+        if (!summary) return;
+        clearEventEditors();
+        await fullRefresh();
+        render(actions);
+        window.alert(formatLegacyImportSuccess(summary));
+      } catch (error) {
+        window.alert(formatLegacyImportError(error));
+      } finally {
+        event.target.value = "";
+      }
     }
   };
-
   bindForms(actions);
   bindUI(actions);
   insights.bind();
   render(actions);
-
   if (!getState().token) return;
   try {
     setUser(await api.me(getState().token));

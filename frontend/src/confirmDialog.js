@@ -9,6 +9,16 @@ let previousActiveElement = null;
 
 function handleClose(accepted) {
   if (!dialogRoot) return;
+  const canRestoreFocus = previousActiveElement instanceof HTMLElement
+    && document.contains(previousActiveElement)
+    && !dialogRoot.contains(previousActiveElement);
+  if (document.activeElement instanceof HTMLElement && dialogRoot.contains(document.activeElement)) {
+    if (canRestoreFocus) previousActiveElement.focus();
+    else {
+      if (!document.body.hasAttribute("tabindex")) document.body.setAttribute("tabindex", "-1");
+      document.body.focus();
+    }
+  }
   if (document.activeElement instanceof HTMLElement && dialogRoot.contains(document.activeElement)) {
     document.activeElement.blur();
   }
@@ -17,9 +27,6 @@ function handleClose(accepted) {
   dialogRoot.setAttribute("aria-hidden", "true");
   document.body.style.overflow = previousBodyOverflow;
   document.removeEventListener("keydown", onKeydown);
-  if (previousActiveElement instanceof HTMLElement && document.contains(previousActiveElement)) {
-    previousActiveElement.focus();
-  }
   previousActiveElement = null;
   const resolve = pendingResolve;
   pendingResolve = null;

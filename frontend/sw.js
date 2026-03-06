@@ -1,4 +1,4 @@
-const CACHE = "tm-v20";
+const CACHE = "tm-v22";
 const STATIC = [
   "/",
   "/styles.css",
@@ -28,6 +28,7 @@ const STATIC = [
   "/src/insightsModules/todayScreen.js",
   "/src/insightsModules/upcomingScreen.js",
   "/src/insightsModules/tripStats.js",
+  "/src/legacyImportFeedback.js",
   "/src/legacyAdapter.js",
   "/src/render.js",
   "/src/state.js",

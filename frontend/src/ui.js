@@ -36,14 +36,24 @@ function setFlightDateInputsEditable(editing) {
 export function closeOverlay(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
+  const returnFocus = overlayReturnFocus.get(id);
+  const canRestoreFocus = returnFocus instanceof HTMLElement
+    && document.contains(returnFocus)
+    && !overlay.contains(returnFocus);
+  if (document.activeElement instanceof HTMLElement && overlay.contains(document.activeElement)) {
+    if (canRestoreFocus) returnFocus.focus();
+    else {
+      if (!document.body.hasAttribute("tabindex")) document.body.setAttribute("tabindex", "-1");
+      document.body.focus();
+    }
+  }
   if (document.activeElement instanceof HTMLElement && overlay.contains(document.activeElement)) {
     document.activeElement.blur();
   }
   overlay.classList.add("hidden");
   overlay.setAttribute("aria-hidden", "true");
   overlay.inert = true;
-  const returnFocus = overlayReturnFocus.get(id);
-  if (returnFocus instanceof HTMLElement && document.contains(returnFocus)) returnFocus.focus();
+  overlayReturnFocus.delete(id);
   document.body.style.overflow = "";
 }
 
