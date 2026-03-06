@@ -23,9 +23,13 @@ test("create flight checks trip ownership then inserts", async () => {
     departureAirportName: "Frankfurt",
     departureAirportCode: "FRA",
     departureScheduled: "2026-03-01T08:00:00.000Z",
+    departureScheduledLocal: "2026-03-01T09:00",
+    departureTimezone: "Europe/Berlin",
     arrivalAirportName: "New York JFK",
     arrivalAirportCode: "JFK",
-    arrivalScheduled: "2026-03-01T12:00:00.000Z"
+    arrivalScheduled: "2026-03-01T12:00:00.000Z",
+    arrivalScheduledLocal: "2026-03-01T07:00",
+    arrivalTimezone: "America/New_York"
   });
 
   assert.equal(row.id, "flight-1");
@@ -37,6 +41,10 @@ test("create flight checks trip ownership then inserts", async () => {
   // params: [id(uuid), tripId, ownerUserId, ...]
   assert.equal(calls[1].params[1], "trip-1");
   assert.equal(calls[1].params[2], "user-1");
+  assert.equal(calls[1].params[9], "2026-03-01T09:00");
+  assert.equal(calls[1].params[10], "Europe/Berlin");
+  assert.equal(calls[1].params[14], "2026-03-01T07:00");
+  assert.equal(calls[1].params[15], "America/New_York");
 });
 
 test("remove flight deletes only for owner", async () => {
@@ -76,15 +84,23 @@ test("update flight uses ownership-guarded subquery", async () => {
     departureAirportName: "LHR",
     departureAirportCode: "LHR",
     departureScheduled: "2026-03-01T12:00:00.000Z",
+    departureScheduledLocal: "2026-03-01T12:00",
+    departureTimezone: "Europe/London",
     arrivalAirportName: "JFK",
     arrivalAirportCode: "JFK",
-    arrivalScheduled: "2026-03-01T16:00:00.000Z"
+    arrivalScheduled: "2026-03-01T16:00:00.000Z",
+    arrivalScheduledLocal: "2026-03-01T11:00",
+    arrivalTimezone: "America/New_York"
   });
 
   assert.equal(row.id, "f-updated");
   assert.match(calls[0].text, /UPDATE flight_records/);
   assert.match(calls[0].text, /SELECT id FROM trips/);
   assert.deepEqual(calls[0].params.slice(0, 2), ["f1", "u1"]);
+  assert.equal(calls[0].params[8], "2026-03-01T12:00");
+  assert.equal(calls[0].params[9], "Europe/London");
+  assert.equal(calls[0].params[13], "2026-03-01T11:00");
+  assert.equal(calls[0].params[14], "America/New_York");
 });
 
 test("listByOwner filters by trip owner", async () => {

@@ -1,3 +1,9 @@
+function toLocalDateTime(value) {
+  const raw = String(value || "").trim();
+  const match = /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/.exec(raw);
+  return match ? `${match[1]}T${match[2]}` : null;
+}
+
 export async function lookupAviationStack(fn, key) {
   const baseUrl = `https://api.aviationstack.com/v1/flights?flight_iata=${encodeURIComponent(fn)}`;
   let res = await fetch(baseUrl, {
@@ -13,16 +19,22 @@ export async function lookupAviationStack(fn, key) {
   const json = await res.json();
   const f = json?.data?.[0];
   if (!f) throw { status: 404, message: `No flight found for ${fn}.` };
+  const departureScheduled = f.departure?.scheduled || null;
+  const arrivalScheduled = f.arrival?.scheduled || null;
   return {
     flight_number: f.flight?.iata || fn,
     status: f.flight_status || null,
     airline: f.airline?.name || null,
     departure_airport_name: f.departure?.airport || null,
     departure_airport_code: f.departure?.iata || null,
+    departure_scheduled_local: toLocalDateTime(f.departure?.scheduled_local) || toLocalDateTime(departureScheduled),
+    departure_timezone: f.departure?.timezone || null,
     arrival_airport_name: f.arrival?.airport || null,
     arrival_airport_code: f.arrival?.iata || null,
-    departure_scheduled: f.departure?.scheduled || null,
-    arrival_scheduled: f.arrival?.scheduled || null
+    arrival_scheduled_local: toLocalDateTime(f.arrival?.scheduled_local) || toLocalDateTime(arrivalScheduled),
+    arrival_timezone: f.arrival?.timezone || null,
+    departure_scheduled: departureScheduled,
+    arrival_scheduled: arrivalScheduled
   };
 }
 
@@ -63,8 +75,12 @@ export async function lookupAeroDataBox(fn, date, key) {
     airline: f.airline?.name || null,
     departure_airport_name: departure?.airport?.name || null,
     departure_airport_code: departure?.airport?.iata || null,
+    departure_scheduled_local: toLocalDateTime(departure?.scheduledTime?.local) || toLocalDateTime(departureScheduled),
+    departure_timezone: pick(departure?.airport?.timeZone, departure?.airport?.timezone),
     arrival_airport_name: arrival?.airport?.name || null,
     arrival_airport_code: arrival?.airport?.iata || null,
+    arrival_scheduled_local: toLocalDateTime(arrival?.scheduledTime?.local) || toLocalDateTime(arrivalScheduled),
+    arrival_timezone: pick(arrival?.airport?.timeZone, arrival?.airport?.timezone),
     departure_scheduled: departureScheduled,
     arrival_scheduled: arrivalScheduled,
     scheduledTime: pick(departureScheduled, arrivalScheduled),
@@ -124,8 +140,12 @@ export async function lookupFlightera(fn, date, key) {
     airline: pick(f.airline_name),
     departure_airport_name: pick(f.departure_name),
     departure_airport_code: pick(f.departure_iata),
+    departure_scheduled_local: toLocalDateTime(f.scheduled_departure_local) || toLocalDateTime(departureScheduled),
+    departure_timezone: pick(f.departure_timezone, f.departure_tz),
     arrival_airport_name: pick(f.arrival_name),
     arrival_airport_code: pick(f.arrival_iata),
+    arrival_scheduled_local: toLocalDateTime(f.scheduled_arrival_local) || toLocalDateTime(arrivalScheduled),
+    arrival_timezone: pick(f.arrival_timezone, f.arrival_tz),
     departure_scheduled: departureScheduled,
     arrival_scheduled: arrivalScheduled,
     scheduledTime: pick(departureScheduled, arrivalScheduled),

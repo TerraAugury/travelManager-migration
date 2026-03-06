@@ -4,8 +4,10 @@ import {
   isUuid,
   toOptionalDate,
   toOptionalDateTime,
+  toOptionalLocalDateTime,
   toPassengerNames,
   toPositiveInt,
+  toOptionalTimeZone,
   toTrimmedString
 } from "../src/http/validation.js";
 import { validateIataCode, validatePassengerName } from "../src/validation.js";
@@ -26,6 +28,10 @@ test("date and datetime parsers validate format", () => {
   assert.match(toOptionalDate("02/28/2026", { field: "startDate" }).error, /YYYY-MM-DD/);
   assert.ok(toOptionalDateTime("2026-02-28T12:15:00Z", { field: "at" }).value.endsWith("Z"));
   assert.match(toOptionalDateTime("not-a-date", { field: "at" }).error, /valid datetime/);
+  assert.equal(toOptionalLocalDateTime("2026-02-28T12:15", { field: "local" }).value, "2026-02-28T12:15");
+  assert.match(toOptionalLocalDateTime("2026-02-28T12:15:00Z", { field: "local" }).error, /YYYY-MM-DDTHH:mm/);
+  assert.equal(toOptionalTimeZone("Europe/Luxembourg", { field: "tz" }).value, "Europe/Luxembourg");
+  assert.match(toOptionalTimeZone("Europe Lux", { field: "tz" }).error, /timezone identifier/);
 });
 
 test("toPassengerNames normalizes and deduplicates", () => {

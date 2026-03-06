@@ -33,13 +33,19 @@ test("lookupFlightera returns normalized shape", async () => {
     const result = await lookupFlightera("BA123", "2026-03-05", "testkey");
     const expectedKeys = [
       "flight_number", "status", "airline", "departure_airport_name", "departure_airport_code",
-      "arrival_airport_name", "arrival_airport_code", "departure_scheduled", "arrival_scheduled",
+      "departure_scheduled_local", "departure_timezone",
+      "arrival_airport_name", "arrival_airport_code", "arrival_scheduled_local", "arrival_timezone",
+      "departure_scheduled", "arrival_scheduled",
       "scheduledTime", "revisedTime", "predictedTime", "runwayTime", "terminal", "checkInDesk",
       "gate", "baggageBelt", "rateLimitRequestsRemaining", "rateLimitRequestsLimit", "rateLimitRequestsReset"
     ];
     assert.deepEqual(Object.keys(result).sort(), expectedKeys.sort());
     assert.equal(result.flight_number, "BA123");
     assert.equal(result.status, "EnRoute");
+    assert.equal(result.departure_scheduled_local, "2026-03-05T10:00");
+    assert.equal(result.arrival_scheduled_local, "2026-03-05T14:00");
+    assert.equal(result.departure_timezone, null);
+    assert.equal(result.arrival_timezone, null);
     assert.equal(result.scheduledTime, "2026-03-05T10:00:00+00:00");
     assert.equal(result.predictedTime, "2026-03-05T10:20:00+00:00");
   } finally {

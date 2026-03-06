@@ -1,11 +1,7 @@
-function toDate(value) {
-  const d = new Date(value || "");
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function toIsoDay(date) {
-  if (!(date instanceof Date)) return "";
-  return date.toISOString().slice(0, 10);
+function toLocalSortKey(value) {
+  const raw = String(value || "").trim();
+  const m = /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/.exec(raw);
+  return m ? `${m[1]}T${m[2]}` : "";
 }
 
 function uniqNames(input) {
@@ -27,13 +23,13 @@ export function formatLayover(start, end) {
 }
 
 function normalizeFlightRow(flight) {
-  const depAt = toDate(flight?.departure_scheduled);
+  const depAt = toLocalSortKey(flight?.departure_scheduled_local || flight?.departure_scheduled);
   if (!depAt) return null;
   return {
     ...flight,
     depAt,
-    arrAt: toDate(flight?.arrival_scheduled),
-    depDay: toIsoDay(depAt),
+    arrAt: toLocalSortKey(flight?.arrival_scheduled_local || flight?.arrival_scheduled),
+    depDay: depAt.slice(0, 10),
     pnr: String(flight?.pnr || "").trim(),
     pax: uniqNames(flight?.passenger_names)
   };
@@ -43,7 +39,7 @@ export function buildFlightDisplayBuckets(flights) {
   const rows = (Array.isArray(flights) ? flights : [])
     .map(normalizeFlightRow)
     .filter(Boolean)
-    .sort((a, b) => a.depAt.getTime() - b.depAt.getTime());
+    .sort((a, b) => a.depAt.localeCompare(b.depAt));
 
   const grouped = new Map();
   const singles = [];
@@ -59,7 +55,7 @@ export function buildFlightDisplayBuckets(flights) {
 
   const out = [...singles];
   for (const group of grouped.values()) {
-    group.sort((a, b) => a.depAt.getTime() - b.depAt.getTime());
+    group.sort((a, b) => a.depAt.localeCompare(b.depAt));
     const commonPax = intersectNames(group);
     if (group.length > 1 && commonPax.length > 0) {
       out.push({
@@ -75,6 +71,6 @@ export function buildFlightDisplayBuckets(flights) {
       }
     }
   }
-  out.sort((a, b) => a.depAt.getTime() - b.depAt.getTime());
+  out.sort((a, b) => a.depAt.localeCompare(b.depAt));
   return out;
 }

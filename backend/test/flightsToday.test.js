@@ -81,7 +81,7 @@ test("GET /api/flights/today returns today's flights for authenticated user", as
     passengerNames: ["Alice Smith", "Bob Jones"]
   });
   assert.equal(calls[0].params[0], "5f8ce478-0fb5-4f84-9df4-c7bc844f039f");
-  assert.match(calls[0].text, /LEFT JOIN trip_passengers/i);
+  assert.match(calls[0].text, /LEFT JOIN flight_passengers/i);
   assert.match(calls[0].text, /DATE\(fr\.departure_scheduled\) = DATE\('now'\)/i);
   assert.match(calls[0].text, /DATE\(fr\.arrival_scheduled\) = DATE\('now'\)/i);
 });

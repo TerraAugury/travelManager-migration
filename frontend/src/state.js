@@ -8,6 +8,7 @@ const state = {
   flights: [],
   hotels: [],
   passengers: [],
+  showPastTrips: false,
   flightProvider: "aerodatabox"
 };
 
@@ -55,16 +56,45 @@ export function setUser(user) {
 
 export function setTrips(trips) {
   state.trips = Array.isArray(trips) ? trips : [];
-  if (state.selectedTripId && !state.trips.find((t) => t.id === state.selectedTripId)) {
-    state.selectedTripId = null;
-    state.flights = [];
-    state.hotels = [];
-    state.passengers = [];
+  if (!state.selectedTripId) return;
+  const selectedTrip = state.trips.find((trip) => trip.id === state.selectedTripId);
+  if (!selectedTrip || (!state.showPastTrips && isPastTrip(selectedTrip))) {
+    state.selectedTripId = getVisibleTrips(state.trips)[0]?.id || null;
+    if (!state.selectedTripId) {
+      state.flights = [];
+      state.hotels = [];
+      state.passengers = [];
+    }
   }
 }
 
 export function setSelectedTripId(tripId) {
-  state.selectedTripId = tripId || null;
+  const requested = tripId || null;
+  if (!requested) {
+    state.selectedTripId = null;
+    state.flights = [];
+    state.hotels = [];
+    state.passengers = [];
+    return;
+  }
+  const requestedTrip = state.trips.find((trip) => trip.id === requested);
+  if (!requestedTrip) {
+    state.selectedTripId = null;
+    state.flights = [];
+    state.hotels = [];
+    state.passengers = [];
+    return;
+  }
+  if (state.showPastTrips || !isPastTrip(requestedTrip)) {
+    state.selectedTripId = requested;
+    return;
+  }
+  state.selectedTripId = getVisibleTrips(state.trips)[0]?.id || null;
+  if (!state.selectedTripId) {
+    state.flights = [];
+    state.hotels = [];
+    state.passengers = [];
+  }
 }
 
 export function setFlights(flights) {
@@ -77,6 +107,43 @@ export function setHotels(hotels) {
 
 export function setPassengers(passengers) {
   state.passengers = Array.isArray(passengers) ? passengers : [];
+}
+
+function toIsoDay(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const direct = /^(\d{4}-\d{2}-\d{2})/.exec(raw);
+  if (direct) return direct[1];
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const year = String(d.getFullYear());
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function localTodayIso() {
+  return toIsoDay(new Date());
+}
+
+export function isPastTrip(trip, referenceDate = localTodayIso()) {
+  const lastDay = toIsoDay(trip?.end_date) || toIsoDay(trip?.start_date);
+  if (!lastDay || !referenceDate) return false;
+  return lastDay < referenceDate;
+}
+
+export function getVisibleTrips(trips = state.trips) {
+  const rows = Array.isArray(trips) ? trips : [];
+  if (state.showPastTrips) return rows;
+  return rows.filter((trip) => !isPastTrip(trip));
+}
+
+export function setShowPastTrips(showPastTrips) {
+  state.showPastTrips = !!showPastTrips;
+}
+
+export function getShowPastTrips() {
+  return state.showPastTrips;
 }
 
 export function loadFlightProvider() {

@@ -1,4 +1,4 @@
-import { getState } from "./state.js";
+import { getShowPastTrips, getState, getVisibleTrips } from "./state.js";
 import { renderAdminUsers } from "./adminUsers.js";
 import { renderTripEvents } from "./tripEventTiles.js";
 import { syncTripForms } from "./ui.js";
@@ -58,7 +58,9 @@ export function render(actions = {}) {
   }
   syncAdminMenu(state.user);
 
-  renderTripSelect(state.trips, state.selectedTripId);
+  const showPastTripsToggle = document.getElementById("show-past-trips");
+  if (showPastTripsToggle) showPastTripsToggle.checked = getShowPastTrips();
+  renderTripSelect(getVisibleTrips(state.trips), state.selectedTripId);
   syncTripForms();
 
   const hasTrip  = !!state.selectedTripId;

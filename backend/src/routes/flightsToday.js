@@ -15,7 +15,8 @@ const LIST_TODAY_FLIGHTS_SQL = `SELECT
   COALESCE(group_concat(DISTINCT p.name), '') AS passenger_names_csv
 FROM flight_records fr
 JOIN trips t ON t.id = fr.trip_id
-LEFT JOIN trip_passengers tp ON tp.trip_id = t.id
+LEFT JOIN flight_passengers fp ON fp.flight_record_id = fr.id
+LEFT JOIN trip_passengers tp ON tp.trip_id = t.id AND tp.passenger_id = fp.passenger_id
 LEFT JOIN passengers p ON p.id = tp.passenger_id
 WHERE t.owner_user_id = $1
   AND (

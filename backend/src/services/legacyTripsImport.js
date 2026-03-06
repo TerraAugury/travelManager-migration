@@ -28,6 +28,20 @@ function normalizeIso(input, fallbackDate = null) {
   return null;
 }
 
+function normalizeLocalDateTime(input, fallbackDate = null) {
+  const raw = String(input || "").trim();
+  const match = /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/.exec(raw);
+  if (match) return `${match[1]}T${match[2]}`;
+  if (fallbackDate && /^\d{4}-\d{2}-\d{2}$/.test(fallbackDate)) return `${fallbackDate}T00:00`;
+  return null;
+}
+
+function normalizeTimeZone(input) {
+  const raw = String(input || "").trim();
+  if (!raw || raw.length > 120 || !/^[A-Za-z0-9_+\-./]+$/.test(raw)) return null;
+  return raw;
+}
+
 function normalizePaxCount(value) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
@@ -75,16 +89,28 @@ export function buildLegacyTripsImportService({ pool }) {
         const route = rec?.route || {};
         const dep = route?.departure || {};
         const arr = route?.arrival || {};
+        const depScheduledRaw = dep?.scheduledLocal || dep?.scheduled_local || dep?.scheduled || null;
+        const arrScheduledRaw = arr?.scheduledLocal || arr?.scheduled_local || arr?.scheduled || null;
         const depIso = normalizeIso(dep?.scheduled, rec?.flightDate);
         const arrIso = normalizeIso(arr?.scheduled, rec?.flightDate);
+        const depLocal = normalizeLocalDateTime(
+          dep?.scheduledLocal || dep?.scheduled_local || rec?.departureScheduledLocal || rec?.departure_scheduled_local || dep?.scheduled,
+          rec?.flightDate
+        );
+        const arrLocal = normalizeLocalDateTime(
+          arr?.scheduledLocal || arr?.scheduled_local || rec?.arrivalScheduledLocal || rec?.arrival_scheduled_local || arr?.scheduled,
+          rec?.flightDate
+        );
+        const depTz = normalizeTimeZone(dep?.timezone || dep?.timeZone || dep?.tz || rec?.departureTimezone || rec?.departure_timezone);
+        const arrTz = normalizeTimeZone(arr?.timezone || arr?.timeZone || arr?.tz || rec?.arrivalTimezone || rec?.arrival_timezone);
         const flightId = crypto.randomUUID();
 
         await pool.query(
           `INSERT INTO flight_records (
              id, trip_id, created_by_user_id, flight_number, airline, pnr,
-             departure_airport_name, departure_airport_code, departure_scheduled,
-             arrival_airport_name, arrival_airport_code, arrival_scheduled
-           ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+             departure_airport_name, departure_airport_code, departure_scheduled, departure_scheduled_local, departure_timezone,
+             arrival_airport_name, arrival_airport_code, arrival_scheduled, arrival_scheduled_local, arrival_timezone
+           ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
           [
             flightId, tripId, ownerUserId,
             normText(route?.flightNumber, 24),
@@ -93,9 +119,13 @@ export function buildLegacyTripsImportService({ pool }) {
             normText(dep?.airport, 180) || null,
             normText(dep?.iata, 8) || null,
             depIso,
+            depLocal || normalizeLocalDateTime(depScheduledRaw, rec?.flightDate),
+            depTz,
             normText(arr?.airport, 180) || null,
             normText(arr?.iata, 8) || null,
-            arrIso
+            arrIso,
+            arrLocal || normalizeLocalDateTime(arrScheduledRaw, rec?.flightDate),
+            arrTz
           ]
         );
 

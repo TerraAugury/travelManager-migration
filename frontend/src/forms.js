@@ -14,16 +14,16 @@ function intValue(id, fallback = 1) {
 }
 
 function toDateTimeLocal(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const raw = String(value || "").trim();
+  const match = /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/.exec(raw);
+  return match ? `${match[1]}T${match[2]}` : "";
 }
 
 function toIsoDay(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(raw);
+  if (match) return match[1];
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return "";
   return d.toISOString().slice(0, 10);
@@ -44,8 +44,8 @@ function deriveTripRangeFromDetails() {
   let start = "";
   let end = "";
   for (const flight of Array.isArray(flights) ? flights : []) {
-    const dep = toIsoDay(flight?.departure_scheduled);
-    const arr = toIsoDay(flight?.arrival_scheduled);
+    const dep = toIsoDay(flight?.departure_scheduled_local || flight?.departure_scheduled);
+    const arr = toIsoDay(flight?.arrival_scheduled_local || flight?.arrival_scheduled);
     start = minIsoDay(start, dep || arr);
     end = maxIsoDay(end, arr || dep);
   }
@@ -67,15 +67,11 @@ export function parsePassengerNames(raw) {
 }
 
 export function readCreateTripBody() {
-  return {
-    name: textValue("trip-name")
-  };
+  return { name: textValue("trip-name") };
 }
 
 export function readUpdateTripBody() {
-  return {
-    name: textValue("trip-edit-name") || undefined
-  };
+  return { name: textValue("trip-edit-name") || undefined };
 }
 
 export function fillTripEditor(trip) {
@@ -96,23 +92,30 @@ export function fillTripEditor(trip) {
 }
 
 export function fillFlightForm(flight) {
+  const depLocal = flight?.departure_scheduled_local || flight?.departureScheduledLocal || flight?.departure_scheduled;
+  const arrLocal = flight?.arrival_scheduled_local || flight?.arrivalScheduledLocal || flight?.arrival_scheduled;
   const fields = {
     "flight-number": flight?.flight_number || "",
     "flight-airline": flight?.airline || "",
     "flight-pnr": flight?.pnr || "",
-    "flight-lookup-date": toIsoDay(flight?.departure_scheduled),
+    "flight-lookup-date": toIsoDay(depLocal),
     "flight-dep-name": flight?.departure_airport_name || "",
     "flight-dep-code": flight?.departure_airport_code || "",
     "flight-arr-name": flight?.arrival_airport_name || "",
     "flight-arr-code": flight?.arrival_airport_code || "",
-    "flight-dep-time": toDateTimeLocal(flight?.departure_scheduled),
-    "flight-arr-time": toDateTimeLocal(flight?.arrival_scheduled),
+    "flight-dep-time": toDateTimeLocal(depLocal),
+    "flight-arr-time": toDateTimeLocal(arrLocal),
     "flight-passengers": Array.isArray(flight?.passenger_names) ? flight.passenger_names.join(", ") : ""
   };
   Object.entries(fields).forEach(([id, value]) => {
     const element = document.getElementById(id);
     if (element) element.value = value;
   });
+  const form = document.getElementById("flight-form");
+  if (form) {
+    form.dataset.departureTimezone = flight?.departure_timezone || flight?.departureTimezone || "";
+    form.dataset.arrivalTimezone = flight?.arrival_timezone || flight?.arrivalTimezone || "";
+  }
 }
 
 export function fillHotelForm(hotel) {
@@ -145,7 +148,15 @@ export function bindFlightLookup(lookupFn) {
     }
     btn.disabled = true; btn.textContent = "…";
     try {
-      fillFlightForm(await lookupFn(fn, date));
+      const lookup = await lookupFn(fn, date);
+      const fallbackPassengers = parsePassengerNames(textValue("flight-passengers"));
+      fillFlightForm({
+        ...lookup,
+        pnr: lookup?.pnr || textValue("flight-pnr"),
+        passenger_names: Array.isArray(lookup?.passenger_names) && lookup.passenger_names.length
+          ? lookup.passenger_names
+          : fallbackPassengers
+      });
       if (status) status.textContent = "✓ Details auto-filled";
     } catch (e) {
       if (status) status.textContent = `⚠ ${e.message}`;
@@ -154,6 +165,7 @@ export function bindFlightLookup(lookupFn) {
 }
 
 export function readCreateFlightBody() {
+  const form = document.getElementById("flight-form");
   return {
     flightNumber: textValue("flight-number"),
     airline: textValue("flight-airline") || null,
@@ -164,6 +176,10 @@ export function readCreateFlightBody() {
     arrivalAirportCode: textValue("flight-arr-code") || null,
     departureScheduled: dateValue("flight-dep-time"),
     arrivalScheduled: dateValue("flight-arr-time"),
+    departureScheduledLocal: dateValue("flight-dep-time"),
+    arrivalScheduledLocal: dateValue("flight-arr-time"),
+    departureTimezone: form?.dataset?.departureTimezone || null,
+    arrivalTimezone: form?.dataset?.arrivalTimezone || null,
     passengerNames: parsePassengerNames(textValue("flight-passengers"))
   };
 }

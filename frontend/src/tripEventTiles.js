@@ -49,11 +49,19 @@ function flightTitle(flight) {
   const parts = [String(flight?.airline || "").trim(), String(flight?.flight_number || "").trim()].filter(Boolean);
   return parts.join(" ") || "Flight";
 }
+function depLocalDateTime(flight) {
+  return flight?.departure_scheduled_local || flight?.departure_scheduled;
+}
+function arrLocalDateTime(flight) {
+  return flight?.arrival_scheduled_local || flight?.arrival_scheduled;
+}
 function flightLegCard(flight, label) {
-  return `<article class="trip-event-card flight-card"><div class="event-card-top"><span class="event-kicker">${esc(label)}</span><span class="event-title">${esc(flightTitle(flight))}</span></div><div class="event-card-actions"><button type="button" class="evt-pill-btn" data-edit-flight="${esc(flight.id)}">Edit</button><button type="button" class="evt-icon-btn" aria-label="Delete flight" data-del-flight="${esc(flight.id)}">🗑</button></div><div class="route-row"><div class="route-side"><div class="route-code">${esc(flight?.departure_airport_code || "?")}</div><div class="route-time">${esc(hhmm(flight?.departure_scheduled))}</div></div><div class="route-center">✈︎</div><div class="route-side align-right"><div class="route-code">${esc(flight?.arrival_airport_code || "?")}</div><div class="route-time">${esc(hhmm(flight?.arrival_scheduled))}</div></div></div><div class="event-passengers"><span class="passenger-label">Passengers:</span><div class="passenger-chips">${chips(flight?.passenger_names)}</div></div></article>`;
+  return `<article class="trip-event-card flight-card"><div class="event-card-top"><span class="event-kicker">${esc(label)}</span><span class="event-title">${esc(flightTitle(flight))}</span></div><div class="event-card-actions"><button type="button" class="evt-pill-btn" data-edit-flight="${esc(flight.id)}">Edit</button><button type="button" class="evt-icon-btn" aria-label="Delete flight" data-del-flight="${esc(flight.id)}">🗑</button></div><div class="route-row"><div class="route-side"><div class="route-code">${esc(flight?.departure_airport_code || "?")}</div><div class="route-time">${esc(hhmm(depLocalDateTime(flight)))}</div></div><div class="route-center">✈︎</div><div class="route-side align-right"><div class="route-code">${esc(flight?.arrival_airport_code || "?")}</div><div class="route-time">${esc(hhmm(arrLocalDateTime(flight)))}</div></div></div><div class="event-passengers"><span class="passenger-label">Passengers:</span><div class="passenger-chips">${chips(flight?.passenger_names)}</div></div></article>`;
 }
 function layoverCard(prevFlight, nextFlight) {
-  const layover = formatLayover(new Date(prevFlight?.arrival_scheduled || prevFlight?.departure_scheduled || ""), new Date(nextFlight?.departure_scheduled || ""));
+  const prevAt = prevFlight?.arrival_scheduled || prevFlight?.departure_scheduled || arrLocalDateTime(prevFlight) || depLocalDateTime(prevFlight) || "";
+  const nextAt = nextFlight?.departure_scheduled || depLocalDateTime(nextFlight) || "";
+  const layover = formatLayover(new Date(prevAt), new Date(nextAt));
   const airport = String(prevFlight?.arrival_airport_name || prevFlight?.arrival_airport_code || "transfer airport");
   return `<article class="trip-event-card layover-card"><div class="event-card-top"><span class="event-kicker">LAYOVER</span><span class="layover-icon">🕒</span></div><div class="layover-text">${esc(layover || "Layover")} in ${esc(airport)}</div></article>`;
 }
@@ -77,10 +85,10 @@ function buildDays(flights, hotels) {
   const buckets = buildFlightDisplayBuckets(flights);
   for (const bucket of buckets) {
     const first = bucket?.flights?.[0];
-    const key = dayKey(first?.departure_scheduled);
+    const key = dayKey(depLocalDateTime(first));
     if (!key) continue;
     const day = map.get(key) || { key, events: [], flights: 0, hotels: 0 };
-    day.events.push({ type: "flight", sort: String(first?.departure_scheduled || `${key}T00:00`), data: bucket });
+    day.events.push({ type: "flight", sort: String(depLocalDateTime(first) || `${key}T00:00`), data: bucket });
     day.flights += Math.max(0, bucket?.flights?.length || 0);
     map.set(key, day);
   }

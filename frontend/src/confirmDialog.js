@@ -5,13 +5,22 @@ let confirmBtn = null;
 let cancelBtn = null;
 let pendingResolve = null;
 let previousBodyOverflow = "";
+let previousActiveElement = null;
 
 function handleClose(accepted) {
   if (!dialogRoot) return;
+  if (document.activeElement instanceof HTMLElement && dialogRoot.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
   dialogRoot.classList.add("hidden");
+  dialogRoot.inert = true;
   dialogRoot.setAttribute("aria-hidden", "true");
   document.body.style.overflow = previousBodyOverflow;
   document.removeEventListener("keydown", onKeydown);
+  if (previousActiveElement instanceof HTMLElement && document.contains(previousActiveElement)) {
+    previousActiveElement.focus();
+  }
+  previousActiveElement = null;
   const resolve = pendingResolve;
   pendingResolve = null;
   if (resolve) resolve(Boolean(accepted));
@@ -28,6 +37,7 @@ function ensureDialog() {
   if (dialogRoot) return;
   dialogRoot = document.createElement("div");
   dialogRoot.className = "confirm-overlay hidden";
+  dialogRoot.inert = true;
   dialogRoot.setAttribute("aria-hidden", "true");
   dialogRoot.innerHTML = `
     <div class="confirm-backdrop" data-confirm-cancel="1"></div>
@@ -66,7 +76,9 @@ export function confirmAction(options = {}) {
   cancelBtn.textContent = cancelText;
   confirmBtn.className = `btn ${isDanger ? "btn-danger" : "btn-primary"}`;
 
+  previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   dialogRoot.classList.remove("hidden");
+  dialogRoot.inert = false;
   dialogRoot.setAttribute("aria-hidden", "false");
   previousBodyOverflow = document.body.style.overflow;
   document.body.style.overflow = "hidden";

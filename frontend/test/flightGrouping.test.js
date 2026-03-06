@@ -39,6 +39,29 @@ test("buildFlightDisplayBuckets keeps flights separate when passenger overlap is
   assert.equal(buckets[1].type, "single");
 });
 
+test("buildFlightDisplayBuckets uses local departure day for grouping", () => {
+  const flights = [
+    {
+      departure_scheduled: "2026-03-01T23:30:00Z",
+      departure_scheduled_local: "2026-03-01T23:30",
+      arrival_scheduled: "2026-03-02T01:00:00Z",
+      pnr: "ABC123",
+      passenger_names: ["A"]
+    },
+    {
+      departure_scheduled: "2026-03-01T23:50:00Z",
+      departure_scheduled_local: "2026-03-02T00:50",
+      arrival_scheduled: "2026-03-02T03:00:00Z",
+      pnr: "ABC123",
+      passenger_names: ["A"]
+    }
+  ];
+  const buckets = buildFlightDisplayBuckets(flights);
+  assert.equal(buckets.length, 2);
+  assert.equal(buckets[0].type, "single");
+  assert.equal(buckets[1].type, "single");
+});
+
 test("formatLayover returns hour/minute format", () => {
   const out = formatLayover(d("2026-02-12T10:00:00Z"), d("2026-02-12T12:35:00Z"));
   assert.equal(out, "2h 35m");

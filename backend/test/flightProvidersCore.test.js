@@ -23,8 +23,12 @@ test("lookupAviationStack returns normalized result on first ok response", async
     assert.equal(result.airline, "British Airways");
     assert.equal(result.departure_airport_code, "LHR");
     assert.equal(result.departure_airport_name, "London Heathrow");
+    assert.equal(result.departure_scheduled_local, "2026-03-05T10:00");
+    assert.equal(result.departure_timezone, null);
     assert.equal(result.arrival_airport_code, "JFK");
     assert.equal(result.arrival_airport_name, "New York JFK");
+    assert.equal(result.arrival_scheduled_local, "2026-03-05T18:00");
+    assert.equal(result.arrival_timezone, null);
     assert.equal(result.departure_scheduled, "2026-03-05T10:00:00.000Z");
     assert.equal(result.arrival_scheduled, "2026-03-05T18:00:00.000Z");
   } finally {
@@ -99,8 +103,12 @@ test("lookupAeroDataBox returns normalized result", async () => {
     assert.equal(result.airline, "Emirates");
     assert.equal(result.departure_airport_code, "DXB");
     assert.equal(result.departure_airport_name, "Dubai Intl");
+    assert.equal(result.departure_scheduled_local, "2026-03-05T06:00");
+    assert.equal(result.departure_timezone, null);
     assert.equal(result.arrival_airport_code, "LHR");
     assert.equal(result.arrival_airport_name, "London Heathrow");
+    assert.equal(result.arrival_scheduled_local, "2026-03-05T06:15");
+    assert.equal(result.arrival_timezone, null);
     assert.equal(result.departure_scheduled, "2026-03-05T06:00:00+04:00");
     assert.equal(result.arrival_scheduled, "2026-03-05T06:15:00+00:00");
     assert.equal(result.scheduledTime, "2026-03-05T06:00:00+04:00");

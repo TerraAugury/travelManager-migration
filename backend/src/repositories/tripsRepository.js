@@ -5,9 +5,9 @@ const DERIVED_START_SQL = `COALESCE(
   (
     SELECT MIN(d)
     FROM (
-      SELECT substr(fr.departure_scheduled, 1, 10) AS d
+      SELECT COALESCE(substr(fr.departure_scheduled_local, 1, 10), substr(fr.departure_scheduled, 1, 10)) AS d
       FROM flight_records fr
-      WHERE fr.trip_id = t.id AND fr.departure_scheduled IS NOT NULL
+      WHERE fr.trip_id = t.id AND (fr.departure_scheduled_local IS NOT NULL OR fr.departure_scheduled IS NOT NULL)
       UNION ALL
       SELECT hr.check_in_date AS d
       FROM hotel_records hr
@@ -21,13 +21,13 @@ const DERIVED_END_SQL = `COALESCE(
   (
     SELECT MAX(d)
     FROM (
-      SELECT substr(fr.arrival_scheduled, 1, 10) AS d
+      SELECT COALESCE(substr(fr.arrival_scheduled_local, 1, 10), substr(fr.arrival_scheduled, 1, 10)) AS d
       FROM flight_records fr
-      WHERE fr.trip_id = t.id AND fr.arrival_scheduled IS NOT NULL
+      WHERE fr.trip_id = t.id AND (fr.arrival_scheduled_local IS NOT NULL OR fr.arrival_scheduled IS NOT NULL)
       UNION ALL
-      SELECT substr(fr.departure_scheduled, 1, 10) AS d
+      SELECT COALESCE(substr(fr.departure_scheduled_local, 1, 10), substr(fr.departure_scheduled, 1, 10)) AS d
       FROM flight_records fr
-      WHERE fr.trip_id = t.id AND fr.departure_scheduled IS NOT NULL
+      WHERE fr.trip_id = t.id AND (fr.departure_scheduled_local IS NOT NULL OR fr.departure_scheduled IS NOT NULL)
       UNION ALL
       SELECT hr.check_out_date AS d
       FROM hotel_records hr

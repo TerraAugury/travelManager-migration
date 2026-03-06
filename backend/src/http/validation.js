@@ -39,6 +39,28 @@ export function toOptionalDateTime(value, { field } = {}) {
   return { value: d.toISOString() };
 }
 
+export function toOptionalLocalDateTime(value, { field } = {}) {
+  if (value == null || value === "") {
+    return { value: null };
+  }
+  const text = String(value).trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text)) {
+    return { error: `${field} must be YYYY-MM-DDTHH:mm.` };
+  }
+  return { value: text };
+}
+
+export function toOptionalTimeZone(value, { field } = {}) {
+  if (value == null || value === "") {
+    return { value: null };
+  }
+  const text = String(value).trim();
+  if (text.length > 120 || !/^[A-Za-z0-9_+\-./]+$/.test(text)) {
+    return { error: `${field} must be a valid timezone identifier.` };
+  }
+  return { value: text };
+}
+
 export function toPassengerNames(value) {
   if (!Array.isArray(value)) {
     return { value: [] };
@@ -62,4 +84,3 @@ export function toPositiveInt(value, { field } = {}) {
   }
   return { value: n };
 }
-

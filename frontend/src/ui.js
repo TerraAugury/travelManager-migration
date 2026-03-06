@@ -1,4 +1,4 @@
-import { getState, getFlightProvider, setFlightProvider } from "./state.js";
+import { getState, getFlightProvider, getVisibleTrips, setFlightProvider, setShowPastTrips } from "./state.js";
 import { confirmAction } from "./confirmDialog.js";
 
 const overlayReturnFocus = new Map();
@@ -76,6 +76,8 @@ export function bindUI(actions) {
   // Open overlays
   document.getElementById("add-flight-btn")?.addEventListener("click", () => {
     document.getElementById("flight-form")?.reset();
+    const form = document.getElementById("flight-form");
+    if (form) form.dataset.departureTimezone = "", form.dataset.arrivalTimezone = "";
     const status = document.getElementById("flight-lookup-status");
     if (status) status.textContent = "";
     setOverlayEditMode("flight", false);
@@ -127,6 +129,17 @@ export function bindUI(actions) {
 
   // Trip select: show/hide create vs edit form
   document.getElementById("trip-select")?.addEventListener("change", () => syncTripForms());
+  document.getElementById("show-past-trips")?.addEventListener("change", async (event) => {
+    const showPastTrips = event.target instanceof HTMLInputElement ? event.target.checked : false;
+    setShowPastTrips(showPastTrips);
+    if (typeof actions.onSelectTrip !== "function") return;
+    const currentTripId = getState().selectedTripId;
+    const visibleTrips = getVisibleTrips(getState().trips);
+    const nextTripId = currentTripId && visibleTrips.some((trip) => trip.id === currentTripId)
+      ? currentTripId
+      : (visibleTrips[0]?.id || null);
+    await actions.onSelectTrip(nextTripId);
+  });
 
   // Trip delete
   document.getElementById("trip-delete-btn")?.addEventListener("click", async () => {
