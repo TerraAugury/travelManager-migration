@@ -1,3 +1,5 @@
+import { getFlightProvider } from "../state.js";
+
 const REFRESH_WINDOW_MS = 15 * 60 * 1000;
 const refreshedAtByFlight = new Map(); const cachedLiveByFlight = new Map();
 const STATUS_CLASSES = ["on-time", "delayed", "cancelled", "landed"]; let latestQuota = null; const API_UNITS_PER_CALL = 2; const API_UNITS_LIMIT = 600;
@@ -38,6 +40,7 @@ export function normalizeStatus(lookup) {
 }
 function throttleMinutesLeft(resetAt) { return Math.max(1, Math.ceil(Math.max(0, Number(resetAt || 0) - Date.now()) / 60000)); }
 function toNum(value) { const parsed = Number.parseInt(String(value || ""), 10); return Number.isFinite(parsed) ? parsed : null; }
+function providerName() { return getFlightProvider() === "flightera" ? "Flightera" : getFlightProvider() === "aviationstack" ? "AviationStack" : "AeroDataBox"; }
 function sinceMinutes(when) {
   const diffMs = Math.max(0, Date.now() - Number(when || 0));
   return Math.floor(diffMs / 60000);
@@ -117,10 +120,10 @@ function renderBalance(balance) {
     }
   }
   if (latestQuota) {
-    el.textContent = `AeroDataBox quota remaining: ${latestQuota.remaining}/${latestQuota.limit} requests | ${latestQuota.unitsRemaining}/${API_UNITS_LIMIT} API units`;
+    el.textContent = `${providerName()} quota remaining: ${latestQuota.remaining}/${latestQuota.limit} requests | ${latestQuota.unitsRemaining}/${API_UNITS_LIMIT} API units`;
     return;
   }
-  el.textContent = "AeroDataBox quota: refresh a flight status to load remaining requests.";
+  el.textContent = `${providerName()} quota: refresh a flight status to load remaining requests.`;
 }
 async function refreshCard({ button, card, token, api }) {
   const flightNumber = String(button.getAttribute("data-flight-number") || "").trim().toUpperCase();
@@ -135,7 +138,7 @@ async function refreshCard({ button, card, token, api }) {
   const prevLabel = button.textContent;
   button.textContent = "Refreshing…";
   try {
-    const out = await api.lookupFlight(token, flightNumber, "aerodatabox", date, true);
+    const out = await api.lookupFlight(token, flightNumber, getFlightProvider(), date, true);
     const status = normalizeStatus(out);
     refreshedAtByFlight.set(flightNumber, Date.now());
     cachedLiveByFlight.set(flightNumber, { status, lookup: out });

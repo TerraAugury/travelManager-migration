@@ -1,65 +1,58 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { lookupAviationStack, lookupAeroDataBox } from "../src/services/flightProviders.js";
+import { lookupFlightera } from "../src/services/flightProviders.js";
 
-test("lookupAviationStack returns normalized result on first ok response", async () => {
+test("lookupFlightera returns normalized shape", async () => {
   const originalFetch = globalThis.fetch;
   try {
     globalThis.fetch = async () => ({
       ok: true,
-      json: async () => ({
-        data: [{
-          flight: { iata: "BA123" },
-          flight_status: "active",
-          airline: { name: "British Airways" },
-          departure: { airport: "London Heathrow", iata: "LHR", scheduled: "2026-03-05T10:00:00.000Z" },
-          arrival: { airport: "New York JFK", iata: "JFK", scheduled: "2026-03-05T18:00:00.000Z" }
-        }]
-      })
+      headers: new Headers({
+        "x-ratelimit-requests-remaining": "99",
+        "x-ratelimit-requests-limit": "100",
+        "x-ratelimit-requests-reset": "1700"
+      }),
+      json: async () => ([{
+        flnr: "BA123",
+        status: "live",
+        airline_name: "British Airways",
+        departure_name: "London Heathrow",
+        departure_iata: "LHR",
+        arrival_name: "John F. Kennedy International",
+        arrival_iata: "JFK",
+        scheduled_departure_local: "2026-03-05T10:00:00+00:00",
+        scheduled_arrival_local: "2026-03-05T14:00:00+00:00",
+        actual_departure_is_estimated: true,
+        actual_departure_local: "2026-03-05T10:20:00+00:00",
+        departure_terminal: "5",
+        departure_checkin: "A",
+        departure_gate: "A12",
+        arrival_baggage: "7"
+      }])
     });
-    const result = await lookupAviationStack("BA123", "testkey");
+    const result = await lookupFlightera("BA123", "2026-03-05", "testkey");
+    const expectedKeys = [
+      "flight_number", "status", "airline", "departure_airport_name", "departure_airport_code",
+      "arrival_airport_name", "arrival_airport_code", "departure_scheduled", "arrival_scheduled",
+      "scheduledTime", "revisedTime", "predictedTime", "runwayTime", "terminal", "checkInDesk",
+      "gate", "baggageBelt", "rateLimitRequestsRemaining", "rateLimitRequestsLimit", "rateLimitRequestsReset"
+    ];
+    assert.deepEqual(Object.keys(result).sort(), expectedKeys.sort());
     assert.equal(result.flight_number, "BA123");
-    assert.equal(result.status, "active");
-    assert.equal(result.airline, "British Airways");
-    assert.equal(result.departure_airport_code, "LHR");
-    assert.equal(result.departure_airport_name, "London Heathrow");
-    assert.equal(result.arrival_airport_code, "JFK");
-    assert.equal(result.arrival_airport_name, "New York JFK");
-    assert.equal(result.departure_scheduled, "2026-03-05T10:00:00.000Z");
-    assert.equal(result.arrival_scheduled, "2026-03-05T18:00:00.000Z");
+    assert.equal(result.status, "EnRoute");
+    assert.equal(result.scheduledTime, "2026-03-05T10:00:00+00:00");
+    assert.equal(result.predictedTime, "2026-03-05T10:20:00+00:00");
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test("lookupAviationStack falls back to query-string key on non-ok first response", async () => {
-  const originalFetch = globalThis.fetch;
-  let callCount = 0;
-  let secondUrl = "";
-  try {
-    globalThis.fetch = async (url) => {
-      callCount++;
-      if (callCount === 1) return { ok: false, json: async () => ({}) };
-      secondUrl = url;
-      return {
-        ok: true,
-        json: async () => ({ data: [{ flight: { iata: "LH100" }, airline: {}, departure: {}, arrival: {} }] })
-      };
-    };
-    await lookupAviationStack("LH100", "mykey");
-    assert.equal(callCount, 2);
-    assert.ok(secondUrl.includes("access_key="), `Expected access_key in URL, got: ${secondUrl}`);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test("lookupAviationStack throws 404 when data array is empty", async () => {
+test("lookupFlightera throws 404 when no flight data found", async () => {
   const originalFetch = globalThis.fetch;
   try {
-    globalThis.fetch = async () => ({ ok: true, json: async () => ({ data: [] }) });
+    globalThis.fetch = async () => ({ ok: true, json: async () => ([]) });
     await assert.rejects(
-      () => lookupAviationStack("XX999", "testkey"),
+      () => lookupFlightera("ZZ0", "2026-03-05", "testkey"),
       (err) => { assert.equal(err.status, 404); return true; }
     );
   } finally {
@@ -67,81 +60,13 @@ test("lookupAviationStack throws 404 when data array is empty", async () => {
   }
 });
 
-test("lookupAeroDataBox returns normalized result", async () => {
+test("lookupFlightera throws 502 on non-ok upstream response", async () => {
   const originalFetch = globalThis.fetch;
   try {
-    globalThis.fetch = async () => ({
-      ok: true,
-      json: async () => ([{
-        number: "EK202",
-        status: "Landed",
-        airline: { name: "Emirates" },
-        departure: {
-          airport: { name: "Dubai Intl", iata: "DXB" },
-          scheduledTime: { utc: "2026-03-05T02:00:00Z" },
-          revisedTime: { utc: "2026-03-05T02:15:00Z" },
-          predictedTime: { utc: "2026-03-05T02:20:00Z" },
-          runwayTime: { utc: "2026-03-05T02:25:00Z" },
-          terminal: "3",
-          checkInDesk: "A18",
-          gate: "B5"
-        },
-        arrival: {
-          airport: { name: "London Heathrow", iata: "LHR" },
-          scheduledTime: { utc: "2026-03-05T06:15:00Z" },
-          baggageBelt: "7"
-        }
-      }])
-    });
-    const result = await lookupAeroDataBox("EK202", "2026-03-05", "testkey");
-    assert.equal(result.flight_number, "EK202");
-    assert.equal(result.status, "Landed");
-    assert.equal(result.airline, "Emirates");
-    assert.equal(result.departure_airport_code, "DXB");
-    assert.equal(result.departure_airport_name, "Dubai Intl");
-    assert.equal(result.arrival_airport_code, "LHR");
-    assert.equal(result.arrival_airport_name, "London Heathrow");
-    assert.equal(result.departure_scheduled, "2026-03-05T02:00:00Z");
-    assert.equal(result.arrival_scheduled, "2026-03-05T06:15:00Z");
-    assert.equal(result.scheduledTime, "2026-03-05T02:00:00Z");
-    assert.equal(result.revisedTime, "2026-03-05T02:15:00Z");
-    assert.equal(result.predictedTime, "2026-03-05T02:20:00Z");
-    assert.equal(result.runwayTime, "2026-03-05T02:25:00Z");
-    assert.equal(result.terminal, "3");
-    assert.equal(result.checkInDesk, "A18");
-    assert.equal(result.gate, "B5");
-    assert.equal(result.baggageBelt, "7");
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test("lookupAeroDataBox uses today's UTC date when date is null", async () => {
-  const originalFetch = globalThis.fetch;
-  let capturedUrl = "";
-  try {
-    globalThis.fetch = async (url) => {
-      capturedUrl = url;
-      return {
-        ok: true,
-        json: async () => ([{ number: "TK1", airline: {}, departure: { airport: {}, scheduledTime: {} }, arrival: { airport: {}, scheduledTime: {} } }])
-      };
-    };
-    await lookupAeroDataBox("TK1", null, "testkey");
-    const today = new Date().toISOString().slice(0, 10);
-    assert.ok(capturedUrl.includes(today), `Expected URL to contain ${today}, got: ${capturedUrl}`);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test("lookupAeroDataBox throws 404 when array is empty", async () => {
-  const originalFetch = globalThis.fetch;
-  try {
-    globalThis.fetch = async () => ({ ok: true, json: async () => ([]) });
+    globalThis.fetch = async () => ({ ok: false, status: 429, json: async () => ({}) });
     await assert.rejects(
-      () => lookupAeroDataBox("ZZ0", "2026-03-05", "testkey"),
-      (err) => { assert.equal(err.status, 404); return true; }
+      () => lookupFlightera("BA123", "2026-03-05", "testkey"),
+      (err) => { assert.equal(err.status, 502); return true; }
     );
   } finally {
     globalThis.fetch = originalFetch;

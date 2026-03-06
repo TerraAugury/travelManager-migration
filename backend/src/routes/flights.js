@@ -1,4 +1,4 @@
-import { lookupAviationStack, lookupAeroDataBox } from "../services/flightProviders.js";
+import { lookupAviationStack, lookupAeroDataBox, lookupFlightera } from "../services/flightProviders.js";
 import { requireRequestUser } from "../auth/requestUser.js";
 import {
   isUuid,
@@ -10,8 +10,7 @@ import { sendError } from "../http/responses.js";
 import { checkRateLimit } from "../security/rateLimiter.js";
 import { validateIataCode, validatePassengerName } from "../validation.js";
 
-const LIVE_LOOKUP_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-const LIVE_LOOKUP_RATE_LIMIT_MAX_REQUESTS = 1;
+const LIVE_LOOKUP_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; const LIVE_LOOKUP_RATE_LIMIT_MAX_REQUESTS = 1;
 
 function parseFlightBody(body) {
   const flightNumber = toTrimmedString(body?.flightNumber, {
@@ -92,19 +91,26 @@ export function registerFlightRoutes(app, deps) {
       }
       const rawDate = (c.req.query("date") || "").trim();
       if (rawDate && !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return sendError(c, 400, "date must be YYYY-MM-DD.");
-      const rawProvider = (c.req.query("provider") || (isLiveRefresh ? "aerodatabox" : "aviationstack")).trim().toLowerCase();
-      if (isLiveRefresh && rawProvider !== "aerodatabox") {
-        return sendError(c, 400, "live status lookup only supports aerodatabox provider.");
+      const providerParam = (c.req.query("provider") || "").trim().toLowerCase();
+      const rawProvider = providerParam || (isLiveRefresh ? "aerodatabox" : "aviationstack");
+      if (isLiveRefresh && rawProvider === "aviationstack") {
+        return sendError(c, 400, "live status lookup does not support aviationstack provider.");
       }
-      if (rawProvider !== "aviationstack" && rawProvider !== "aerodatabox") {
-        return sendError(c, 400, "provider must be aviationstack or aerodatabox.");
+      if (rawProvider !== "aviationstack" && rawProvider !== "aerodatabox" && rawProvider !== "flightera") {
+        return sendError(c, 400, "provider must be aviationstack, aerodatabox, or flightera.");
       }
-      const key = rawProvider === "aerodatabox" ? c.env?.AERODATABOX_API_KEY : c.env?.AVIATIONSTACK_API_KEY;
+      const key = rawProvider === "aerodatabox"
+        ? c.env?.AERODATABOX_API_KEY
+        : rawProvider === "flightera"
+          ? c.env?.FLIGHTERA_API_KEY
+          : c.env?.AVIATIONSTACK_API_KEY;
       if (!key) return sendError(c, 503, "Flight lookup not configured on this server.");
       try {
         const result = rawProvider === "aerodatabox"
           ? await lookupAeroDataBox(fn, rawDate || null, key)
-          : await lookupAviationStack(fn, key);
+          : rawProvider === "flightera"
+            ? await lookupFlightera(fn, rawDate || null, key)
+            : await lookupAviationStack(fn, key);
         return c.json(result);
       } catch (err) {
         if (err?.status && err?.message) return sendError(c, err.status, err.message);

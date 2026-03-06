@@ -1,6 +1,8 @@
 import { getState, getFlightProvider, setFlightProvider } from "./state.js";
 import { confirmAction } from "./confirmDialog.js";
 
+const overlayReturnFocus = new Map();
+
 function eventElement(event) {
   return event.target instanceof Element ? event.target : null;
 }
@@ -16,8 +18,11 @@ function switchScreen(screen) {
 function openOverlay(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
+  if (document.activeElement instanceof HTMLElement) overlayReturnFocus.set(id, document.activeElement);
   overlay.classList.remove("hidden");
   overlay.setAttribute("aria-hidden", "false");
+  overlay.inert = false;
+  overlay.querySelector(".overlay-close-btn")?.focus();
   document.body.style.overflow = "hidden";
 }
 
@@ -31,8 +36,14 @@ function setFlightDateInputsEditable(editing) {
 export function closeOverlay(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
+  if (document.activeElement instanceof HTMLElement && overlay.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
   overlay.classList.add("hidden");
   overlay.setAttribute("aria-hidden", "true");
+  overlay.inert = true;
+  const returnFocus = overlayReturnFocus.get(id);
+  if (returnFocus instanceof HTMLElement && document.contains(returnFocus)) returnFocus.focus();
   document.body.style.overflow = "";
 }
 

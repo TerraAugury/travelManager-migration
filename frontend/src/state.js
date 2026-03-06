@@ -81,12 +81,12 @@ export function setPassengers(passengers) {
 
 export function loadFlightProvider() {
   const raw = getLocalStorage()?.getItem(FLIGHT_PROVIDER_STORAGE_KEY) || "";
-  state.flightProvider = raw === "aviationstack" ? "aviationstack" : "aerodatabox";
+  state.flightProvider = raw === "aviationstack" || raw === "flightera" ? raw : "aerodatabox";
   return state.flightProvider;
 }
 
 export function setFlightProvider(provider) {
-  const value = provider === "aviationstack" ? "aviationstack" : "aerodatabox";
+  const value = provider === "aviationstack" || provider === "flightera" ? provider : "aerodatabox";
   state.flightProvider = value;
   getLocalStorage()?.setItem(FLIGHT_PROVIDER_STORAGE_KEY, value);
 }
