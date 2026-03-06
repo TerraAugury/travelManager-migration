@@ -44,7 +44,7 @@ export function registerTripRoutes(app, deps) {
     app.get(path("/trips"), async (c) => {
       const auth = await requireRequestUser(c, deps);
       if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
-      const rows = await tripsRepository.listByOwner(auth.user.id);
+      const rows = await tripsRepository.listAccessible(auth.user.id);
       return c.json({ items: rows });
     });
 

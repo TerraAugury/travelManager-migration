@@ -11,6 +11,7 @@ import { registerAdminUsersRoutes } from "./routes/adminUsers.js";
 import { buildUsersRepository } from "./repositories/usersRepository.js";
 import { buildSessionsRepository } from "./repositories/sessionsRepository.js";
 import { buildTripsRepository } from "./repositories/tripsRepository.js";
+import { buildTripSharesRepository } from "./repositories/tripSharesRepository.js";
 import { buildFlightsRepository } from "./repositories/flightsRepository.js";
 import { buildHotelsRepository } from "./repositories/hotelsRepository.js";
 import { buildPassengersRepository } from "./repositories/passengersRepository.js";
@@ -22,6 +23,7 @@ export function buildApp({ db: d1, env }) {
   const app = new Hono();
   const db = buildDb(d1);
   const allowDevHeaderAuth = env?.DEV_AUTH_X_USER_ID_FALLBACK === "true";
+  const tripSharesRepository = buildTripSharesRepository({ pool: db.pool });
   const repositories = {
     pool: db.pool,
     allowDevHeaderAuth,
@@ -30,8 +32,9 @@ export function buildApp({ db: d1, env }) {
     usersRepository: buildUsersRepository({ pool: db.pool }),
     sessionsRepository: buildSessionsRepository({ pool: db.pool }),
     tripsRepository: buildTripsRepository({ pool: db.pool }),
-    flightsRepository: buildFlightsRepository({ pool: db.pool }),
-    hotelsRepository: buildHotelsRepository({ pool: db.pool }),
+    tripSharesRepository,
+    flightsRepository: buildFlightsRepository({ pool: db.pool, tripSharesRepository }),
+    hotelsRepository: buildHotelsRepository({ pool: db.pool, tripSharesRepository }),
     passengersRepository: buildPassengersRepository({ pool: db.pool })
   };
   const services = {

@@ -53,7 +53,7 @@ test("remove returns true only when DELETE removed rows", async () => {
   assert.deepEqual(calls[0].params, ["trip-2", "user-2"]);
 });
 
-test("listByOwner derives start_date and end_date when base trip dates are null", async () => {
+test("listAccessible derives dates and includes shared access filter", async () => {
   const calls = [];
   const repo = buildTripsRepository({
     pool: {
@@ -64,7 +64,7 @@ test("listByOwner derives start_date and end_date when base trip dates are null"
     }
   });
 
-  const rows = await repo.listByOwner("user-3");
+  const rows = await repo.listAccessible("user-3");
   assert.equal(rows[0].start_date, "2026-02-12");
   assert.equal(rows[0].end_date, "2026-02-18");
   assert.match(calls[0].text, /COALESCE\(\s*t\.start_date/i);
@@ -75,5 +75,6 @@ test("listByOwner derives start_date and end_date when base trip dates are null"
   assert.match(calls[0].text, /substr\(fr\.arrival_scheduled_local, 1, 10\)/i);
   assert.match(calls[0].text, /substr\(fr\.arrival_scheduled, 1, 10\)/i);
   assert.match(calls[0].text, /hr\.check_out_date/i);
+  assert.match(calls[0].text, /trip_shares/i);
   assert.deepEqual(calls[0].params, ["user-3"]);
 });

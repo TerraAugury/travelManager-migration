@@ -1,15 +1,18 @@
 import crypto from "node:crypto";
+import { sharedTripAccessWhere } from "./sharedAccessSql.js";
 
-export function buildHotelsRepository({ pool }) {
+const HOTEL_COLUMNS = `hr.id, hr.trip_id, hr.created_by_user_id, hr.hotel_name, hr.confirmation_id,
+  hr.check_in_date, hr.check_out_date, hr.pax_count, hr.payment_type,
+  hr.created_at, hr.updated_at`;
+
+export function buildHotelsRepository({ pool, tripSharesRepository }) {
   async function listByOwner(ownerUserId) {
     const result = await pool.query(
       `SELECT
-         hr.id, hr.trip_id, hr.created_by_user_id, hr.hotel_name, hr.confirmation_id,
-         hr.check_in_date, hr.check_out_date, hr.pax_count, hr.payment_type,
-         hr.created_at, hr.updated_at
+         ${HOTEL_COLUMNS}
        FROM hotel_records hr
        JOIN trips t ON t.id = hr.trip_id
-       WHERE t.owner_user_id = $1
+       WHERE ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$1" })}
        ORDER BY hr.trip_id, hr.check_in_date, hr.created_at`,
       [ownerUserId]
     );
@@ -19,12 +22,11 @@ export function buildHotelsRepository({ pool }) {
   async function listByTrip({ tripId, ownerUserId }) {
     const result = await pool.query(
       `SELECT
-         hr.id, hr.trip_id, hr.created_by_user_id, hr.hotel_name, hr.confirmation_id,
-         hr.check_in_date, hr.check_out_date, hr.pax_count, hr.payment_type,
-         hr.created_at, hr.updated_at
+         ${HOTEL_COLUMNS}
        FROM hotel_records hr
        JOIN trips t ON t.id = hr.trip_id
-       WHERE hr.trip_id = $1 AND t.owner_user_id = $2
+       WHERE hr.trip_id = $1
+         AND ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$2" })}
        ORDER BY hr.check_in_date, hr.created_at`,
       [tripId, ownerUserId]
     );
@@ -32,11 +34,8 @@ export function buildHotelsRepository({ pool }) {
   }
 
   async function create(input) {
-    const tripCheck = await pool.query(
-      `SELECT id FROM trips WHERE id = $1 AND owner_user_id = $2`,
-      [input.tripId, input.ownerUserId]
-    );
-    if (!tripCheck.rows[0]) return null;
+    const canAccess = await tripSharesRepository.hasAccess(input.ownerUserId, input.tripId);
+    if (!canAccess) return null;
 
     const id = crypto.randomUUID();
     const result = await pool.query(
@@ -65,6 +64,15 @@ export function buildHotelsRepository({ pool }) {
   }
 
   async function update(input) {
+    const tripResult = await pool.query(
+      `SELECT trip_id FROM hotel_records WHERE id = $1`,
+      [input.hotelId]
+    );
+    const tripId = tripResult.rows[0]?.trip_id || null;
+    if (!tripId) return null;
+    const canAccess = await tripSharesRepository.hasAccess(input.ownerUserId, tripId);
+    if (!canAccess) return null;
+
     const result = await pool.query(
       `UPDATE hotel_records
        SET
@@ -76,7 +84,6 @@ export function buildHotelsRepository({ pool }) {
          payment_type = $8,
          updated_at = datetime('now')
        WHERE id = $1
-         AND trip_id IN (SELECT id FROM trips WHERE owner_user_id = $2)
        RETURNING
          id, trip_id, created_by_user_id, hotel_name, confirmation_id,
          check_in_date, check_out_date, pax_count, payment_type,
@@ -96,11 +103,19 @@ export function buildHotelsRepository({ pool }) {
   }
 
   async function remove({ hotelId, ownerUserId }) {
+    const tripResult = await pool.query(
+      `SELECT trip_id FROM hotel_records WHERE id = $1`,
+      [hotelId]
+    );
+    const tripId = tripResult.rows[0]?.trip_id || null;
+    if (!tripId) return false;
+    const canAccess = await tripSharesRepository.hasAccess(ownerUserId, tripId);
+    if (!canAccess) return false;
+
     const result = await pool.query(
       `DELETE FROM hotel_records
-       WHERE id = $1
-         AND trip_id IN (SELECT id FROM trips WHERE owner_user_id = $2)`,
-      [hotelId, ownerUserId]
+       WHERE id = $1`,
+      [hotelId]
     );
     return result.rowCount > 0;
   }

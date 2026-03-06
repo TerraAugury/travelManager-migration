@@ -1,18 +1,25 @@
 import crypto from "node:crypto";
+import { sharedTripAccessWhere } from "./sharedAccessSql.js";
 
-export function buildFlightsRepository({ pool }) {
+const FLIGHT_SELECT_COLUMNS = `fr.id, fr.trip_id, fr.created_by_user_id, fr.flight_number, fr.airline, fr.pnr,
+  fr.departure_airport_name, fr.departure_airport_code, fr.departure_scheduled,
+  fr.departure_scheduled_local, fr.departure_timezone,
+  fr.arrival_airport_name, fr.arrival_airport_code, fr.arrival_scheduled,
+  fr.arrival_scheduled_local, fr.arrival_timezone,
+  fr.created_at, fr.updated_at`;
+const FLIGHT_RETURN_COLUMNS = `id, trip_id, created_by_user_id, flight_number, airline, pnr,
+  departure_airport_name, departure_airport_code, departure_scheduled, departure_scheduled_local, departure_timezone,
+  arrival_airport_name, arrival_airport_code, arrival_scheduled, arrival_scheduled_local, arrival_timezone,
+  created_at, updated_at`;
+
+export function buildFlightsRepository({ pool, tripSharesRepository }) {
   async function listByOwner(ownerUserId) {
     const result = await pool.query(
       `SELECT
-         fr.id, fr.trip_id, fr.created_by_user_id, fr.flight_number, fr.airline, fr.pnr,
-         fr.departure_airport_name, fr.departure_airport_code, fr.departure_scheduled,
-         fr.departure_scheduled_local, fr.departure_timezone,
-         fr.arrival_airport_name, fr.arrival_airport_code, fr.arrival_scheduled,
-         fr.arrival_scheduled_local, fr.arrival_timezone,
-         fr.created_at, fr.updated_at
+         ${FLIGHT_SELECT_COLUMNS}
        FROM flight_records fr
        JOIN trips t ON t.id = fr.trip_id
-       WHERE t.owner_user_id = $1
+       WHERE ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$1" })}
        ORDER BY fr.trip_id, COALESCE(fr.departure_scheduled_local, fr.departure_scheduled, fr.created_at), fr.created_at`,
       [ownerUserId]
     );
@@ -22,15 +29,11 @@ export function buildFlightsRepository({ pool }) {
   async function listByTrip({ tripId, ownerUserId }) {
     const result = await pool.query(
       `SELECT
-         fr.id, fr.trip_id, fr.created_by_user_id, fr.flight_number, fr.airline, fr.pnr,
-         fr.departure_airport_name, fr.departure_airport_code, fr.departure_scheduled,
-         fr.departure_scheduled_local, fr.departure_timezone,
-         fr.arrival_airport_name, fr.arrival_airport_code, fr.arrival_scheduled,
-         fr.arrival_scheduled_local, fr.arrival_timezone,
-         fr.created_at, fr.updated_at
+         ${FLIGHT_SELECT_COLUMNS}
        FROM flight_records fr
        JOIN trips t ON t.id = fr.trip_id
-       WHERE fr.trip_id = $1 AND t.owner_user_id = $2
+       WHERE fr.trip_id = $1
+         AND ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$2" })}
        ORDER BY COALESCE(fr.departure_scheduled_local, fr.departure_scheduled, fr.created_at), fr.created_at`,
       [tripId, ownerUserId]
     );
@@ -38,11 +41,8 @@ export function buildFlightsRepository({ pool }) {
   }
 
   async function create(input) {
-    const tripCheck = await pool.query(
-      `SELECT id FROM trips WHERE id = $1 AND owner_user_id = $2`,
-      [input.tripId, input.ownerUserId]
-    );
-    if (!tripCheck.rows[0]) return null;
+    const canAccess = await tripSharesRepository.hasAccess(input.ownerUserId, input.tripId);
+    if (!canAccess) return null;
 
     const id = crypto.randomUUID();
     const result = await pool.query(
@@ -80,6 +80,15 @@ export function buildFlightsRepository({ pool }) {
   }
 
   async function update(input) {
+    const tripResult = await pool.query(
+      `SELECT trip_id FROM flight_records WHERE id = $1`,
+      [input.flightId]
+    );
+    const tripId = tripResult.rows[0]?.trip_id || null;
+    if (!tripId) return null;
+    const canAccess = await tripSharesRepository.hasAccess(input.ownerUserId, tripId);
+    if (!canAccess) return null;
+
     const result = await pool.query(
       `UPDATE flight_records
        SET
@@ -98,12 +107,8 @@ export function buildFlightsRepository({ pool }) {
          arrival_timezone = $15,
          updated_at = datetime('now')
        WHERE id = $1
-         AND trip_id IN (SELECT id FROM trips WHERE owner_user_id = $2)
        RETURNING
-         id, trip_id, created_by_user_id, flight_number, airline, pnr,
-         departure_airport_name, departure_airport_code, departure_scheduled, departure_scheduled_local, departure_timezone,
-         arrival_airport_name, arrival_airport_code, arrival_scheduled, arrival_scheduled_local, arrival_timezone,
-         created_at, updated_at`,
+         ${FLIGHT_RETURN_COLUMNS}`,
       [
         input.flightId,
         input.ownerUserId,
@@ -126,11 +131,19 @@ export function buildFlightsRepository({ pool }) {
   }
 
   async function remove({ flightId, ownerUserId }) {
+    const tripResult = await pool.query(
+      `SELECT trip_id FROM flight_records WHERE id = $1`,
+      [flightId]
+    );
+    const tripId = tripResult.rows[0]?.trip_id || null;
+    if (!tripId) return false;
+    const canAccess = await tripSharesRepository.hasAccess(ownerUserId, tripId);
+    if (!canAccess) return false;
+
     const result = await pool.query(
       `DELETE FROM flight_records
-       WHERE id = $1
-         AND trip_id IN (SELECT id FROM trips WHERE owner_user_id = $2)`,
-      [flightId, ownerUserId]
+       WHERE id = $1`,
+      [flightId]
     );
     return result.rowCount > 0;
   }

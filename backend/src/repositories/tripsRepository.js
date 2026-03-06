@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { sharedTripAccessWhere } from "./sharedAccessSql.js";
 
 const DERIVED_START_SQL = `COALESCE(
   t.start_date,
@@ -41,39 +42,42 @@ const DERIVED_END_SQL = `COALESCE(
 )`;
 
 export function buildTripsRepository({ pool }) {
-  async function listByOwner(ownerUserId) {
+  async function listAccessible(userId) {
     const result = await pool.query(
       `SELECT
          t.id,
          t.owner_user_id,
          t.name,
          t.notes,
+         CASE WHEN t.owner_user_id = $1 THEN 0 ELSE 1 END AS is_shared,
          ${DERIVED_START_SQL} AS start_date,
          ${DERIVED_END_SQL} AS end_date,
          t.created_at,
          t.updated_at
        FROM trips t
-       WHERE t.owner_user_id = $1
+       WHERE ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$1" })}
        ORDER BY COALESCE(${DERIVED_START_SQL}, '9999-12-31'), t.created_at`,
-      [ownerUserId]
+      [userId]
     );
     return result.rows;
   }
 
-  async function getById(tripId, ownerUserId) {
+  async function getById(tripId, userId) {
     const result = await pool.query(
       `SELECT
          t.id,
          t.owner_user_id,
          t.name,
          t.notes,
+         CASE WHEN t.owner_user_id = $2 THEN 0 ELSE 1 END AS is_shared,
          ${DERIVED_START_SQL} AS start_date,
          ${DERIVED_END_SQL} AS end_date,
          t.created_at,
          t.updated_at
        FROM trips t
-       WHERE t.id = $1 AND t.owner_user_id = $2`,
-      [tripId, ownerUserId]
+       WHERE t.id = $1
+         AND ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$2" })}`,
+      [tripId, userId]
     );
     return result.rows[0] || null;
   }
@@ -116,7 +120,8 @@ export function buildTripsRepository({ pool }) {
   }
 
   return {
-    listByOwner,
+    listAccessible,
+    listByOwner: listAccessible,
     getById,
     create,
     update,

@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { sharedTripAccessWhere } from "./sharedAccessSql.js";
 
 export function buildPassengersRepository({ pool }) {
   async function ensureByNames(names) {
@@ -66,7 +67,8 @@ export function buildPassengersRepository({ pool }) {
        FROM trip_passengers tp
        JOIN trips t ON t.id = tp.trip_id
        JOIN passengers p ON p.id = tp.passenger_id
-       WHERE tp.trip_id = $1 AND t.owner_user_id = $2
+       WHERE tp.trip_id = $1
+         AND ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$2" })}
        ORDER BY LOWER(p.name)`,
       [tripId, ownerUserId]
     );
