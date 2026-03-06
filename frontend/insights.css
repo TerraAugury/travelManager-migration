@@ -193,3 +193,6 @@
 .cal-day-flag { font-size: 13px; line-height: 1.1; }
 .cal-day.no-data .cal-day-num { opacity: 0.3; }
 .today-flight-card{border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:12px;background:#fff;}.today-flight-card-header{font-weight:700;font-size:15px;margin-bottom:4px;}.today-flight-times{font-size:13px;color:#475569;margin-bottom:6px;}.today-flight-status{font-size:13px;font-weight:600;margin-bottom:8px;}.today-flight-status.on-time{color:#15803d;}.today-flight-status.delayed{color:#b45309;}.today-flight-status.cancelled{color:#dc2626;}.today-flight-status.landed{color:#1d4ed8;}
+.today-flight-live-meta{font-size:12px;color:#64748b;margin:-4px 0 8px;}
+.today-flight-live-meta .late{color:#dc2626;font-weight:600;}
+.today-flight-live-meta .ontrack{color:#15803d;font-weight:600;}

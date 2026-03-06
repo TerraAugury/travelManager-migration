@@ -76,8 +76,21 @@ test("lookupAeroDataBox returns normalized result", async () => {
         number: "EK202",
         status: "Landed",
         airline: { name: "Emirates" },
-        departure: { airport: { name: "Dubai Intl", iata: "DXB" }, scheduledTime: { utc: "2026-03-05T02:00:00Z" } },
-        arrival: { airport: { name: "London Heathrow", iata: "LHR" }, scheduledTime: { utc: "2026-03-05T06:15:00Z" } }
+        departure: {
+          airport: { name: "Dubai Intl", iata: "DXB" },
+          scheduledTime: { utc: "2026-03-05T02:00:00Z" },
+          revisedTime: { utc: "2026-03-05T02:15:00Z" },
+          predictedTime: { utc: "2026-03-05T02:20:00Z" },
+          runwayTime: { utc: "2026-03-05T02:25:00Z" },
+          terminal: "3",
+          checkInDesk: "A18",
+          gate: "B5"
+        },
+        arrival: {
+          airport: { name: "London Heathrow", iata: "LHR" },
+          scheduledTime: { utc: "2026-03-05T06:15:00Z" },
+          baggageBelt: "7"
+        }
       }])
     });
     const result = await lookupAeroDataBox("EK202", "2026-03-05", "testkey");
@@ -90,6 +103,14 @@ test("lookupAeroDataBox returns normalized result", async () => {
     assert.equal(result.arrival_airport_name, "London Heathrow");
     assert.equal(result.departure_scheduled, "2026-03-05T02:00:00Z");
     assert.equal(result.arrival_scheduled, "2026-03-05T06:15:00Z");
+    assert.equal(result.scheduledTime, "2026-03-05T02:00:00Z");
+    assert.equal(result.revisedTime, "2026-03-05T02:15:00Z");
+    assert.equal(result.predictedTime, "2026-03-05T02:20:00Z");
+    assert.equal(result.runwayTime, "2026-03-05T02:25:00Z");
+    assert.equal(result.terminal, "3");
+    assert.equal(result.checkInDesk, "A18");
+    assert.equal(result.gate, "B5");
+    assert.equal(result.baggageBelt, "7");
   } finally {
     globalThis.fetch = originalFetch;
   }

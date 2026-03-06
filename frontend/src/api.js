@@ -131,6 +131,16 @@ export async function listFlightsToday(token) {
   };
 }
 
+export async function getAeroDataBoxBalance(token) {
+  const payload = await request("/flights/aerodatabox/balance", {}, token);
+  return {
+    creditsRemaining: Number.isFinite(Number(payload?.creditsRemaining)) ? Number(payload.creditsRemaining) : null,
+    requestsRemaining: Number.isFinite(Number(payload?.requestsRemaining)) ? Number(payload.requestsRemaining) : null,
+    requestsLimit: Number.isFinite(Number(payload?.requestsLimit)) ? Number(payload.requestsLimit) : null,
+    requestsReset: Number.isFinite(Number(payload?.requestsReset)) ? Number(payload.requestsReset) : null
+  };
+}
+
 export async function exportLegacyTrips(token) {
   return request("/sync/trips", {}, token);
 }

@@ -36,18 +36,45 @@ export async function lookupAeroDataBox(fn, date, key) {
     }
   });
   if (!res.ok) throw { status: 502, message: "Upstream flight lookup error." };
+  const toNum = (value) => {
+    const parsed = Number.parseInt(String(value || ""), 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const getHeader = (name) => {
+    if (typeof res?.headers?.get !== "function") return null;
+    return res.headers.get(name);
+  };
   const json = await res.json();
   const f = Array.isArray(json) ? json[0] : null;
   if (!f) throw { status: 404, message: `No flight found for ${fn}.` };
+  const departure = f.departure || {};
+  const arrival = f.arrival || {};
+  const pick = (...values) => {
+    for (const value of values) {
+      if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+    }
+    return null;
+  };
   return {
     flight_number: f.number || fn,
     status: f.status || null,
     airline: f.airline?.name || null,
-    departure_airport_name: f.departure?.airport?.name || null,
-    departure_airport_code: f.departure?.airport?.iata || null,
-    arrival_airport_name: f.arrival?.airport?.name || null,
-    arrival_airport_code: f.arrival?.airport?.iata || null,
-    departure_scheduled: f.departure?.scheduledTime?.utc || null,
-    arrival_scheduled: f.arrival?.scheduledTime?.utc || null
+    departure_airport_name: departure?.airport?.name || null,
+    departure_airport_code: departure?.airport?.iata || null,
+    arrival_airport_name: arrival?.airport?.name || null,
+    arrival_airport_code: arrival?.airport?.iata || null,
+    departure_scheduled: departure?.scheduledTime?.utc || null,
+    arrival_scheduled: arrival?.scheduledTime?.utc || null,
+    scheduledTime: pick(departure?.scheduledTime?.utc, arrival?.scheduledTime?.utc),
+    revisedTime: pick(departure?.revisedTime?.utc, arrival?.revisedTime?.utc),
+    predictedTime: pick(departure?.predictedTime?.utc, arrival?.predictedTime?.utc),
+    runwayTime: pick(departure?.runwayTime?.utc, arrival?.runwayTime?.utc),
+    terminal: pick(departure?.terminal, arrival?.terminal),
+    checkInDesk: pick(departure?.checkInDesk, arrival?.checkInDesk),
+    gate: pick(departure?.gate, arrival?.gate),
+    baggageBelt: pick(arrival?.baggageBelt, departure?.baggageBelt),
+    rateLimitRequestsRemaining: toNum(getHeader("x-ratelimit-requests-remaining")),
+    rateLimitRequestsLimit: toNum(getHeader("x-ratelimit-requests-limit")),
+    rateLimitRequestsReset: toNum(getHeader("x-ratelimit-requests-reset"))
   };
 }

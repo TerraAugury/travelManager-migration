@@ -61,6 +61,21 @@ function toFlight(row) {
   };
 }
 
+function toNumberHeader(value) {
+  const parsed = Number.parseInt(String(value || ""), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toJsonOrText(raw) {
+  const text = String(raw || "").trim();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text.slice(0, 500);
+  }
+}
+
 export function registerFlightsTodayRoutes(app, deps) {
   const { pool } = deps;
   for (const base of ["", "/api"]) {
@@ -74,6 +89,37 @@ export function registerFlightsTodayRoutes(app, deps) {
       return c.json({
         date,
         flights: result.rows.map(toFlight)
+      });
+    });
+
+    app.get(path("/flights/aerodatabox/balance"), async (c) => {
+      const auth = await requireRequestUser(c, deps);
+      if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
+      const key = c.env?.AERODATABOX_API_KEY;
+      if (!key) return c.json({ error: "Flight lookup not configured on this server." }, 503);
+
+      const res = await fetch("https://aerodatabox.p.rapidapi.com/subscriptions/balance", {
+        headers: {
+          "X-RapidAPI-Key": key,
+          "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com"
+        }
+      });
+      const raw = await res.text();
+      if (!res.ok) {
+        return c.json({
+          error: "Could not load AeroDataBox balance.",
+          upstreamStatus: res.status,
+          upstreamBody: toJsonOrText(raw)
+        }, 502);
+      }
+      const json = toJsonOrText(raw) || {};
+      return c.json({
+        creditsRemaining: toNumberHeader(json?.creditsRemaining),
+        lastRefilledUtc: json?.lastRefilledUtc || null,
+        lastDeductedUtc: json?.lastDeductedUtc || null,
+        requestsRemaining: toNumberHeader(res.headers.get("x-ratelimit-requests-remaining")),
+        requestsLimit: toNumberHeader(res.headers.get("x-ratelimit-requests-limit")),
+        requestsReset: toNumberHeader(res.headers.get("x-ratelimit-requests-reset"))
       });
     });
   }

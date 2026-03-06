@@ -10,8 +10,9 @@ function appMock() {
   };
 }
 
-function cMock(headers = {}) {
+function cMock(headers = {}, env = {}) {
   return {
+    env,
     req: {
       header(name) { return headers[name.toLowerCase()] ?? null; }
     },
@@ -109,4 +110,60 @@ test("GET /api/flights/today returns 401 without authentication", async () => {
   assert.equal(result.status, 401);
   assert.match(result.data.error, /Missing bearer token/i);
   assert.equal(calls.length, 0);
+});
+
+test("GET /api/flights/aerodatabox/balance returns upstream balance and headers", async () => {
+  const app = appMock();
+  const { deps } = depsMock({ rows: [] });
+  registerFlightsTodayRoutes(app, deps);
+  const handler = app.routes.get("GET /api/flights/aerodatabox/balance");
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => ({
+      ok: true,
+      headers: new Headers({
+        "x-ratelimit-requests-remaining": "58",
+        "x-ratelimit-requests-limit": "600",
+        "x-ratelimit-requests-reset": "1234"
+      }),
+      text: async () => JSON.stringify({
+        creditsRemaining: 321,
+        lastRefilledUtc: "2026-03-06T10:00:00Z",
+        lastDeductedUtc: "2026-03-06T10:30:00Z"
+      })
+    });
+    const result = await handler(cMock({ authorization: "Bearer token" }, { AERODATABOX_API_KEY: "abc" }));
+    assert.equal(result.status, 200);
+    assert.deepEqual(result.data, {
+      creditsRemaining: 321,
+      lastRefilledUtc: "2026-03-06T10:00:00Z",
+      lastDeductedUtc: "2026-03-06T10:30:00Z",
+      requestsRemaining: 58,
+      requestsLimit: 600,
+      requestsReset: 1234
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("GET /api/flights/aerodatabox/balance exposes upstream error details", async () => {
+  const app = appMock();
+  const { deps } = depsMock({ rows: [] });
+  registerFlightsTodayRoutes(app, deps);
+  const handler = app.routes.get("GET /api/flights/aerodatabox/balance");
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => ({
+      ok: false,
+      status: 403,
+      text: async () => JSON.stringify({ message: "Forbidden" })
+    });
+    const result = await handler(cMock({ authorization: "Bearer token" }, { AERODATABOX_API_KEY: "abc" }));
+    assert.equal(result.status, 502);
+    assert.equal(result.data.upstreamStatus, 403);
+    assert.deepEqual(result.data.upstreamBody, { message: "Forbidden" });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

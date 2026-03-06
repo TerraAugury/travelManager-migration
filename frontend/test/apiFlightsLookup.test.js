@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { listFlightsToday, lookupFlight } from "../src/api.js";
+import { getAeroDataBoxBalance, listFlightsToday, lookupFlight } from "../src/api.js";
 
 function mockFetch({ ok = true, status = 200, body = {} } = {}) {
   const calls = [];
@@ -52,4 +52,10 @@ test("listFlightsToday normalizes missing flights payload to an array", async ()
   mockFetch({ body: { date: "2026-03-05" } });
   const out = await listFlightsToday("token-1");
   assert.deepEqual(out, { date: "2026-03-05", flights: [] });
+});
+
+test("getAeroDataBoxBalance normalizes numeric fields", async () => {
+  mockFetch({ body: { creditsRemaining: "12", requestsRemaining: "98", requestsLimit: "100", requestsReset: "1700" } });
+  const out = await getAeroDataBoxBalance("token-1");
+  assert.deepEqual(out, { creditsRemaining: 12, requestsRemaining: 98, requestsLimit: 100, requestsReset: 1700 });
 });
