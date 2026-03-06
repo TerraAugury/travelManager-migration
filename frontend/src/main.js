@@ -1,33 +1,24 @@
 import * as api from "./api.js";
-import { bindFlightLookup, fillFlightForm, fillHotelForm, fillTripEditor, readCreateFlightBody, readCreateHotelBody, readCreateTripBody, readUpdateTripBody } from "./forms.js";
+import { fillFlightForm, fillHotelForm, fillTripEditor, readCreateFlightBody, readCreateHotelBody, readCreateTripBody, readUpdateTripBody } from "./forms.js";
 import { createInsightsController } from "./insights.js";
 import { formatLegacyImportError, formatLegacyImportSuccess, importLegacyFromFile } from "./legacyImportFeedback.js";
+import { bindMainForms } from "./mainBindings.js";
+import { clearOfflineData, getOfflineData, setOfflineData } from "./offlineCache.js";
+import { createOfflineRefresh } from "./offlineRefresh.js";
+import { requireOnline, syncOfflineUi } from "./offlineUi.js";
 import { render } from "./render.js";
 import { bindUI, closeOverlay, setOverlayEditMode, syncFlightProviderSelect } from "./ui.js";
 import { getState, getFlightProvider, loadFlightProvider, loadToken, setFlights, setHotels, setPassengers, setSelectedTripId, setToken, setTrips, setUser } from "./state.js";
 let editingFlightId = null;
 let editingHotelId  = null;
+let isOffline = false;
 const insights = createInsightsController();
-function getActiveTrip() { return getState().trips.find((t) => t.id === getState().selectedTripId) || null; }
 function clearEventEditors() { editingFlightId = null; editingHotelId = null; fillFlightForm(null); fillHotelForm(null); }
-function syncTripEditor() { fillTripEditor(getActiveTrip()); }
-async function refreshTrips() {
-  const trips = await api.listTrips(getState().token);
-  setTrips(trips);
-  if (!getState().selectedTripId && trips.length) setSelectedTripId(trips[0].id);
-}
-async function refreshTripDetails() {
-  const { selectedTripId: tripId, token } = getState();
-  if (!tripId) return setFlights([]), setHotels([]), setPassengers([]);
-  const [flights, hotels, passengers] = await Promise.all([
-    api.listFlights(token, tripId),
-    api.listHotels(token, tripId),
-    api.listPassengers(token, tripId)
-  ]);
-  setFlights(flights);
-  setHotels(hotels);
-  setPassengers(passengers);
-}
+function syncTripEditor() { fillTripEditor(getState().trips.find((t) => t.id === getState().selectedTripId) || null); }
+function renderApp(actions) { render(actions); syncOfflineUi(isOffline); }
+function setOffline(next) { isOffline = Boolean(next); syncOfflineUi(isOffline); }
+const offline = createOfflineRefresh({ api, getState, setTrips, setSelectedTripId, setFlights, setHotels, setPassengers, setOfflineData, getOfflineData, setOffline });
+const { refreshTrips, refreshTripDetails } = offline;
 async function fullRefresh() {
   await refreshTrips();
   await refreshTripDetails();
@@ -35,18 +26,6 @@ async function fullRefresh() {
   if (!getState().hotels.some((x) => x.id === editingHotelId))   editingHotelId  = null;
   await insights.refresh(getState().token, getState().trips);
   syncTripEditor();
-}
-function bindForms(actions) {
-  document.getElementById("login-form").addEventListener("submit", actions.onLogin);
-  document.getElementById("logout-btn").addEventListener("click",  actions.onLogout);
-  document.getElementById("trip-form").addEventListener("submit",  actions.onCreateTrip);
-  document.getElementById("trip-edit-form").addEventListener("submit", actions.onUpdateTrip);
-  document.getElementById("flight-form").addEventListener("submit", actions.onUpsertFlight);
-  document.getElementById("hotel-form").addEventListener("submit",  actions.onUpsertHotel);
-  document.getElementById("trip-select").addEventListener("change", actions.onSelectTripChange);
-  document.getElementById("export-btn").addEventListener("click",   actions.onExport);
-  document.getElementById("import-file").addEventListener("change", actions.onImport);
-  bindFlightLookup((fn, date) => api.lookupFlight(getState().token, fn, getFlightProvider(), date));
 }
 async function bootstrap() {
   loadToken(); loadFlightProvider(); syncFlightProviderSelect();
@@ -56,39 +35,42 @@ async function bootstrap() {
       clearEventEditors();
       await refreshTripDetails();
       syncTripEditor();
-      render(actions);
+      renderApp(actions);
     },
     onDeleteTrip: async (tripId) => {
+      if (!requireOnline(isOffline)) return;
       await api.deleteTrip(getState().token, tripId);
       clearEventEditors();
       await fullRefresh();
-      render(actions);
+      renderApp(actions);
     },
     onEditFlight: (flightId) => {
       editingFlightId = flightId;
       fillFlightForm(getState().flights.find((f) => f.id === flightId) || null);
       setOverlayEditMode("flight", true);
-      render(actions);
+      renderApp(actions);
     },
     onDeleteFlight: async (flightId) => {
+      if (!requireOnline(isOffline)) return;
       await api.deleteFlight(getState().token, getState().selectedTripId, flightId);
       if (editingFlightId === flightId) { fillFlightForm(null); editingFlightId = null; }
       await refreshTripDetails();
       await insights.refresh(getState().token, getState().trips);
-      render(actions);
+      renderApp(actions);
     },
     onEditHotel: (hotelId) => {
       editingHotelId = hotelId;
       fillHotelForm(getState().hotels.find((h) => h.id === hotelId) || null);
       setOverlayEditMode("hotel", true);
-      render(actions);
+      renderApp(actions);
     },
     onDeleteHotel: async (hotelId) => {
+      if (!requireOnline(isOffline)) return;
       await api.deleteHotel(getState().token, getState().selectedTripId, hotelId);
       if (editingHotelId === hotelId) { fillHotelForm(null); editingHotelId = null; }
       await refreshTripDetails();
       await insights.refresh(getState().token, getState().trips);
-      render(actions);
+      renderApp(actions);
     },
     isEditingFlight: (id) => id === editingFlightId,
     isEditingHotel:  (id) => id === editingHotelId,
@@ -99,35 +81,42 @@ async function bootstrap() {
       const out = await api.login(email, password);
       setToken(out.token);
       setUser(out.user);
+      setOffline(false);
+      await setOfflineData("user", out.user);
       await fullRefresh();
-      render(actions);
+      renderApp(actions);
     },
     onLogout: async () => {
       try { if (getState().token) await api.logout(getState().token); } finally {
+        await clearOfflineData();
+        setOffline(false);
         setToken(null); setUser(null); setTrips([]); setSelectedTripId(null);
         setFlights([]); setHotels([]); setPassengers([]); clearEventEditors(); syncTripEditor();
         insights.reset();
-        render(actions);
+        renderApp(actions);
       }
     },
     onCreateTrip: async (event) => {
       event.preventDefault();
+      if (!requireOnline(isOffline)) return;
       const trip = await api.createTrip(getState().token, readCreateTripBody());
       event.target.reset();
       if (trip?.id) setSelectedTripId(trip.id);
       await fullRefresh();
-      render(actions);
+      renderApp(actions);
     },
     onUpdateTrip: async (event) => {
       event.preventDefault();
+      if (!requireOnline(isOffline)) return;
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
       await api.updateTrip(getState().token, tripId, readUpdateTripBody());
       await fullRefresh();
-      render(actions);
+      renderApp(actions);
     },
     onUpsertFlight: async (event) => {
       event.preventDefault();
+      if (!requireOnline(isOffline)) return;
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
       const body = readCreateFlightBody();
@@ -138,10 +127,11 @@ async function bootstrap() {
       closeOverlay("flight-overlay");
       await refreshTripDetails();
       await insights.refresh(getState().token, getState().trips);
-      render(actions);
+      renderApp(actions);
     },
     onUpsertHotel: async (event) => {
       event.preventDefault();
+      if (!requireOnline(isOffline)) return;
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
       const body = readCreateHotelBody();
@@ -152,7 +142,7 @@ async function bootstrap() {
       closeOverlay("hotel-overlay");
       await refreshTripDetails();
       await insights.refresh(getState().token, getState().trips);
-      render(actions);
+      renderApp(actions);
     },
     onSelectTripChange: async (event) => {
       const val = event.target.value;
@@ -160,6 +150,7 @@ async function bootstrap() {
       return actions.onSelectTrip(val || null);
     },
     onExport: async () => {
+      if (!requireOnline(isOffline)) return;
       const payload = await api.exportLegacyTrips(getState().token);
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url  = URL.createObjectURL(blob);
@@ -168,13 +159,14 @@ async function bootstrap() {
       URL.revokeObjectURL(url);
     },
     onImport: async (event) => {
+      if (!requireOnline(isOffline)) return;
       const file = event.target.files?.[0];
       try {
         const summary = await importLegacyFromFile(file, getState().token, api.importLegacyTrips);
         if (!summary) return;
         clearEventEditors();
         await fullRefresh();
-        render(actions);
+        renderApp(actions);
         window.alert(formatLegacyImportSuccess(summary));
       } catch (error) {
         window.alert(formatLegacyImportError(error));
@@ -183,17 +175,25 @@ async function bootstrap() {
       }
     }
   };
-  bindForms(actions);
+  bindMainForms(actions, { api, getState, getFlightProvider });
   bindUI(actions);
   insights.bind();
-  render(actions);
+  renderApp(actions);
   if (!getState().token) return;
   try {
-    setUser(await api.me(getState().token));
+    const user = await api.me(getState().token);
+    setUser(user);
+    setOffline(false);
+    await setOfflineData("user", user);
     await fullRefresh();
-    render(actions);
+    renderApp(actions);
   } catch {
-    await actions.onLogout();
+    const cachedUser = await getOfflineData("user");
+    if (!cachedUser) return actions.onLogout();
+    setUser(cachedUser);
+    setOffline(true);
+    await fullRefresh();
+    renderApp(actions);
   }
 }
 bootstrap().catch(console.error);

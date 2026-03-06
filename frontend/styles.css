@@ -178,3 +178,5 @@ input:focus,select:focus,textarea:focus {
 .confirm-title { margin: 0 0 8px; font-size: 17px; font-weight: 600; }
 .confirm-message { margin: 0 0 14px; font-size: 13px; color: var(--muted); line-height: 1.35; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.offline-banner { position: fixed; top: 56px; left: 0; right: 0; background: #f59e0b; color: #000; text-align: center; padding: 6px 12px; font-size: 13px; z-index: 900; }
+.offline-banner.hidden { display: none; }

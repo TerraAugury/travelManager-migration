@@ -1,32 +1,11 @@
 import * as api from "./api.js";
+import { getOfflineData, setOfflineData } from "./offlineCache.js";
 import { getState } from "./state.js";
 
 function esc(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
 function getElements() {
-  const ids = [
-    "daycount-passenger",
-    "daycount-year-list",
-    "daycount-results",
-    "daycount-empty",
-    "daycount-upcoming-list",
-    "daycount-upcoming-empty",
-    "upcoming-passenger",
-    "upcoming-list",
-    "upcoming-empty",
-    "today-empty", "today-flights",
-    "map-passenger",
-    "map-route",
-    "map-year-list",
-    "map-empty",
-    "map-warning",
-    "map-canvas",
-    "map-fullscreen-btn",
-    "map-badges-btn",
-    "trip-stats-container",
-    "trip-pax-container",
-    "trip-details-empty"
-  ];
+  const ids = ["daycount-passenger", "daycount-year-list", "daycount-results", "daycount-empty", "daycount-upcoming-list", "daycount-upcoming-empty", "upcoming-passenger", "upcoming-list", "upcoming-empty", "today-empty", "today-flights", "map-passenger", "map-route", "map-year-list", "map-empty", "map-warning", "map-canvas", "map-fullscreen-btn", "map-badges-btn", "trip-stats-container", "trip-pax-container", "trip-details-empty"];
   return ids.reduce((acc, id) => ({ ...acc, [id]: document.getElementById(id) }), {});
 }
 
@@ -183,7 +162,13 @@ export function createInsightsController() {
       render();
       return;
     }
-    const exported = await api.exportLegacyTrips(token);
+    let exported = null;
+    try {
+      exported = await api.exportLegacyTrips(token);
+      await setOfflineData("legacyTrips", exported);
+    } catch {
+      exported = await getOfflineData("legacyTrips");
+    }
     state.legacyTrips = Array.isArray(exported) ? exported : [];
     render();
   }
