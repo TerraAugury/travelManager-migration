@@ -57,15 +57,15 @@ body {
 } .btn-row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 
 input,select,textarea {
-  border: 1px solid var(--separator);
-  border-radius: var(--radius-sm);
+  border: none;
+  border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
   font: inherit; font-size: var(--font-size-subheadline);
   background: var(--bg-tertiary); color: var(--text-primary);
-  min-height: 44px;
+  min-height: 48px;
 }
 input:focus,select:focus,textarea:focus {
-  outline: 2px solid var(--accent-blue); outline-offset: -1px; border-color: transparent;
+  outline: 2px solid #007AFF; outline-offset: 2px;
 }
 @media (max-width: 720px) {
   input,select,textarea { font-size: var(--font-size-body); }
