@@ -1,12 +1,7 @@
 import { requireRequestUser } from "../auth/requestUser.js";
+import { sharedTripAccessWhere } from "../repositories/sharedAccessSql.js";
 
-const ACCESSIBLE_TRIPS_WHERE = `(t.owner_user_id = $1 OR t.id IN (
-  SELECT ts.trip_id FROM trip_shares ts WHERE ts.shared_with_user_id = $1 AND ts.trip_id IS NOT NULL
-  UNION
-  SELECT tr.id FROM trips tr
-    JOIN trip_shares ts2 ON ts2.owner_user_id = tr.owner_user_id
-    WHERE ts2.shared_with_user_id = $1 AND ts2.trip_id IS NULL
-))`;
+const ACCESSIBLE_TRIPS_WHERE = sharedTripAccessWhere({ tripAlias: "t", userParam: "$1" });
 
 const LIST_TODAY_FLIGHTS_SQL = `SELECT
   fr.id,

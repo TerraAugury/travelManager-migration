@@ -105,7 +105,7 @@ test("update hotel checks access by trip before update", async () => {
   assert.deepEqual(calls[0].params, ["h1"]);
   assert.deepEqual(accessCalls[0], ["u1", "trip-1"]);
   assert.match(calls[1].text, /UPDATE hotel_records/);
-  assert.deepEqual(calls[1].params.slice(0, 2), ["h1", "u1"]);
+  assert.deepEqual(calls[1].params.slice(0, 2), ["h1", "Marriott"]);
 });
 
 test("listByOwner returns owned and shared trips", async () => {

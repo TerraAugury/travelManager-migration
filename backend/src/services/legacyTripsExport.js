@@ -45,8 +45,8 @@ export function buildLegacyTripsExportService(deps) {
   async function exportAccessible(userId) {
     const [trips, flights, hotels] = await Promise.all([
       tripsRepository.listAccessible(userId),
-      flightsRepository.listByOwner(userId),
-      hotelsRepository.listByOwner(userId)
+      flightsRepository.listAccessible(userId),
+      hotelsRepository.listAccessible(userId)
     ]);
 
     const flightsByTrip = new Map();
@@ -94,7 +94,6 @@ export function buildLegacyTripsExportService(deps) {
   }
 
   return {
-    exportAccessible,
-    exportByOwner: exportAccessible
+    exportAccessible
   };
 }

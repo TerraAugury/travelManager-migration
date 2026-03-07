@@ -6,7 +6,7 @@ const HOTEL_COLUMNS = `hr.id, hr.trip_id, hr.created_by_user_id, hr.hotel_name, 
   hr.created_at, hr.updated_at`;
 
 export function buildHotelsRepository({ pool, tripSharesRepository }) {
-  async function listByOwner(ownerUserId) {
+  async function listAccessible(userId) {
     const result = await pool.query(
       `SELECT
          ${HOTEL_COLUMNS}
@@ -14,7 +14,7 @@ export function buildHotelsRepository({ pool, tripSharesRepository }) {
        JOIN trips t ON t.id = hr.trip_id
        WHERE ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$1" })}
        ORDER BY hr.trip_id, hr.check_in_date, hr.created_at`,
-      [ownerUserId]
+      [userId]
     );
     return result.rows;
   }
@@ -76,12 +76,12 @@ export function buildHotelsRepository({ pool, tripSharesRepository }) {
     const result = await pool.query(
       `UPDATE hotel_records
        SET
-         hotel_name = $3,
-         confirmation_id = $4,
-         check_in_date = $5,
-         check_out_date = $6,
-         pax_count = $7,
-         payment_type = $8,
+         hotel_name = $2,
+         confirmation_id = $3,
+         check_in_date = $4,
+         check_out_date = $5,
+         pax_count = $6,
+         payment_type = $7,
          updated_at = datetime('now')
        WHERE id = $1
        RETURNING
@@ -90,7 +90,6 @@ export function buildHotelsRepository({ pool, tripSharesRepository }) {
          created_at, updated_at`,
       [
         input.hotelId,
-        input.ownerUserId,
         input.hotelName,
         input.confirmationId,
         input.checkInDate,
@@ -121,7 +120,8 @@ export function buildHotelsRepository({ pool, tripSharesRepository }) {
   }
 
   return {
-    listByOwner,
+    listAccessible,
+    listByOwner: listAccessible,
     listByTrip,
     create,
     update,

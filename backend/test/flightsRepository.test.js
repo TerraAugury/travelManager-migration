@@ -124,11 +124,11 @@ test("update flight checks access by trip before update", async () => {
   assert.deepEqual(calls[0].params, ["f1"]);
   assert.deepEqual(accessCalls[0], ["u1", "trip-1"]);
   assert.match(calls[1].text, /UPDATE flight_records/);
-  assert.deepEqual(calls[1].params.slice(0, 2), ["f1", "u1"]);
-  assert.equal(calls[1].params[8], "2026-03-01T12:00");
-  assert.equal(calls[1].params[9], "Europe/London");
-  assert.equal(calls[1].params[13], "2026-03-01T11:00");
-  assert.equal(calls[1].params[14], "America/New_York");
+  assert.deepEqual(calls[1].params.slice(0, 2), ["f1", "BA123"]);
+  assert.equal(calls[1].params[7], "2026-03-01T12:00");
+  assert.equal(calls[1].params[8], "Europe/London");
+  assert.equal(calls[1].params[12], "2026-03-01T11:00");
+  assert.equal(calls[1].params[13], "America/New_York");
 });
 
 test("listByOwner returns owned and shared trips", async () => {

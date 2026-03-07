@@ -13,7 +13,7 @@ const FLIGHT_RETURN_COLUMNS = `id, trip_id, created_by_user_id, flight_number, a
   created_at, updated_at`;
 
 export function buildFlightsRepository({ pool, tripSharesRepository }) {
-  async function listByOwner(ownerUserId) {
+  async function listAccessible(userId) {
     const result = await pool.query(
       `SELECT
          ${FLIGHT_SELECT_COLUMNS}
@@ -21,7 +21,7 @@ export function buildFlightsRepository({ pool, tripSharesRepository }) {
        JOIN trips t ON t.id = fr.trip_id
        WHERE ${sharedTripAccessWhere({ tripAlias: "t", userParam: "$1" })}
        ORDER BY fr.trip_id, COALESCE(fr.departure_scheduled_local, fr.departure_scheduled, fr.created_at), fr.created_at`,
-      [ownerUserId]
+      [userId]
     );
     return result.rows;
   }
@@ -92,26 +92,25 @@ export function buildFlightsRepository({ pool, tripSharesRepository }) {
     const result = await pool.query(
       `UPDATE flight_records
        SET
-         flight_number = $3,
-         airline = $4,
-         pnr = $5,
-         departure_airport_name = $6,
-         departure_airport_code = $7,
-         departure_scheduled = $8,
-         departure_scheduled_local = $9,
-         departure_timezone = $10,
-         arrival_airport_name = $11,
-         arrival_airport_code = $12,
-         arrival_scheduled = $13,
-         arrival_scheduled_local = $14,
-         arrival_timezone = $15,
+         flight_number = $2,
+         airline = $3,
+         pnr = $4,
+         departure_airport_name = $5,
+         departure_airport_code = $6,
+         departure_scheduled = $7,
+         departure_scheduled_local = $8,
+         departure_timezone = $9,
+         arrival_airport_name = $10,
+         arrival_airport_code = $11,
+         arrival_scheduled = $12,
+         arrival_scheduled_local = $13,
+         arrival_timezone = $14,
          updated_at = datetime('now')
        WHERE id = $1
        RETURNING
          ${FLIGHT_RETURN_COLUMNS}`,
       [
         input.flightId,
-        input.ownerUserId,
         input.flightNumber,
         input.airline,
         input.pnr,
@@ -149,7 +148,8 @@ export function buildFlightsRepository({ pool, tripSharesRepository }) {
   }
 
   return {
-    listByOwner,
+    listAccessible,
+    listByOwner: listAccessible,
     listByTrip,
     create,
     update,

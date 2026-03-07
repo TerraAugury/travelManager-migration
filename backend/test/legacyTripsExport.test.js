@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildLegacyTripsExportService } from "../src/services/legacyTripsExport.js";
 
-test("exportByOwner returns legacy JSON shape", async () => {
+test("exportAccessible returns legacy JSON shape", async () => {
   const service = buildLegacyTripsExportService({
     tripsRepository: {
       async listAccessible() {
@@ -10,7 +10,7 @@ test("exportByOwner returns legacy JSON shape", async () => {
       }
     },
     flightsRepository: {
-      async listByOwner() {
+      async listAccessible() {
         return [{
           id: "f1",
           trip_id: "t1",
@@ -28,7 +28,7 @@ test("exportByOwner returns legacy JSON shape", async () => {
       }
     },
     hotelsRepository: {
-      async listByOwner() {
+      async listAccessible() {
         return [{
           id: "h1",
           trip_id: "t1",
@@ -48,7 +48,7 @@ test("exportByOwner returns legacy JSON shape", async () => {
     }
   });
 
-  const out = await service.exportByOwner("user-1");
+  const out = await service.exportAccessible("user-1");
   assert.equal(out.length, 1);
   assert.equal(out[0].records[0].route.departure.iata, "FRA");
   assert.equal(out[0].records[0].paxNames[0], "Alice");
