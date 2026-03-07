@@ -1,4 +1,4 @@
-const CACHE = "tm-v29";
+const CACHE = "tm-v30";
 const STATIC = [
   "/",
   "/styles.css",

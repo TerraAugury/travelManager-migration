@@ -116,7 +116,7 @@
 }
 
 .daycount-cal-day.today {
-  border: 2px solid #fff;
+  border: 2px solid var(--text-primary);
 }
 
 .daycount-cal-num {

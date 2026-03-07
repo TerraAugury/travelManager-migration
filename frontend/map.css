@@ -24,8 +24,8 @@
 }
 
 .map-action-btn {
-  min-height: 36px;
-  height: 36px;
+  min-height: 44px;
+  height: 44px;
   border-radius: var(--radius-pill);
   background: var(--bg-tertiary);
   border: 1px solid var(--separator);
@@ -68,8 +68,8 @@
   min-width: 44px;
   min-height: 44px;
   border-radius: var(--radius-pill);
-  background: #fff;
-  color: #0f172a;
+  background: var(--text-primary);
+  color: var(--ink-on-light);
   box-shadow: var(--shadow-badge);
   display: flex;
   flex-direction: column;
@@ -88,7 +88,7 @@
 .route-count-sub {
   font-size: 11px;
   line-height: 1;
-  color: rgba(15, 23, 42, 0.72);
+  color: var(--ink-on-light-muted);
   max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -96,8 +96,8 @@
 }
 
 .map-current-badge {
-  background: #007aff;
-  color: #fff;
+  background: var(--accent-blue);
+  color: var(--text-primary);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-badge);
   font-size: 12px;

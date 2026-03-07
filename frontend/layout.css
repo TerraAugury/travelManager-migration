@@ -43,8 +43,8 @@
 .menu-item {
   background: var(--accent-soft); color: var(--text);
   border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 8px 12px; font: inherit; font-size: 14px; cursor: pointer;
-  text-align: left; display: block; width: 100%;
+  min-height: 44px; padding: 8px 12px; font: inherit; font-size: 14px; cursor: pointer;
+  text-align: left; display: flex; align-items: center; width: 100%;
 }
 
 /* ── Screen tabs (desktop) ── */
@@ -141,7 +141,7 @@
   border-radius: 999px; background: var(--accent-soft); color: var(--accent);
   white-space: nowrap; flex-shrink: 0;
 }
-.event-tile-badge.hotel { background: rgba(52,199,89,0.12); color: #34c759; }
+.event-tile-badge.hotel { background: color-mix(in srgb,var(--color-green) 12%,transparent); color: var(--color-green); }
 .event-tile-actions { display: flex; gap: 6px; }
 
 /* ── Bottom nav ── */
