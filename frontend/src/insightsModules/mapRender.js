@@ -97,10 +97,7 @@ export function renderMapFlightsLayers(opts) {
   }
 
   resetMapLayers({ mapRoutesLayer, mapAirportsLayer, mapLabelsLayer });
-  if (!filtered.length) {
-    const text = mapState.nextFlightOnly && mapState.passenger ? "No upcoming flight for this passenger." : "No flights for this selection.";
-    return showEmpty({ emptyEl, warnEl, mapEl, mapInstance, text });
-  }
+  if (!filtered.length) return showEmpty({ emptyEl, warnEl, mapEl, mapInstance, text: mapState.nextFlightOnly && mapState.passenger ? "No flight planned." : "No flights for this selection." });
 
   const routesMap = new Map();
   const nodesUsed = new Map();

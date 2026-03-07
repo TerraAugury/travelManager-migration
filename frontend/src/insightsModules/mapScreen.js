@@ -107,7 +107,7 @@ export function createMapScreenController() {
     const paxOptions2 = getPassengerNamesFromFlights(
       mapState.routeKey ? mappedForYear.filter((row) => row.info.routeKey === mapState.routeKey).map((row) => row.flight) : mappedForYear.map((row) => row.flight)
     );
-    if (mapState.passenger && !paxOptions2.includes(mapState.passenger)) mapState.passenger = null;
+    if (mapState.passenger && !paxOptions2.includes(mapState.passenger) && !mapState.nextFlightOnly) mapState.passenger = null;
     if (passSelect) {
       passSelect.innerHTML = '<option value="__all__">All passengers</option>';
       paxOptions2.forEach((name) => passSelect.insertAdjacentHTML("beforeend", `<option value="${esc(name)}">${esc(name)}</option>`));
@@ -146,7 +146,7 @@ export function createMapScreenController() {
         if (node) {
           currentLocMarker = window.L.marker([node.lat, node.lon], {
             pane: "labelsPane", zIndexOffset: 9999,
-            icon: window.L.divIcon({ className: "map-current-badge", html: `<span class="icon">\u2708\uFE0F</span><span class="text">${esc(node.city)}</span>`, iconSize: null, iconAnchor: [12, 18] })
+            icon: window.L.divIcon({ className: "map-current-badge", html: '<span class="icon">\u2708\uFE0F</span>', iconSize: null, iconAnchor: [12, 18] })
           }).addTo(mapInstance);
         }
       }

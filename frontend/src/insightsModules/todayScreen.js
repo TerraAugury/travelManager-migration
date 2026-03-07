@@ -167,7 +167,7 @@ export async function renderTodayScreen({ els, token, api, esc, trips }) {
     const msg = failed
       ? "Could not load flights for today and tomorrow."
       : "No departures or arrivals are scheduled for today or tomorrow.";
-    emptyEl.innerHTML = `${renderTodayHeader(dayA, 0, safeEsc)}<div class="today-empty-wrap"><div class="today-empty-icon">✈️</div><h3 class="today-empty-title">No upcoming flights</h3><p class="today-empty-subtitle">${msg}</p></div>`;
+    emptyEl.innerHTML = `${renderTodayHeader(dayA, 0, safeEsc)}<div class="today-empty-wrap"><div class="today-empty-icon">✈️</div><h3 class="today-empty-title">No flights for today and tomorrow</h3><p class="today-empty-subtitle">${msg}</p></div>`;
     emptyEl.classList.remove("hidden");
     flightsEl.classList.add("hidden");
     flightsEl.innerHTML = "";

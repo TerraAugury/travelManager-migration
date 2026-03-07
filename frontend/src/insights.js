@@ -131,6 +131,7 @@ export function createInsightsController() {
     mapNext?.addEventListener("click", () => {
       if (!state.mapState.passenger) return;
       state.mapState.nextFlightOnly = !state.mapState.nextFlightOnly;
+      if (state.mapState.nextFlightOnly) state.mapState.routeKey = null;
       render();
     });
     mapFullscreen?.addEventListener("click", () => {

@@ -91,7 +91,7 @@ function todayTitle(isoDate) {
 }
 
 export function renderTodayHeader(date, count, esc) {
-  return `<header class="today-page-head"><h2 class="today-page-title">${esc(todayTitle(date))}</h2><p class="today-page-subtitle">${esc(`${count} flight${count === 1 ? "" : "s"} (today + tomorrow)`)}</p></header>`;
+  return `<header class="today-page-head"><h2 class="today-page-title">${esc(todayTitle(date))}</h2><p class="today-page-subtitle">${esc(`${count} flight${count === 1 ? "" : "s"} for today and tomorrow`)}</p></header>`;
 }
 
 export function renderTodayCard(flight, date, esc) {
