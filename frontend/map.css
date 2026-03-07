@@ -110,21 +110,19 @@
 }
 
 .map-current-badge {
-  background: var(--accent-blue);
-  color: var(--text-primary);
-  border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-badge);
-  font-size: 12px;
-  font-weight: 600;
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 13px;
   line-height: 1;
-  padding: 8px 12px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
 }
 
 .map-current-badge .icon {
-  font-size: 13px;
+  font-size: 16px;
 }
 
 body.map-fullscreen .container {
