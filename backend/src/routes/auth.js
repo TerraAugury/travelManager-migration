@@ -75,6 +75,10 @@ export async function registerAuthRoutes(app, deps) {
     const token = generateAuthToken();
     const session = await sessionsRepository.create({ userId: user.id, token });
 
+    const secure = c.req.url?.startsWith("https") ?? false;
+    const cookieAttrs = `HttpOnly; ${secure ? "Secure; " : ""}SameSite=Lax; Max-Age=2592000; Path=/`;
+    c.header("Set-Cookie", `tm_session=${token}; ${cookieAttrs}`);
+
     return c.json({
       token,
       expiresAt: session.expires_at,
@@ -104,6 +108,9 @@ export async function registerAuthRoutes(app, deps) {
     if (auth.token) {
       await sessionsRepository.revokeToken(auth.token);
     }
+    const secure = c.req.url?.startsWith("https") ?? false;
+    const cookieAttrs = `HttpOnly; ${secure ? "Secure; " : ""}SameSite=Lax; Max-Age=0; Path=/`;
+    c.header("Set-Cookie", `tm_session=; ${cookieAttrs}`);
     return c.json({ ok: true });
   });
 }

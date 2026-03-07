@@ -10,7 +10,8 @@ async function request(path, options = {}, token = null) {
   }
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers
+    headers,
+    credentials: "include"
   });
 
   const text = await response.text();
