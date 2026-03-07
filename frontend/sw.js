@@ -1,4 +1,4 @@
-const CACHE = "tm-v31";
+const CACHE = "tm-v33";
 const STATIC = [
   "/",
   "/styles.css",
@@ -31,6 +31,7 @@ const STATIC = [
   "/src/insightsModules/mapBadgeLayout.js",
   "/src/insightsModules/mapRender.js",
   "/src/insightsModules/mapScreen.js",
+  "/src/insightsModules/todayFlightCard.js",
   "/src/insightsModules/todayScreen.js",
   "/src/insightsModules/upcomingScreen.js",
   "/src/insightsModules/tripStats.js",

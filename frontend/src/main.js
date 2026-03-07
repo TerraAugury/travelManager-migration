@@ -178,7 +178,7 @@ async function bootstrap() {
   };
   bindMainForms(actions, { api, getState, getFlightProvider });
   bindUI(actions);
-  insights.bind();
+  insights.bind(actions);
   renderApp(actions);
   if (!getState().token) return;
   try {

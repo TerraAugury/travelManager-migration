@@ -1,6 +1,7 @@
 import { getPassengerFlights, dedupeFlightsForMap, normalizePassengerNames } from "./flightUtils.js";
 import {
   buildCityIndexFromAirportCoords,
+  getMapNodeFromAirportCode,
   mapFlightToCityRoute,
   buildGreatCircleArcLatLngs,
   estimateArcSegments
@@ -26,33 +27,21 @@ export function createMapScreenController() {
   let lastBadgeData = [];
   let lastMapState = null;
   let lastBounds = null;
-  let currentLocationBadge = null;
+  let currentLocMarker = null;
 
   function ensureMapInitialized(els) {
-    const mapEl = els["map-canvas"];
-    if (!mapEl) return false;
+    if (!els["map-canvas"]) return false;
     if (mapInstance) return true;
     if (!window.L || typeof window.L.map !== "function") return false;
-    mapInstance = window.L.map(mapEl, { zoomControl: true });
-    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    const L = window.L;
+    mapInstance = L.map(els["map-canvas"], { zoomControl: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mapInstance);
-    mapInstance.createPane("routesPane").style.zIndex = 300;
-    mapInstance.createPane("airportsPane").style.zIndex = 450;
-    mapInstance.createPane("labelsPane").style.zIndex = 500;
-    mapRoutesLayer = window.L.featureGroup().addTo(mapInstance);
-    mapAirportsLayer = window.L.layerGroup().addTo(mapInstance);
-    mapLabelsLayer = window.L.layerGroup().addTo(mapInstance);
-    if (!currentLocationBadge) {
-      currentLocationBadge = window.L.control({ position: "topleft" });
-      currentLocationBadge.onAdd = () => {
-        const el = window.L.DomUtil.create("div", "map-current-badge");
-        el.innerHTML = '<span class="icon">✈️</span><span class="text">Current location</span>';
-        return el;
-      };
-      currentLocationBadge.addTo(mapInstance);
-    }
+    for (const [name, z] of [["routesPane", 300], ["airportsPane", 450], ["labelsPane", 500]]) mapInstance.createPane(name).style.zIndex = z;
+    mapRoutesLayer = L.featureGroup().addTo(mapInstance);
+    mapAirportsLayer = L.layerGroup().addTo(mapInstance);
+    mapLabelsLayer = L.layerGroup().addTo(mapInstance);
     mapInstance.setView([20, 0], 2);
     return true;
   }
@@ -140,11 +129,28 @@ export function createMapScreenController() {
       return;
     }
     lastMapState = mapState;
+    if (currentLocMarker) { currentLocMarker.remove(); currentLocMarker = null; }
     lastBadgeData = renderMapFlightsLayers({
       trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer, cityIndex,
       getPassengerFlights, dedupeFlightsForMap,
       buildGreatCircleArcLatLngs, estimateArcSegments, esc
     }) || [];
+    if (mapState.passenger) {
+      const now = new Date();
+      const allPaxFlights = dedupeFlightsForMap(getPassengerFlights(trips, mapState.passenger))
+        .filter((f) => f.date <= now)
+        .sort((a, b) => b.date - a.date);
+      const lastFlight = allPaxFlights[0];
+      if (lastFlight?.arrivalCode) {
+        const node = getMapNodeFromAirportCode(lastFlight.arrivalCode, cityIndex);
+        if (node) {
+          currentLocMarker = window.L.marker([node.lat, node.lon], {
+            pane: "labelsPane", zIndexOffset: 9999,
+            icon: window.L.divIcon({ className: "map-current-badge", html: `<span class="icon">\u2708\uFE0F</span><span class="text">${esc(node.city)}</span>`, iconSize: null, iconAnchor: [12, 18] })
+          }).addTo(mapInstance);
+        }
+      }
+    }
     if (mapRoutesLayer?.getBounds) {
       const bounds = mapRoutesLayer.getBounds();
       lastBounds = bounds && bounds.isValid && bounds.isValid() ? bounds : null;
@@ -170,15 +176,12 @@ export function createMapScreenController() {
   }
 
   function syncMapActionButtons({ mapState, els }) {
-    const fsBtn = els["map-fullscreen-btn"];
-    const badgesBtn = els["map-badges-btn"];
-    if (fsBtn) fsBtn.textContent = mapState.fullscreen ? "Exit full screen" : "Full screen";
-    if (badgesBtn) {
-      badgesBtn.textContent = mapState.showBadges ? "Hide badges" : "Show badges";
-      badgesBtn.setAttribute("aria-pressed", mapState.showBadges ? "true" : "false");
+    if (els["map-fullscreen-btn"]) els["map-fullscreen-btn"].textContent = mapState.fullscreen ? "Exit full screen" : "Full screen";
+    if (els["map-badges-btn"]) {
+      els["map-badges-btn"].textContent = mapState.showBadges ? "Hide badges" : "Show badges";
+      els["map-badges-btn"].setAttribute("aria-pressed", mapState.showBadges ? "true" : "false");
     }
   }
-
   function setMapFullscreen({ on, mapState, els }) {
     mapState.fullscreen = !!on;
     document.body.classList.toggle("map-fullscreen", mapState.fullscreen);

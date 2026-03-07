@@ -103,16 +103,13 @@
 .upcoming-group-items { display: grid; gap: 10px; }
 .upcoming-item.past { opacity: 0.5; }
 .upcoming-card { position: relative; }
-.upcoming-status-badge {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  border-radius: var(--radius-pill);
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-orange);
-  background: var(--orange-soft-15);
+.upcoming-item.past .trip-event-card:active { background: var(--bg-secondary); }
+.upcoming-card.connecting-leg .flight-action-row { display: none; }
+
+.connecting-summary-line {
+  flex: 1;
+  border-top: 1px dashed var(--line-soft-10);
+  margin: 0 var(--space-2);
 }
 
 .stats-grid { display: grid; gap: 8px; }
@@ -123,22 +120,32 @@
 .today-page-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
 .today-page-title { margin: 0; font-size: 28px; font-weight: 700; line-height: 1.1; color: var(--text-primary); }
 .today-page-subtitle { margin: 0; font-size: 15px; color: var(--text-secondary); }
+.today-refresh-indicator { display: flex; justify-content: center; align-items: center; min-height: 20px; margin-bottom: 8px; }
+.today-refresh-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--accent-soft-15);
+  border-top-color: var(--accent-blue);
+  border-radius: 50%;
+  animation: today-spin 700ms linear infinite;
+}
+
 .today-list { display: grid; gap: 12px; }
 .today-flight-card { margin: 0; }
-.today-flight-airports { font-size: 13px; color: var(--text-secondary); }
-.today-flight-actions { display: flex; justify-content: flex-end; }
-.today-flight-status { font-size: 13px; font-weight: 600; margin: 2px 0; }
-.today-flight-status.on-time { color: var(--today-on-time); }
-.today-flight-status.delayed { color: var(--today-delayed); }
-.today-flight-status.cancelled { color: var(--today-cancelled); }
-.today-flight-status.landed { color: var(--today-landed); }
-.today-flight-live-meta { font-size: 12px; color: var(--today-live-meta); margin: 0; }
+.today-flight-card .flight-type-row { padding-right: 96px; }
+.today-flight-actions { justify-content: flex-start; }
+.today-flight-status { top: var(--space-4); right: var(--space-5); }
+.today-flight-live-meta { font-size: 12px; color: var(--today-live-meta); margin: 0; min-height: 16px; }
 .today-flight-live-meta .late { color: var(--today-cancelled); font-weight: 600; }
 .today-flight-live-meta .ontrack { color: var(--today-on-time); font-weight: 600; }
 .today-empty-wrap { min-height: 52vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; }
 .today-empty-icon { font-size: 48px; line-height: 1; }
 .today-empty-title { margin: 0; font-size: 20px; font-weight: 700; color: var(--text-primary); }
 .today-empty-subtitle { margin: 0; font-size: 15px; color: var(--text-secondary); }
+
+@keyframes today-spin {
+  to { transform: rotate(360deg); }
+}
 
 @media (max-width: 720px) {
   .daycount-months { grid-template-columns: repeat(2, minmax(0, 1fr)); }

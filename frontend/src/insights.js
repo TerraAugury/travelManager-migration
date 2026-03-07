@@ -2,14 +2,11 @@ import * as api from "./api.js";
 import { getOfflineData, setOfflineData } from "./offlineCache.js";
 import { getState } from "./state.js";
 import { syncCustomControls } from "./customControls.js";
-
 function esc(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-
 function getElements() {
   const ids = ["daycount-passenger", "daycount-year-list", "daycount-results", "daycount-empty", "daycount-upcoming-list", "daycount-upcoming-empty", "upcoming-passenger", "upcoming-list", "upcoming-empty", "today-empty", "today-flights", "map-passenger", "map-route", "map-year-list", "map-empty", "map-warning", "map-canvas", "map-fullscreen-btn", "map-badges-btn", "trip-stats-container", "trip-pax-container", "trip-details-empty"];
   return ids.reduce((acc, id) => ({ ...acc, [id]: document.getElementById(id) }), {});
 }
-
 export function createInsightsController() {
   const noop = () => {};
   const state = {
@@ -23,10 +20,10 @@ export function createInsightsController() {
     renderUpcomingScreen: noop,
     renderTodayScreen: noop,
     renderAllTripsDetails: noop,
+    upcomingActions: { onEditFlight: noop, onDeleteFlight: noop },
     modulesReady: false,
     modulesPromise: null
   };
-
   async function importScriptModule(path) {
     try {
       const response = await fetch(path, { cache: "no-store" });
@@ -37,7 +34,6 @@ export function createInsightsController() {
       return null;
     }
   }
-
   function ensureModules() {
     if (state.modulesReady) return Promise.resolve();
     if (state.modulesPromise) return state.modulesPromise;
@@ -66,10 +62,14 @@ export function createInsightsController() {
     })();
     return state.modulesPromise;
   }
-
   function render() {
     if (!state.els?.["upcoming-list"]) return;
-    state.renderUpcomingScreen({ trips: state.legacyTrips, upcomingState: state.upcomingState, els: state.els });
+    state.renderUpcomingScreen({
+      trips: state.legacyTrips,
+      upcomingState: state.upcomingState,
+      els: state.els,
+      actions: state.upcomingActions
+    });
     state.renderDaycountView({ trips: state.legacyTrips, daycountState: state.daycountState, els: state.els });
     state.renderAllTripsDetails(
       state.legacyTrips,
@@ -83,9 +83,20 @@ export function createInsightsController() {
     }
     syncCustomControls();
   }
-
-  function bind() {
+  function bind(actions = {}) {
     state.els = getElements();
+    state.upcomingActions = {
+      onEditFlight: async (tripId, flightId) => {
+        if (!tripId || !flightId) return;
+        if (getState().selectedTripId !== tripId) await actions.onSelectTrip?.(tripId);
+        actions.onEditFlight?.(flightId);
+      },
+      onDeleteFlight: async (tripId, flightId) => {
+        if (!tripId || !flightId) return;
+        if (getState().selectedTripId !== tripId) await actions.onSelectTrip?.(tripId);
+        await actions.onDeleteFlight?.(flightId);
+      }
+    };
     const upcomingSelect = state.els["upcoming-passenger"];
     const daycountSelect = state.els["daycount-passenger"];
     const mapPassenger = state.els["map-passenger"];
@@ -156,7 +167,6 @@ export function createInsightsController() {
     });
     void ensureModules().then(render);
   }
-
   async function refresh(token, trips) {
     await ensureModules();
     if (!token || !Array.isArray(trips)) {
@@ -174,7 +184,6 @@ export function createInsightsController() {
     state.legacyTrips = Array.isArray(exported) ? exported : [];
     render();
   }
-
   function reset() {
     state.legacyTrips = [];
     state.daycountState = { passenger: "", year: new Date().getFullYear(), monthSelection: null, viewMode: "list" };
@@ -182,6 +191,5 @@ export function createInsightsController() {
     state.mapState = { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false };
     render();
   }
-
   return { bind, refresh, reset };
 }

@@ -1,3 +1,3 @@
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js?v=31", { updateViaCache: "none" }).catch(() => {});
+  navigator.serviceWorker.register("/sw.js?v=33", { updateViaCache: "none" }).catch(() => {});
 }

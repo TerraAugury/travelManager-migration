@@ -40,8 +40,7 @@
 }
 .trip-event-card:active { background: var(--bg-elevated); }
 .flight-card { display: flex; flex-direction: column; gap: var(--space-3); }
-.flight-card.has-status .flight-type-row { padding-right: 92px; }
-.flight-type-row { display: flex; justify-content: space-between; gap: var(--space-2); align-items: baseline; }
+.flight-type-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .flight-type-label {
   color: var(--text-secondary);
   font-size: var(--font-size-caption2);
@@ -49,7 +48,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.flight-type-meta { color: var(--text-secondary); font-size: var(--font-size-footnote); }
+.flight-type-meta { order: -1; color: var(--text-secondary); font-size: var(--font-size-footnote); }
 .flight-status-badge {
   position: absolute;
   top: var(--space-4);
@@ -63,6 +62,9 @@
 .status-confirmed { background: var(--green-soft-15); color: var(--color-green); }
 .status-delayed { background: var(--red-soft-15); color: var(--color-red); }
 .status-past { background: var(--text-soft-10); color: var(--text-soft-40); }
+.flight-card .flight-status-badge.status-upcoming, .flight-card .flight-status-badge.status-past { top: auto; bottom: 12px; right: 14px; }
+.flight-card .flight-status-badge.status-upcoming ~ .flight-passengers-row,
+.flight-card .flight-status-badge.status-past ~ .flight-passengers-row { padding-right: 96px; }
 .flight-action-row,
 .event-card-actions { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
 .evt-pill-btn,
@@ -85,7 +87,6 @@
 }
 .evt-icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .evt-pill-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
 .flight-route-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: var(--space-3); }
 .flight-airport-code {
   color: var(--text-primary);
@@ -113,7 +114,6 @@
   font-size: var(--font-size-caption);
   font-weight: var(--font-weight-footnote);
 }
-
 .connecting-group {
   position: relative;
   background: var(--bg-secondary);
