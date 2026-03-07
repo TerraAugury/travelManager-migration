@@ -3,7 +3,7 @@ import { bindFlightLookup, fillFlightForm, fillHotelForm, fillTripEditor, readCr
 import { createInsightsController } from "./insights.js";
 import { render } from "./render.js";
 import { bindUI, closeOverlay, setOverlayEditMode, syncFlightProviderSelect } from "./ui.js";
-import { getState, getFlightProvider, loadFlightProvider, loadToken, setFlights, setHotels, setPassengers, setSelectedTripId, setToken, setTrips, setUser } from "./state.js";
+import { getState, getFlightProvider, loadFlightProvider, setFlights, setHotels, setPassengers, setSelectedTripId, setTrips, setUser } from "./state.js";
 
 let editingFlightId = null;
 let editingHotelId  = null;
@@ -14,17 +14,17 @@ function clearEventEditors() { editingFlightId = null; editingHotelId = null; fi
 function syncTripEditor() { fillTripEditor(getActiveTrip()); }
 
 async function refreshTrips() {
-  const trips = await api.listTrips(getState().token);
+  const trips = await api.listTrips();
   setTrips(trips);
   if (!getState().selectedTripId && trips.length) setSelectedTripId(trips[0].id);
 }
 async function refreshTripDetails() {
-  const { selectedTripId: tripId, token } = getState();
+  const { selectedTripId: tripId } = getState();
   if (!tripId) return setFlights([]), setHotels([]), setPassengers([]);
   const [flights, hotels, passengers] = await Promise.all([
-    api.listFlights(token, tripId),
-    api.listHotels(token, tripId),
-    api.listPassengers(token, tripId)
+    api.listFlights(tripId),
+    api.listHotels(tripId),
+    api.listPassengers(tripId)
   ]);
   setFlights(flights);
   setHotels(hotels);
@@ -35,7 +35,7 @@ async function fullRefresh() {
   await refreshTripDetails();
   if (!getState().flights.some((x) => x.id === editingFlightId)) editingFlightId = null;
   if (!getState().hotels.some((x) => x.id === editingHotelId))   editingHotelId  = null;
-  await insights.refresh(getState().token, getState().trips);
+  await insights.refresh(getState().trips);
   syncTripEditor();
 }
 
@@ -49,11 +49,11 @@ function bindForms(actions) {
   document.getElementById("trip-select").addEventListener("change", actions.onSelectTripChange);
   document.getElementById("export-btn").addEventListener("click",   actions.onExport);
   document.getElementById("import-file").addEventListener("change", actions.onImport);
-  bindFlightLookup((fn, date) => api.lookupFlight(getState().token, fn, getFlightProvider(), date));
+  bindFlightLookup((fn, date) => api.lookupFlight(fn, getFlightProvider(), date));
 }
 
 async function bootstrap() {
-  loadToken(); loadFlightProvider(); syncFlightProviderSelect();
+  loadFlightProvider(); syncFlightProviderSelect();
   const actions = {
     onSelectTrip: async (tripId) => {
       setSelectedTripId(tripId);
@@ -63,7 +63,7 @@ async function bootstrap() {
       render(actions);
     },
     onDeleteTrip: async (tripId) => {
-      await api.deleteTrip(getState().token, tripId);
+      await api.deleteTrip(tripId);
       clearEventEditors();
       await fullRefresh();
       render(actions);
@@ -75,10 +75,10 @@ async function bootstrap() {
       render(actions);
     },
     onDeleteFlight: async (flightId) => {
-      await api.deleteFlight(getState().token, getState().selectedTripId, flightId);
+      await api.deleteFlight(getState().selectedTripId, flightId);
       if (editingFlightId === flightId) { fillFlightForm(null); editingFlightId = null; }
       await refreshTripDetails();
-      await insights.refresh(getState().token, getState().trips);
+      await insights.refresh(getState().trips);
       render(actions);
     },
     onEditHotel: (hotelId) => {
@@ -88,10 +88,10 @@ async function bootstrap() {
       render(actions);
     },
     onDeleteHotel: async (hotelId) => {
-      await api.deleteHotel(getState().token, getState().selectedTripId, hotelId);
+      await api.deleteHotel(getState().selectedTripId, hotelId);
       if (editingHotelId === hotelId) { fillHotelForm(null); editingHotelId = null; }
       await refreshTripDetails();
-      await insights.refresh(getState().token, getState().trips);
+      await insights.refresh(getState().trips);
       render(actions);
     },
     isEditingFlight: (id) => id === editingFlightId,
@@ -101,14 +101,13 @@ async function bootstrap() {
       const email    = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value;
       const out = await api.login(email, password);
-      setToken(out.token);
       setUser(out.user);
       await fullRefresh();
       render(actions);
     },
     onLogout: async () => {
-      try { if (getState().token) await api.logout(getState().token); } finally {
-        setToken(null); setUser(null); setTrips([]); setSelectedTripId(null);
+      try { await api.logout(); } catch { /* ignore */ } finally {
+        setUser(null); setTrips([]); setSelectedTripId(null);
         setFlights([]); setHotels([]); setPassengers([]); clearEventEditors(); syncTripEditor();
         insights.reset();
         render(actions);
@@ -116,7 +115,7 @@ async function bootstrap() {
     },
     onCreateTrip: async (event) => {
       event.preventDefault();
-      const trip = await api.createTrip(getState().token, readCreateTripBody());
+      const trip = await api.createTrip(readCreateTripBody());
       event.target.reset();
       if (trip?.id) setSelectedTripId(trip.id);
       await fullRefresh();
@@ -126,7 +125,7 @@ async function bootstrap() {
       event.preventDefault();
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
-      await api.updateTrip(getState().token, tripId, readUpdateTripBody());
+      await api.updateTrip(tripId, readUpdateTripBody());
       await fullRefresh();
       render(actions);
     },
@@ -135,13 +134,13 @@ async function bootstrap() {
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
       const body = readCreateFlightBody();
-      if (editingFlightId) await api.updateFlight(getState().token, tripId, editingFlightId, body);
-      else                 await api.createFlight(getState().token, tripId, body);
+      if (editingFlightId) await api.updateFlight(tripId, editingFlightId, body);
+      else                 await api.createFlight(tripId, body);
       event.target.reset();
       editingFlightId = null;
       closeOverlay("flight-overlay");
       await refreshTripDetails();
-      await insights.refresh(getState().token, getState().trips);
+      await insights.refresh(getState().trips);
       render(actions);
     },
     onUpsertHotel: async (event) => {
@@ -149,13 +148,13 @@ async function bootstrap() {
       const tripId = getState().selectedTripId;
       if (!tripId) throw new Error("Select a trip first.");
       const body = readCreateHotelBody();
-      if (editingHotelId) await api.updateHotel(getState().token, tripId, editingHotelId, body);
-      else                await api.createHotel(getState().token, tripId, body);
+      if (editingHotelId) await api.updateHotel(tripId, editingHotelId, body);
+      else                await api.createHotel(tripId, body);
       event.target.reset();
       editingHotelId = null;
       closeOverlay("hotel-overlay");
       await refreshTripDetails();
-      await insights.refresh(getState().token, getState().trips);
+      await insights.refresh(getState().trips);
       render(actions);
     },
     onSelectTripChange: async (event) => {
@@ -164,7 +163,7 @@ async function bootstrap() {
       return actions.onSelectTrip(val || null);
     },
     onExport: async () => {
-      const payload = await api.exportLegacyTrips(getState().token);
+      const payload = await api.exportLegacyTrips();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url  = URL.createObjectURL(blob);
       const link = Object.assign(document.createElement("a"), { href: url, download: "trips-legacy-export.json" });
@@ -175,7 +174,7 @@ async function bootstrap() {
       const file = event.target.files?.[0];
       if (!file) return;
       if (file.size > 5 * 1024 * 1024) throw new Error("Import file too large (max 5 MB).");
-      await api.importLegacyTrips(getState().token, JSON.parse(await file.text()));
+      await api.importLegacyTrips(JSON.parse(await file.text()));
       event.target.value = "";
       clearEventEditors();
       await fullRefresh();
@@ -188,13 +187,12 @@ async function bootstrap() {
   insights.bind();
   render(actions);
 
-  if (!getState().token) return;
   try {
-    setUser(await api.me(getState().token));
+    setUser(await api.me());
     await fullRefresh();
     render(actions);
   } catch {
-    await actions.onLogout();
+    render(actions);
   }
 }
 bootstrap().catch(console.error);

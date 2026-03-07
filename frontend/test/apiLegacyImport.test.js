@@ -19,7 +19,7 @@ function mockFetch() {
 
 test("importLegacyTrips sends items array when payload is wrapped", async () => {
   const calls = mockFetch();
-  await importLegacyTrips("token-1", { items: [{ name: "Trip A" }] });
+  await importLegacyTrips({ items: [{ name: "Trip A" }] });
   assert.equal(calls[0].url, "/api/sync/trips");
   assert.equal(calls[0].options.method, "PUT");
   assert.equal(calls[0].options.body, JSON.stringify([{ name: "Trip A" }]));

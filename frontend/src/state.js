@@ -1,7 +1,6 @@
-import { TOKEN_STORAGE_KEY, FLIGHT_PROVIDER_STORAGE_KEY } from "./config.js";
+import { FLIGHT_PROVIDER_STORAGE_KEY } from "./config.js";
 
 const state = {
-  token: null,
   user: null,
   trips: [],
   selectedTripId: null,
@@ -20,33 +19,8 @@ function getLocalStorage() {
   }
 }
 
-function getSessionStorage() {
-  try {
-    if (typeof window === "undefined") return null;
-    return window.sessionStorage || null;
-  } catch {
-    return null;
-  }
-}
-
 export function getState() {
   return state;
-}
-
-export function loadToken() {
-  const storage = getSessionStorage();
-  state.token = storage?.getItem(TOKEN_STORAGE_KEY) || null;
-  return state.token;
-}
-
-export function setToken(token) {
-  const storage = getSessionStorage();
-  state.token = token || null;
-  if (state.token) {
-    storage?.setItem(TOKEN_STORAGE_KEY, state.token);
-  } else {
-    storage?.removeItem(TOKEN_STORAGE_KEY);
-  }
 }
 
 export function setUser(user) {

@@ -163,14 +163,14 @@ export function createInsightsController() {
     void ensureModules().then(render);
   }
 
-  async function refresh(token, trips) {
+  async function refresh(trips) {
     await ensureModules();
-    if (!token || !Array.isArray(trips)) {
+    if (!Array.isArray(trips)) {
       state.legacyTrips = [];
       render();
       return;
     }
-    const exported = await api.exportLegacyTrips(token);
+    const exported = await api.exportLegacyTrips();
     state.legacyTrips = Array.isArray(exported) ? exported : [];
     render();
   }

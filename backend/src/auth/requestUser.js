@@ -7,8 +7,14 @@ function getBearerToken(c) {
   return match ? match[1].trim() : null;
 }
 
+function getCookieToken(c) {
+  const cookie = c.req.header("cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)tm_session=([^;]+)/);
+  return match ? match[1] : null;
+}
+
 async function byToken(c, usersRepository, sessionsRepository) {
-  const token = getBearerToken(c);
+  const token = getBearerToken(c) || getCookieToken(c);
   if (!token) return null;
 
   const session = await sessionsRepository.findActiveByToken(token);

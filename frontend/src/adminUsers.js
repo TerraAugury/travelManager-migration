@@ -9,7 +9,7 @@ import {
 
 const adminState = {
   bound: false,
-  loadedToken: null,
+  loadedUserId: null,
   loading: false,
   users: [],
   filters: { role: "", active: "" },
@@ -20,7 +20,7 @@ const adminState = {
 };
 
 function resetForLogout() {
-  adminState.loadedToken = null;
+  adminState.loadedUserId = null;
   adminState.loading = false;
   adminState.users = [];
   adminState.editingId = null;
@@ -51,14 +51,14 @@ export function buildUpdateUserBody(input) {
 }
 
 async function loadUsers() {
-  const token = getState().token;
-  if (!token) return;
+  const user = getState().user;
+  if (!user) return;
   adminState.needsReload = false;
   adminState.loading = true;
   adminState.error = "";
   paintAdminUsersList(adminState);
   try {
-    adminState.users = await api.listUsers(token, adminState.filters);
+    adminState.users = await api.listUsers(adminState.filters);
   } catch (error) {
     adminState.error = error.message;
   } finally {
@@ -85,7 +85,7 @@ function bindEvents() {
       }
       if (event.target.id === "admin-users-create-form") {
         const data = new FormData(event.target);
-        await api.createUser(getState().token, Object.fromEntries(data.entries()));
+        await api.createUser(Object.fromEntries(data.entries()));
         event.target.reset();
         adminState.message = "User created.";
         adminState.error = "";
@@ -94,7 +94,6 @@ function bindEvents() {
       if (event.target.classList.contains("admin-user-edit-form")) {
         const data = new FormData(event.target);
         await api.updateUser(
-          getState().token,
           event.target.dataset.userId,
           buildUpdateUserBody(Object.fromEntries(data.entries()))
         );
@@ -118,7 +117,7 @@ function bindEvents() {
     if (deleteId) {
       try {
         if (!window.confirm("Deactivate this user?")) return;
-        await api.deleteUser(getState().token, deleteId);
+        await api.deleteUser(deleteId);
         adminState.editingId = null;
         adminState.message = "User deactivated.";
         adminState.error = "";
@@ -137,16 +136,15 @@ export function renderAdminUsers() {
   ensureAdminUsersMarkup();
   bindEvents();
   const user = getState().user;
-  const token = getState().token;
-  const isAdmin = Boolean(user && token && user.role === "admin");
-  syncAdminNavVisibility(Boolean(user && user.role === "admin"));
+  const isAdmin = Boolean(user && user.role === "admin");
+  syncAdminNavVisibility(isAdmin);
   toggleAdminUsersAccess(isAdmin);
   if (!isAdmin) {
     resetForLogout();
     return;
   }
-  if (adminState.loadedToken !== token) {
-    adminState.loadedToken = token;
+  if (adminState.loadedUserId !== user.id) {
+    adminState.loadedUserId = user.id;
     adminState.needsReload = true;
   }
   paintAdminUsersList(adminState);
