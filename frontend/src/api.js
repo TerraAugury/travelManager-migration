@@ -46,6 +46,10 @@ export async function listTrips(token) {
   return payload?.items || [];
 }
 
+export async function listShares(token) { const payload = await request("/trips/shares", {}, token); return payload?.items || []; }
+export async function createShare(token, { email, tripId }) { return request("/trips/shares", { method: "POST", body: JSON.stringify({ email, tripId: tripId || null }) }, token); }
+export async function deleteShare(token, shareId) { return request(`/trips/shares/${encodeURIComponent(shareId)}`, { method: "DELETE" }, token); }
+
 export async function createTrip(token, body) {
   return request("/trips", {
     method: "POST",

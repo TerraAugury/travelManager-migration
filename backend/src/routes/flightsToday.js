@@ -1,5 +1,13 @@
 import { requireRequestUser } from "../auth/requestUser.js";
 
+const ACCESSIBLE_TRIPS_WHERE = `(t.owner_user_id = $1 OR t.id IN (
+  SELECT ts.trip_id FROM trip_shares ts WHERE ts.shared_with_user_id = $1 AND ts.trip_id IS NOT NULL
+  UNION
+  SELECT tr.id FROM trips tr
+    JOIN trip_shares ts2 ON ts2.owner_user_id = tr.owner_user_id
+    WHERE ts2.shared_with_user_id = $1 AND ts2.trip_id IS NULL
+))`;
+
 const LIST_TODAY_FLIGHTS_SQL = `SELECT
   fr.id,
   fr.trip_id,
@@ -18,7 +26,7 @@ JOIN trips t ON t.id = fr.trip_id
 LEFT JOIN flight_passengers fp ON fp.flight_record_id = fr.id
 LEFT JOIN trip_passengers tp ON tp.trip_id = t.id AND tp.passenger_id = fp.passenger_id
 LEFT JOIN passengers p ON p.id = tp.passenger_id
-WHERE t.owner_user_id = $1
+WHERE ${ACCESSIBLE_TRIPS_WHERE}
   AND (
     DATE(fr.departure_scheduled) = DATE('now')
     OR DATE(fr.arrival_scheduled) = DATE('now')

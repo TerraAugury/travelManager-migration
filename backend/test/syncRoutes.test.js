@@ -27,7 +27,7 @@ function depsMock() {
     allowDevHeaderAuth: false,
     usersRepository: { async findActiveById() { return user; } },
     sessionsRepository: { async findActiveByToken() { return { id: "s1", user_id: user.id }; } },
-    legacyTripsExportService: { async exportByOwner() { return [{ id: "t1", name: "Trip" }]; } },
+    legacyTripsExportService: { async exportAccessible() { return [{ id: "t1", name: "Trip" }]; } },
     legacyTripsImportService: { async replaceForOwner() { return { importedTrips: 1 }; } }
   };
 }

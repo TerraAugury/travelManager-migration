@@ -42,11 +42,11 @@ function hotelToLegacyRecord(hotel, passengerNames) {
 export function buildLegacyTripsExportService(deps) {
   const { tripsRepository, flightsRepository, hotelsRepository, passengersRepository } = deps;
 
-  async function exportByOwner(ownerUserId) {
+  async function exportAccessible(userId) {
     const [trips, flights, hotels] = await Promise.all([
-      tripsRepository.listByOwner(ownerUserId),
-      flightsRepository.listByOwner(ownerUserId),
-      hotelsRepository.listByOwner(ownerUserId)
+      tripsRepository.listAccessible(userId),
+      flightsRepository.listByOwner(userId),
+      hotelsRepository.listByOwner(userId)
     ]);
 
     const flightsByTrip = new Map();
@@ -94,6 +94,7 @@ export function buildLegacyTripsExportService(deps) {
   }
 
   return {
-    exportByOwner
+    exportAccessible,
+    exportByOwner: exportAccessible
   };
 }

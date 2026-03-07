@@ -14,7 +14,7 @@ export function registerSyncRoutes(app, deps) {
   app.get("/api/sync/trips", async (c) => {
     const auth = await requireRequestUser(c, deps);
     if (auth.error) return c.json({ error: auth.error }, auth._status || 401);
-    const trips = await legacyTripsExportService.exportByOwner(auth.user.id);
+    const trips = await legacyTripsExportService.exportAccessible(auth.user.id);
     return c.json(trips);
   });
 
@@ -28,7 +28,7 @@ export function registerSyncRoutes(app, deps) {
       auth.user.id,
       parsed.value
     );
-    const trips = await legacyTripsExportService.exportByOwner(auth.user.id);
+    const trips = await legacyTripsExportService.exportAccessible(auth.user.id);
     return c.json({ importedTrips: result.importedTrips, items: trips });
   });
 }

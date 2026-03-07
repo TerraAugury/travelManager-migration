@@ -6,6 +6,7 @@ import { bindMainForms } from "./mainBindings.js";
 import { clearOfflineData, getOfflineData, setOfflineData } from "./offlineCache.js";
 import { createOfflineRefresh } from "./offlineRefresh.js";
 import { requireOnline, syncOfflineUi } from "./offlineUi.js";
+import "./shareOverlay.js";
 import { render } from "./render.js";
 import { bindUI, closeOverlay, setOverlayEditMode, syncFlightProviderSelect } from "./ui.js";
 import { getState, getFlightProvider, loadFlightProvider, loadToken, setFlights, setHotels, setPassengers, setSelectedTripId, setToken, setTrips, setUser } from "./state.js";

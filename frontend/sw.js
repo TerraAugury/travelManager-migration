@@ -1,4 +1,4 @@
-const CACHE = "tm-v22";
+const CACHE = "tm-v23";
 const STATIC = [
   "/",
   "/styles.css",
@@ -39,6 +39,7 @@ const STATIC = [
   "/src/offlineRefresh.js",
   "/src/offlineUi.js",
   "/src/render.js",
+  "/src/shareOverlay.js",
   "/src/state.js",
   "/src/tripEventTiles.js",
   "/src/ui.js",

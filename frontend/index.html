@@ -57,7 +57,7 @@
       <main id="screen-trips" class="screen active-screen layout-columns">
         <div class="card-trip-container">
           <div class="card card-trip">
-            <div class="card-head"><div class="card-title">Control Center</div><div id="trip-edit-actions" class="card-head-actions hidden"><button type="button" id="trip-delete-btn" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete trip" title="Delete trip"><span class="mobile-icon-text">Delete</span></button></div></div>
+            <div class="card-head"><div class="card-title">Control Center</div><div id="trip-edit-actions" class="card-head-actions hidden"><button type="button" id="trip-share-btn" class="btn btn-ghost btn-xs" aria-label="Share trip" title="Share trip">Share</button><button type="button" id="trip-delete-btn" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete trip" title="Delete trip"><span class="mobile-icon-text">Delete</span></button></div></div>
             <div class="field"><label for="trip-select">Trip</label><select id="trip-select"><option value="">Select a trip…</option></select></div>
             <div class="hint"><label for="show-past-trips"><input id="show-past-trips" type="checkbox"/> Show past trips</label></div>
             <form id="trip-form" class="new-trip-form hidden form-stack">
@@ -191,6 +191,7 @@
 <div class="field"><label for="flight-provider-select">Flight data source</label><select id="flight-provider-select"><option value="aviationstack">AviationStack</option><option value="aerodatabox">AeroDataBox (RapidAPI)</option><option value="flightera">Flightera</option></select></div>
 <p class="hint">Choose which API to use for the Lookup button. The selected provider must be configured on the server.</p>
 </div></section></div>
+<div id="share-overlay" class="overlay hidden" aria-hidden="true"><div class="overlay-backdrop" data-share-overlay-close="1"></div><section class="overlay-card" role="dialog" aria-modal="true"><button type="button" id="close-share-overlay" class="overlay-close-btn" aria-label="Close">×</button><div class="card-title">Share Trip</div><div class="form-stack"><div class="field"><label><input id="share-all-toggle" type="checkbox"/> <span id="share-scope-label">Share this trip only</span></label></div><div class="field"><label for="share-email">Email</label><div class="field-action"><input id="share-email" type="email" maxlength="255" placeholder="name@example.com"/><button type="button" id="share-submit-btn" class="btn btn-primary btn-xs">Share</button></div></div><div id="share-status" class="lookup-status"></div><div id="share-list" class="form-stack"></div><div class="overlay-actions"><button type="button" class="btn btn-ghost" id="cancel-share-btn">Close</button></div></div></section></div>
 <script nonce="tm-csp-v1" src="./vendor/leaflet.js"></script>
 <script nonce="tm-csp-v1" src="./sw-register.js"></script>
 <script nonce="tm-csp-v1" type="module" src="./src/main.js"></script>

@@ -5,7 +5,7 @@ import { buildLegacyTripsExportService } from "../src/services/legacyTripsExport
 test("exportByOwner returns legacy JSON shape", async () => {
   const service = buildLegacyTripsExportService({
     tripsRepository: {
-      async listByOwner() {
+      async listAccessible() {
         return [{ id: "t1", name: "Trip", created_at: "2026-01-01", updated_at: "2026-01-02" }];
       }
     },
