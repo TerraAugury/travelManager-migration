@@ -1,5 +1,17 @@
 #screen-map .field-group {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  position: relative;
+  z-index: 20;
+}
+
+#screen-map .field,
+#screen-map .custom-select {
+  position: relative;
+  z-index: 21;
+}
+
+#screen-map .custom-select-list {
+  z-index: 220;
 }
 
 #screen-map .map-year-field {
@@ -35,6 +47,8 @@
 }
 
 .map-canvas {
+  position: relative;
+  z-index: 1;
   min-height: 420px;
   border: 1px solid var(--separator);
   border-radius: var(--radius-xl);

@@ -86,14 +86,12 @@ function flightTypeLabel(flight, date) {
 }
 
 function todayTitle(isoDate) {
-  const raw = /^(\d{4}-\d{2}-\d{2})$/.exec(String(isoDate || ""))?.[1] || new Date().toISOString().slice(0, 10);
-  const date = new Date(`${raw}T12:00:00Z`);
-  if (Number.isNaN(date.getTime())) return raw;
-  return new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(date);
+  void isoDate;
+  return "Next flight";
 }
 
 export function renderTodayHeader(date, count, esc) {
-  return `<header class="today-page-head"><h2 class="today-page-title">${esc(todayTitle(date))}</h2><p class="today-page-subtitle">${esc(`${count} flight${count === 1 ? "" : "s"} today`)}</p></header>`;
+  return `<header class="today-page-head"><h2 class="today-page-title">${esc(todayTitle(date))}</h2><p class="today-page-subtitle">${esc(`${count} flight${count === 1 ? "" : "s"} (today + tomorrow)`)}</p></header>`;
 }
 
 export function renderTodayCard(flight, date, esc) {

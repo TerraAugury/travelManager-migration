@@ -14,7 +14,7 @@ export function createInsightsController() {
     legacyTrips: [],
     daycountState: { passenger: "", year: new Date().getFullYear(), monthSelection: null, viewMode: "list" },
     upcomingState: { passenger: "" },
-    mapState: { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false },
+    mapState: { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false, nextFlightOnly: false },
     mapController: { renderMapScreen: noop, setMapFullscreen: noop },
     renderDaycountView: noop,
     renderUpcomingScreen: noop,
@@ -64,22 +64,14 @@ export function createInsightsController() {
   }
   function render() {
     if (!state.els?.["upcoming-list"]) return;
-    state.renderUpcomingScreen({
-      trips: state.legacyTrips,
-      upcomingState: state.upcomingState,
-      els: state.els,
-      actions: state.upcomingActions
-    });
+    state.renderUpcomingScreen({ trips: state.legacyTrips, upcomingState: state.upcomingState, els: state.els, actions: state.upcomingActions });
     state.renderDaycountView({ trips: state.legacyTrips, daycountState: state.daycountState, els: state.els });
-    state.renderAllTripsDetails(
-      state.legacyTrips,
-      state.els["trip-stats-container"],
-      state.els["trip-pax-container"],
-      state.els["trip-details-empty"]
-    );
+    state.renderAllTripsDetails(state.legacyTrips, state.els["trip-stats-container"], state.els["trip-pax-container"], state.els["trip-details-empty"]);
     state.mapController.renderMapScreen({ trips: state.legacyTrips, mapState: state.mapState, els: state.els });
+    const nextBtn = document.getElementById("map-next-flight-btn");
+    if (nextBtn) { nextBtn.classList.toggle("hidden", !state.mapState.passenger); nextBtn.textContent = state.mapState.nextFlightOnly ? "All flights" : "Next flight"; nextBtn.setAttribute("aria-pressed", state.mapState.nextFlightOnly ? "true" : "false"); }
     if (document.getElementById("screen-today")?.classList.contains("active-screen")) {
-      void state.renderTodayScreen({ els: state.els, token: getState().token, api, esc });
+      void state.renderTodayScreen({ els: state.els, token: getState().token, api, esc, trips: state.legacyTrips });
     }
     syncCustomControls();
   }
@@ -104,6 +96,7 @@ export function createInsightsController() {
     const mapYearList = state.els["map-year-list"];
     const mapFullscreen = state.els["map-fullscreen-btn"];
     const mapBadges = state.els["map-badges-btn"];
+    const mapNext = document.getElementById("map-next-flight-btn");
     const yearList = state.els["daycount-year-list"];
     const daycountResults = state.els["daycount-results"];
 
@@ -118,6 +111,7 @@ export function createInsightsController() {
     });
     mapPassenger?.addEventListener("change", () => {
       state.mapState.passenger = mapPassenger.value === "__all__" ? null : mapPassenger.value || null;
+      if (!state.mapState.passenger) state.mapState.nextFlightOnly = false;
       render();
     });
     mapRoute?.addEventListener("change", () => {
@@ -132,6 +126,11 @@ export function createInsightsController() {
     });
     mapBadges?.addEventListener("click", () => {
       state.mapState.showBadges = !state.mapState.showBadges;
+      render();
+    });
+    mapNext?.addEventListener("click", () => {
+      if (!state.mapState.passenger) return;
+      state.mapState.nextFlightOnly = !state.mapState.nextFlightOnly;
       render();
     });
     mapFullscreen?.addEventListener("click", () => {
@@ -188,7 +187,7 @@ export function createInsightsController() {
     state.legacyTrips = [];
     state.daycountState = { passenger: "", year: new Date().getFullYear(), monthSelection: null, viewMode: "list" };
     state.upcomingState = { passenger: "" };
-    state.mapState = { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false };
+    state.mapState = { passenger: null, routeKey: null, year: new Date().getFullYear(), showBadges: true, fullscreen: false, nextFlightOnly: false };
     render();
   }
   return { bind, refresh, reset };

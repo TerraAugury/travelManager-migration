@@ -37,6 +37,16 @@ function showEmpty({ emptyEl, warnEl, mapEl, mapInstance, text }) {
   mapInstance.setView([20, 0], 2);
   return [];
 }
+function nextPassengerFlight({ trips, passenger, getPassengerFlights, dedupeFlightsForMap, mapFlightToCityRoute, cityIndex }) {
+  if (!passenger) return null;
+  const now = Date.now();
+  const flights = dedupeFlightsForMap(getPassengerFlights(trips, passenger));
+  for (const flight of flights) {
+    if (!(flight?.date instanceof Date) || flight.date.getTime() < now) continue;
+    if (mapFlightToCityRoute(flight, cityIndex)) return flight;
+  }
+  return null;
+}
 export function repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapState }) {
   mapLabelsLayer?.clearLayers();
   if (!mapInstance || !mapState?.showBadges) return;
@@ -78,11 +88,19 @@ export function renderMapFlightsLayers(opts) {
   const emptyEl = els["map-empty"];
   const warnEl = els["map-warning"];
   const mapEl = els["map-canvas"];
-  const yearFlights = dedupeFlightsForMap(getPassengerFlights(trips, null)).filter((f) => f.date.getFullYear() === mapState.year);
-  const filtered = mapState.passenger ? yearFlights.filter((f) => (f.paxNames || []).includes(mapState.passenger)) : yearFlights;
+  const allFlights = dedupeFlightsForMap(getPassengerFlights(trips, null));
+  const yearFlights = allFlights.filter((f) => f.date.getFullYear() === mapState.year);
+  let filtered = mapState.passenger ? yearFlights.filter((f) => (f.paxNames || []).includes(mapState.passenger)) : yearFlights;
+  if (mapState.nextFlightOnly && mapState.passenger) {
+    const next = nextPassengerFlight({ trips, passenger: mapState.passenger, getPassengerFlights, dedupeFlightsForMap, mapFlightToCityRoute, cityIndex });
+    filtered = next ? [next] : [];
+  }
 
   resetMapLayers({ mapRoutesLayer, mapAirportsLayer, mapLabelsLayer });
-  if (!filtered.length) return showEmpty({ emptyEl, warnEl, mapEl, mapInstance, text: "No flights for this selection." });
+  if (!filtered.length) {
+    const text = mapState.nextFlightOnly && mapState.passenger ? "No upcoming flight for this passenger." : "No flights for this selection.";
+    return showEmpty({ emptyEl, warnEl, mapEl, mapInstance, text });
+  }
 
   const routesMap = new Map();
   const nodesUsed = new Map();
