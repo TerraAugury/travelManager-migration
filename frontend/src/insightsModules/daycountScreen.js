@@ -1,4 +1,4 @@
-import { getPassengerFlights, startOfUtcDay } from "./daycountData.js";
+import { buildCountryColorMap, getPassengerFlights, startOfUtcDay } from "./daycountData.js";
 import { renderCalendarView } from "./daycountCalendar.js";
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
@@ -121,8 +121,10 @@ function countryCard(country, months, selectedCountry, selectedMonth) {
 
 export function renderDaycountView({ trips, daycountState, els }) {
   const passSelect = els["daycount-passenger"]; const yearList = els["daycount-year-list"]; const resultsEl = els["daycount-results"]; const emptyEl = els["daycount-empty"]; const toggleBtn = document.getElementById("daycount-view-toggle");
+  const screenEl = document.getElementById("screen-daycount");
   if (!passSelect || !yearList || !resultsEl || !emptyEl) return;
   ensureYearRow(yearList, toggleBtn);
+  if (screenEl) screenEl.classList.toggle("calendar-mode", daycountState.viewMode === "calendar");
   const passengers = getPassengers(trips);
   passSelect.innerHTML = '<option value="">Select passenger</option>';
   for (const passenger of passengers) passSelect.insertAdjacentHTML("beforeend", `<option value="${esc(passenger)}"${passenger === daycountState.passenger ? " selected" : ""}>${esc(passenger)}</option>`);
@@ -130,6 +132,7 @@ export function renderDaycountView({ trips, daycountState, els }) {
   if (toggleBtn) toggleBtn.textContent = daycountState.viewMode === "calendar" ? "List view" : "Calendar view";
   if (!daycountState.passenger) { emptyEl.textContent = passengers.length ? "Choose a passenger to view travel summary." : "No passengers yet."; emptyEl.classList.remove("hidden"); yearList.innerHTML = ""; resultsEl.innerHTML = ""; return; }
   const summary = buildMonthSummary(trips, daycountState.passenger);
+  buildCountryColorMap(trips, daycountState.passenger);
   const years = Object.keys(summary).map((y) => Number.parseInt(y, 10)).sort((a, b) => b - a);
   if (!years.length) { emptyEl.textContent = "No travel data for this passenger."; emptyEl.classList.remove("hidden"); yearList.innerHTML = ""; resultsEl.innerHTML = ""; return; }
   if (!years.includes(daycountState.year)) { daycountState.year = years[0]; daycountState.monthSelection = null; }

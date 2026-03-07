@@ -1,5 +1,8 @@
 import { airportToCountry } from "./airportCountries.js";
 
+const PALETTE_SIZE = 12;
+let runtimeCountryColorMap = new Map();
+
 export function hasPassenger(entry, passenger) {
   const names = Array.isArray(entry?.paxNames) ? entry.paxNames : [];
   return names.some((name) => String(name || "").trim() === passenger);
@@ -31,4 +34,26 @@ export function getPassengerFlights(trips, passenger) {
   }
   flights.sort((a, b) => a.date.getTime() - b.date.getTime());
   return flights;
+}
+
+export function buildCountryColorMap(trips, passenger) {
+  const flights = getPassengerFlights(trips, passenger);
+  const nextMap = new Map();
+  let nextIndex = 1;
+  const touch = (country) => {
+    const key = String(country || "Other").trim() || "Other";
+    if (nextMap.has(key)) return;
+    nextMap.set(key, nextIndex);
+    nextIndex = nextIndex >= PALETTE_SIZE ? 1 : nextIndex + 1;
+  };
+  for (const flight of flights) {
+    touch(flight.departureCountry);
+    touch(flight.arrivalCountry);
+  }
+  runtimeCountryColorMap = nextMap;
+  return Object.fromEntries(nextMap);
+}
+
+export function getCountryColorMap() {
+  return Object.fromEntries(runtimeCountryColorMap);
 }
