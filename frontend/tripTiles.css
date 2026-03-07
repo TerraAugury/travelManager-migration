@@ -112,7 +112,6 @@
 .flight-time-row { display: grid; grid-template-columns: 1fr 1fr; align-items: center; }
 .flight-time,
 .route-time,
-.hotel-meta,
 .layover-text { color: var(--text-secondary); font-size: var(--font-size-subheadline); }
 
 .flight-passengers-row,
@@ -134,9 +133,33 @@
   font-weight: var(--font-weight-footnote);
 }
 
-.hotel-card { background: linear-gradient(180deg, rgba(48, 176, 199, 0.08) 0%, var(--bg-secondary) 100%); border-left: 3px solid var(--accent-teal); }
-.hotel-label { font-size: var(--font-size-footnote); color: var(--text-secondary); }
-.event-title { color: var(--text-secondary); font-size: var(--font-size-footnote); }
+.hotel-card {
+  background: linear-gradient(0deg, rgba(48, 176, 199, 0.08), rgba(48, 176, 199, 0.08)), var(--bg-secondary);
+  border-left: 3px solid #30b0c7;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.hotel-type-row { display: flex; align-items: center; }
+.hotel-card .event-kicker { color: #30b0c7; }
+.hotel-name {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-title2);
+}
+.hotel-stay-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: var(--space-3); }
+.hotel-stay-col { min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.hotel-stay-label { color: var(--text-secondary); font-size: var(--font-size-caption); }
+.hotel-stay-date { color: var(--text-primary); font-size: var(--font-size-subheadline); }
+.hotel-nights { color: var(--text-secondary); font-size: var(--font-size-footnote); }
+.hotel-bed-icon {
+  color: #30b0c7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.hotel-bed-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hotel-meta-row { color: var(--text-secondary); font-size: var(--font-size-footnote); }
 .layover-card { background: var(--bg-tertiary); }
 .layover-icon { color: var(--accent-blue); display: inline-flex; }
 .layover-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
