@@ -1,7 +1,8 @@
-const CACHE = "tm-v24";
+const CACHE = "tm-v25";
 const STATIC = [
   "/",
   "/styles.css",
+  "/tokens.css",
   "/layout.css",
   "/tripTiles.css",
   "/overlays.css",
