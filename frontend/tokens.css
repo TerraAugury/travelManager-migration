@@ -17,6 +17,16 @@
   --ink-on-light-muted: rgba(15, 23, 42, 0.72);
   --separator: rgba(255, 255, 255, 0.08);
   --overlay: rgba(0, 0, 0, 0.5);
+  --accent-soft-15: rgba(0, 122, 255, 0.15);
+  --accent-soft-40: rgba(0, 122, 255, 0.4);
+  --orange-soft-15: rgba(255, 159, 10, 0.15);
+  --green-soft-15: rgba(48, 209, 88, 0.15);
+  --red-soft-15: rgba(255, 69, 58, 0.15);
+  --text-soft-10: rgba(235, 235, 245, 0.1);
+  --text-soft-40: rgba(235, 235, 245, 0.4);
+  --line-soft-10: rgba(255, 255, 255, 0.1);
+  --line-soft-25: rgba(255, 255, 255, 0.25);
+  --teal-soft-08: rgba(48, 176, 199, 0.08);
   --today-on-time: #15803d;
   --today-delayed: #b45309;
   --today-cancelled: #dc2626;
