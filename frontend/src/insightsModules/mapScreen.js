@@ -2,7 +2,6 @@ import { getPassengerFlights, dedupeFlightsForMap, normalizePassengerNames } fro
 import {
   buildCityIndexFromAirportCoords,
   mapFlightToCityRoute,
-  computeBearingDegrees,
   buildGreatCircleArcLatLngs,
   estimateArcSegments
 } from "./mapGeo.js";
@@ -27,6 +26,7 @@ export function createMapScreenController() {
   let lastBadgeData = [];
   let lastMapState = null;
   let lastBounds = null;
+  let currentLocationBadge = null;
 
   function ensureMapInitialized(els) {
     const mapEl = els["map-canvas"];
@@ -44,6 +44,15 @@ export function createMapScreenController() {
     mapRoutesLayer = window.L.featureGroup().addTo(mapInstance);
     mapAirportsLayer = window.L.layerGroup().addTo(mapInstance);
     mapLabelsLayer = window.L.layerGroup().addTo(mapInstance);
+    if (!currentLocationBadge) {
+      currentLocationBadge = window.L.control({ position: "topleft" });
+      currentLocationBadge.onAdd = () => {
+        const el = window.L.DomUtil.create("div", "map-current-badge");
+        el.innerHTML = '<span class="icon">✈️</span><span class="text">Current location</span>';
+        return el;
+      };
+      currentLocationBadge.addTo(mapInstance);
+    }
     mapInstance.setView([20, 0], 2);
     return true;
   }
@@ -62,6 +71,14 @@ export function createMapScreenController() {
     const passSelect = els["map-passenger"];
     const routeSelect = els["map-route"];
     const yearList = els["map-year-list"];
+    const yearField = yearList?.closest(".field");
+    const group = yearField?.parentElement;
+    if (group && yearField && group.classList.contains("field-group") && !group.dataset.mapYearPinned) {
+      group.dataset.mapYearPinned = "1";
+      yearField.classList.add("map-year-field");
+      group.prepend(yearField);
+    }
+    for (const btn of Array.from(document.querySelectorAll("#screen-map .map-actions .btn"))) btn.classList.add("map-action-btn");
     const allFlights = dedupeFlightsForMap(getPassengerFlights(trips, null));
     const yearsSet = new Set();
     for (const flight of allFlights) {
@@ -126,7 +143,7 @@ export function createMapScreenController() {
     lastBadgeData = renderMapFlightsLayers({
       trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer, cityIndex,
       getPassengerFlights, dedupeFlightsForMap,
-      computeBearingDegrees, buildGreatCircleArcLatLngs, estimateArcSegments, esc
+      buildGreatCircleArcLatLngs, estimateArcSegments, esc
     }) || [];
     if (mapRoutesLayer?.getBounds) {
       const bounds = mapRoutesLayer.getBounds();

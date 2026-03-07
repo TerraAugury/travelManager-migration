@@ -6,11 +6,6 @@ import {
 } from "./mapGeo.js";
 
 const ROUTE_COLORS = ["#D32F2F", "#1565C0", "#2E7D32", "#F57F17", "#6A1B9A", "#00838F", "#E65100", "#37474F"];
-const ROUTE_COLOR_SET = new Set(ROUTE_COLORS);
-// Guard: only palette colors may appear in inline style attributes.
-function safeRouteColor(color) {
-  return ROUTE_COLOR_SET.has(color) ? color : "#37474F";
-}
 function buildFlightsList(flights, esc) {
   const lines = (flights || [])
     .slice()
@@ -55,19 +50,19 @@ export function repositionBadges({ mapInstance, mapLabelsLayer, badgeData, mapSt
     const offset = 12;
     if (pAB && badge.countAB) {
       const llAB = mapInstance.unproject(window.L.point(pAB.point.x - pAB.dir.y * offset, pAB.point.y + pAB.dir.x * offset), zoom);
-      const html = `<div class="route-count-badge" style="color:${safeRouteColor(badge.color)};"><div class="route-count-num">${badge.countAB}</div><div class="route-count-arrow" style="transform:rotate(${badge.rotAB}deg);">&#9992;</div></div>`;
+      const html = `<div class="route-count-badge"><div class="route-count-num">${badge.countAB}</div><div class="route-count-sub">${badge.subAB}</div></div>`;
       candidates.push({ latLng: llAB, count: badge.countAB, html, popup: badge.popupForward, routeKey: badge.routeKey });
     }
     if (pBA && badge.countBA) {
       const llBA = mapInstance.unproject(window.L.point(pBA.point.x + pBA.dir.y * offset, pBA.point.y - pBA.dir.x * offset), zoom);
-      const html = `<div class="route-count-badge" style="color:${safeRouteColor(badge.color)};"><div class="route-count-num">${badge.countBA}</div><div class="route-count-arrow" style="transform:rotate(${badge.rotBA}deg);">&#9992;</div></div>`;
+      const html = `<div class="route-count-badge"><div class="route-count-num">${badge.countBA}</div><div class="route-count-sub">${badge.subBA}</div></div>`;
       candidates.push({ latLng: llBA, count: badge.countBA, html, popup: badge.popupBack, routeKey: badge.routeKey });
     }
   }
   const visible = layoutBadgesForZoom(candidates, mapInstance, zoom);
   for (const badge of visible) {
     const html = badge.isCluster
-      ? `<div class="route-count-badge route-count-badge-cluster" style="color:${badge.color};"><div class="route-count-num">${badge.count}</div><div class="route-count-meta">${badge.routeCount}r</div></div>`
+      ? `<div class="route-count-badge route-count-badge-cluster"><div class="route-count-num">${badge.count}</div><div class="route-count-sub">${badge.routeCount} routes</div></div>`
       : badge.html;
     window.L.marker(badge.latLng, { pane: "labelsPane", zIndexOffset: badge.count, icon: window.L.divIcon({ className: "route-count-icon", html, iconSize: [50, 50], iconAnchor: [25, 25] }) })
       .bindPopup(badge.popup).addTo(mapLabelsLayer);
@@ -78,7 +73,7 @@ export function renderMapFlightsLayers(opts) {
   const {
     trips, mapState, els, mapInstance, mapRoutesLayer, mapAirportsLayer, mapLabelsLayer, cityIndex,
     getPassengerFlights, dedupeFlightsForMap,
-    computeBearingDegrees, buildGreatCircleArcLatLngs, estimateArcSegments, esc
+    buildGreatCircleArcLatLngs, estimateArcSegments, esc
   } = opts;
   const emptyEl = els["map-empty"];
   const warnEl = els["map-warning"];
@@ -148,18 +143,16 @@ export function renderMapFlightsLayers(opts) {
     const popupBack = popupHtml({ depCity: arr.city, arrCity: dep.city, flights: route.flightsBA, esc });
     window.L.polyline(arc, { color: lineColor, weight: Math.min(9, 3 + Math.log2(total + 1)), opacity: lineOpacity, pane: "routesPane" }).bindPopup(popupAll).addTo(mapRoutesLayer);
 
-    const bearing = computeBearingDegrees(dep.lat, dep.lon, arr.lat, arr.lon);
-    const rotAB = Math.round(bearing) - 90;
-    const rotBA = Math.round((bearing + 180) % 360) - 90;
+    const depCode = (dep.airports || [])[0]?.code || dep.city.slice(0, 3).toUpperCase();
+    const arrCode = (arr.airports || [])[0]?.code || arr.city.slice(0, 3).toUpperCase();
     badgeData.push({
       arc,
       countAB,
       countBA,
       popupForward,
       popupBack,
-      rotAB,
-      rotBA,
-      color: safeRouteColor(assignedColor),
+      subAB: `${esc(depCode)}→${esc(arrCode)}`,
+      subBA: `${esc(arrCode)}→${esc(depCode)}`,
       routeKey,
       isDimmed
     });
