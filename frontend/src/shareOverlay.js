@@ -46,11 +46,18 @@ function closeShareOverlay() {
   if (document.activeElement instanceof HTMLElement && overlay.contains(document.activeElement)) {
     document.activeElement.blur();
   }
-  overlay.classList.add("hidden");
-  overlay.setAttribute("aria-hidden", "true");
-  overlay.inert = true;
-  returnFocusEl = null;
-  document.body.style.overflow = "";
+  const applyHide = () => {
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.inert = true;
+    returnFocusEl = null;
+    document.body.style.overflow = "";
+  };
+  if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(applyHide);
+  } else {
+    applyHide();
+  }
 }
 
 function renderList(items) {
