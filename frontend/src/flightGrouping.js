@@ -4,6 +4,34 @@ function toLocalSortKey(value) {
   return m ? `${m[1]}T${m[2]}` : "";
 }
 
+function parseDateTime(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const normalized = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw) ? `${raw}:00` : raw;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function depDate(row) {
+  return parseDateTime(row?.departure_scheduled_local || row?.departure_scheduled || row?.depAt);
+}
+
+function arrDate(row) {
+  return parseDateTime(row?.arrival_scheduled_local || row?.arrival_scheduled || row?.arrAt);
+}
+
+function depCode(row) {
+  return String(row?.departure_airport_code || row?.departureIata || "?").trim() || "?";
+}
+
+function arrCode(row) {
+  return String(row?.arrival_airport_code || row?.arrivalIata || "?").trim() || "?";
+}
+
+function arrAirport(row) {
+  return String(row?.arrival_airport_name || row?.arrivalAirport || row?.arrival_airport_code || row?.arrivalIata || "transfer airport").trim() || "transfer airport";
+}
+
 function uniqNames(input) {
   return Array.from(new Set((Array.isArray(input) ? input : []).map((x) => String(x || "").trim()).filter(Boolean)));
 }
@@ -73,4 +101,29 @@ export function buildFlightDisplayBuckets(flights) {
   }
   out.sort((a, b) => a.depAt.localeCompare(b.depAt));
   return out;
+}
+
+export function buildConnectingMeta(flights) {
+  const legs = (Array.isArray(flights) ? flights : []).filter(Boolean);
+  if (legs.length < 2) return null;
+  const first = legs[0];
+  const last = legs[legs.length - 1];
+  const firstDep = depDate(first);
+  const lastArr = arrDate(last) || depDate(last);
+  const layovers = [];
+  for (let i = 0; i < legs.length - 1; i += 1) {
+    const current = legs[i];
+    const next = legs[i + 1];
+    const from = arrDate(current) || depDate(current);
+    const to = depDate(next);
+    const duration = from && to ? formatLayover(from, to) : "";
+    layovers.push({ duration, airport: arrAirport(current) });
+  }
+  return {
+    originCode: depCode(first),
+    destinationCode: arrCode(last),
+    stopCount: Math.max(0, legs.length - 1),
+    totalDuration: firstDep && lastArr ? formatLayover(firstDep, lastArr) : "",
+    layovers
+  };
 }

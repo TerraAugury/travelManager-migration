@@ -123,20 +123,29 @@ function renderBucket(bucket) {
   const first = bucket.flights[0];
   const pnrText = first.pnr ? `PNR ${esc(first.pnr)}` : "No PNR";
   const paxText = bucket.pax.length ? ` · ${esc(bucket.pax.join(", "))}` : "";
+  const stopCount = Math.max(0, bucket.flights.length - 1);
+  const stopLabel = `${stopCount} stop${stopCount === 1 ? "" : "s"}`;
+  const route = `${esc(first.departureIata)} → ${esc(bucket.flights[bucket.flights.length - 1]?.arrivalIata || "?")}`;
+  const totalDuration = bucket.flights.length > 1
+    ? formatLayover(first.depAt, bucket.flights[bucket.flights.length - 1]?.arrAt || bucket.flights[bucket.flights.length - 1]?.depAt || first.depAt)
+    : "";
   const legs = [];
   for (let i = 0; i < bucket.flights.length; i += 1) {
     const current = bucket.flights[i];
-    legs.push(`<div class="itinerary-segment segment-flight">${renderFlightLeg(current)}</div>`);
+    legs.push(`<div class="itinerary-segment segment-flight trip-event-card flight-card connecting-leg">${renderFlightLeg(current)}</div>`);
     if (i < bucket.flights.length - 1) {
       const next = bucket.flights[i + 1];
       const layoverBase = current.arrAt || current.depAt;
       const layover = formatLayover(layoverBase, next.depAt);
       const airport = current.arrivalIata || current.arrivalAirport || "transfer airport";
-      if (layover) legs.push(`<div class="segment-label">Layover ${esc(layover)} in ${esc(airport)}</div>`);
+      if (layover) legs.push(`<div class="layover-strip"><span class="layover-strip-line"></span><span class="layover-strip-icon">🕒</span><span class="layover-strip-text">Layover ${esc(layover)} in ${esc(airport)}</span></div>`);
     }
   }
   const title = bucket.type === "connecting" ? "Connecting flights" : "Upcoming flight";
-  return `<div class="flight-tile itinerary-tile"><div class="flight-tile-header"><div class="flight-tile-header-left"><span class="event-type-icon">✈︎</span><span>${esc(fmtDateTime(first.depAt))}</span></div><span class="segment-label">${title}</span></div><div class="segment-time">${pnrText}${paxText}</div><div class="itinerary-body">${legs.join("")}</div></div>`;
+  if (bucket.type !== "connecting") {
+    return `<div class="flight-tile itinerary-tile"><div class="flight-tile-header"><div class="flight-tile-header-left"><span class="event-type-icon">✈︎</span><span>${esc(fmtDateTime(first.depAt))}</span></div><span class="segment-label">${title}</span></div><div class="segment-time">${pnrText}${paxText}</div><div class="itinerary-body">${legs.join("")}</div></div>`;
+  }
+  return `<section class="connecting-group collapsed" data-connecting-group="1"><span class="connecting-stop-badge">${esc(stopLabel)}</span><button class="connecting-summary-row" data-toggle-connecting="1" type="button"><span class="connecting-summary-route">${route}</span><span class="connecting-summary-meta">${esc(stopLabel)}${totalDuration ? ` • ${esc(totalDuration)}` : ""}</span></button><div class="segment-time">${pnrText}${paxText}</div><div class="connecting-group-body">${legs.join("")}</div></section>`;
 }
 
 export function renderUpcomingScreen({ trips, upcomingState, els }) {
@@ -172,4 +181,19 @@ export function renderUpcomingScreen({ trips, upcomingState, els }) {
   }
   emptyEl.classList.add("hidden");
   listEl.innerHTML = buckets.map(renderBucket).join("");
+  listEl.querySelectorAll("[data-connecting-group]").forEach((group) => {
+    const body = group.querySelector(".connecting-group-body");
+    if (body) body.style.maxHeight = "0px";
+  });
+  listEl.onclick = (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const toggle = target?.closest("[data-toggle-connecting]");
+    if (!toggle) return;
+    const group = toggle.closest("[data-connecting-group]");
+    const body = group?.querySelector(".connecting-group-body");
+    if (!group || !body) return;
+    const collapsed = group.classList.toggle("collapsed");
+    group.classList.toggle("expanded", !collapsed);
+    body.style.maxHeight = collapsed ? "0px" : `${body.scrollHeight}px`;
+  };
 }
