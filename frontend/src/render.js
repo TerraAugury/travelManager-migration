@@ -2,6 +2,7 @@ import { getShowPastTrips, getState, getVisibleTrips } from "./state.js";
 import { renderAdminUsers } from "./adminUsers.js";
 import { renderTripEvents } from "./tripEventTiles.js";
 import { syncTripForms } from "./ui.js";
+import { syncCustomControls } from "./customControls.js";
 
 function syncAdminMenu(user) {
   const isAdmin = user?.role === "admin";
@@ -61,6 +62,7 @@ export function render(actions = {}) {
   const showPastTripsToggle = document.getElementById("show-past-trips");
   if (showPastTripsToggle) showPastTripsToggle.checked = getShowPastTrips();
   renderTripSelect(getVisibleTrips(state.trips), state.selectedTripId);
+  syncCustomControls();
   syncTripForms();
 
   const hasTrip  = !!state.selectedTripId;

@@ -1,5 +1,6 @@
 import { getState, getFlightProvider, getVisibleTrips, setFlightProvider, setShowPastTrips } from "./state.js";
 import { confirmAction } from "./confirmDialog.js";
+import { syncCustomControls } from "./customControls.js";
 
 const overlayReturnFocus = new Map();
 
@@ -87,6 +88,7 @@ export function syncFlightProviderSelect() {
 export function bindUI(actions) {
   const activeScreen = document.querySelector(".screen.active-screen")?.id?.replace("screen-", "");
   if (activeScreen) switchScreen(activeScreen);
+  syncCustomControls();
   document.addEventListener("click", (event) => {
     const btn = eventElement(event)?.closest(".tab-btn,.nav-btn");
     const screen = btn?.dataset?.screen;
@@ -122,7 +124,6 @@ export function bindUI(actions) {
     })
   );
 
-  // Topbar menu toggle
   const menuBtn = document.getElementById("topbar-menu-btn");
   const menuPanel = document.getElementById("topbar-menu-panel");
   menuBtn?.addEventListener("click", (e) => {
@@ -135,7 +136,6 @@ export function bindUI(actions) {
     menuPanel?.classList.add("hidden");
   });
 
-  // Stats toggle
   const statsToggle = document.getElementById("toggle-alltrips-btn");
   const statsCard = document.getElementById("stats-card");
   statsToggle?.addEventListener("click", () => {
@@ -147,7 +147,6 @@ export function bindUI(actions) {
       : "Hide all trips statistics";
   });
 
-  // Trip select: show/hide create vs edit form
   document.getElementById("trip-select")?.addEventListener("change", () => syncTripForms());
   document.getElementById("show-past-trips")?.addEventListener("change", async (event) => {
     const showPastTrips = event.target instanceof HTMLInputElement ? event.target.checked : false;
@@ -161,7 +160,6 @@ export function bindUI(actions) {
     await actions.onSelectTrip(nextTripId);
   });
 
-  // Trip delete
   document.getElementById("trip-delete-btn")?.addEventListener("click", async () => {
     const id = getState().selectedTripId;
     if (!id) return;
@@ -178,7 +176,6 @@ export function bindUI(actions) {
     await actions.onDeleteTrip(id);
   });
 
-  // Settings overlay
   document.getElementById("settings-btn")?.addEventListener("click", () => {
     syncFlightProviderSelect();
     openOverlay("settings-overlay");

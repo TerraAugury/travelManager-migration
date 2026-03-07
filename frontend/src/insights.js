@@ -1,6 +1,7 @@
 import * as api from "./api.js";
 import { getOfflineData, setOfflineData } from "./offlineCache.js";
 import { getState } from "./state.js";
+import { syncCustomControls } from "./customControls.js";
 
 function esc(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
@@ -80,6 +81,7 @@ export function createInsightsController() {
     if (document.getElementById("screen-today")?.classList.contains("active-screen")) {
       void state.renderTodayScreen({ els: state.els, token: getState().token, api, esc });
     }
+    syncCustomControls();
   }
 
   function bind() {

@@ -1,4 +1,4 @@
-const CACHE = "tm-v25";
+const CACHE = "tm-v26";
 const STATIC = [
   "/",
   "/styles.css",
@@ -15,6 +15,7 @@ const STATIC = [
   "/src/main.js",
   "/src/api.js",
   "/src/confirmDialog.js",
+  "/src/customControls.js",
   "/src/config.js",
   "/src/forms.js",
   "/src/flightGrouping.js",

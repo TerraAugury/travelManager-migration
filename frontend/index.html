@@ -59,7 +59,7 @@
           <div class="card card-trip">
             <div class="card-head"><div class="card-title">Control Center</div><div id="trip-edit-actions" class="card-head-actions hidden"><button type="button" id="trip-share-btn" class="btn btn-ghost btn-xs" aria-label="Share trip" title="Share trip">Share</button><button type="button" id="trip-delete-btn" class="btn btn-danger btn-xs mobile-icon-btn mobile-icon-delete" aria-label="Delete trip" title="Delete trip"><span class="mobile-icon-text">Delete</span></button></div></div>
             <div class="field"><label for="trip-select">Trip</label><select id="trip-select"><option value="">Select a trip…</option></select></div>
-            <div class="hint"><label for="show-past-trips"><input id="show-past-trips" type="checkbox"/> Show past trips</label></div>
+            <div class="toggle-row"><span class="toggle-label">Show past trips</span><button id="show-past-trips-switch" class="ios-switch" type="button" role="switch" aria-checked="false"><span class="ios-switch-thumb"></span></button><input id="show-past-trips" type="checkbox" class="native-control-hidden"/></div>
             <form id="trip-form" class="new-trip-form hidden form-stack">
               <div class="field"><label for="trip-name">Trip Name</label><input id="trip-name" type="text" maxlength="120" required/></div>
               <button type="submit" class="btn btn-primary btn-full">Create Trip</button>
@@ -67,7 +67,7 @@
             <form id="trip-edit-form" class="trip-edit-form hidden form-stack">
               <div class="field"><label for="trip-edit-name">Trip Name</label><input id="trip-edit-name" type="text" maxlength="120"/></div>
             </form>
-            <div class="control-grid"><button id="add-flight-btn" class="btn btn-primary" type="button" disabled>✈︎ Add Flight</button><button id="add-hotel-btn" class="btn btn-primary" type="button" disabled>🛏 Add Hotel</button></div>
+            <div class="control-grid"><button id="add-flight-btn" class="btn btn-secondary" type="button" disabled>✈︎ Add Flight</button><button id="add-hotel-btn" class="btn btn-secondary" type="button" disabled>🛏 Add Hotel</button></div>
             <div class="summary-bar"><span id="trip-events-summary">Select a trip to begin</span></div>
           </div>
           <button id="toggle-alltrips-btn" class="btn btn-ghost stats-toggle-btn" type="button" aria-expanded="false">Show all trips statistics</button>
