@@ -9,6 +9,7 @@ function syncAdminMenu(user) {
   document.querySelectorAll(".admin-only-menu").forEach((el) => {
     el.classList.toggle("hidden", !isAdmin);
   });
+  document.getElementById("topbar-admin-badge")?.classList.toggle("hidden", !isAdmin);
 }
 
 function formatTripMonthYear(startDate) {
@@ -51,7 +52,7 @@ export function render(actions = {}) {
   if (state.user) {
     authPanel.classList.add("hidden");
     appPanel.classList.remove("hidden");
-    userLine.textContent = `${state.user.display_name} (${state.user.email})`;
+    userLine.textContent = state.user.email || "";
   } else {
     authPanel.classList.remove("hidden");
     appPanel.classList.add("hidden");
@@ -74,7 +75,7 @@ export function render(actions = {}) {
   const summary = document.getElementById("trip-events-summary");
   if (summary) {
     summary.textContent = hasTrip
-      ? `${state.flights.length} flight${state.flights.length !== 1 ? "s" : ""}, ${state.hotels.length} hotel${state.hotels.length !== 1 ? "s" : ""}`
+      ? `${state.flights.length} flight${state.flights.length !== 1 ? "s" : ""} · ${state.hotels.length} hotel${state.hotels.length !== 1 ? "s" : ""}`
       : "Select a trip to begin";
   }
 
