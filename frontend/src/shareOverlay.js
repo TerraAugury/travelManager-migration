@@ -4,6 +4,7 @@ import { getState } from "./state.js";
 let currentToken = null;
 let currentTripId = null;
 let isBound = false;
+let returnFocusEl = null;
 
 function esc(value) {
   return String(value ?? "")
@@ -21,6 +22,7 @@ function setStatus(text) {
 function openShareOverlay() {
   const overlay = document.getElementById("share-overlay");
   if (!overlay) return;
+  if (document.activeElement instanceof HTMLElement) returnFocusEl = document.activeElement;
   overlay.classList.remove("hidden");
   overlay.setAttribute("aria-hidden", "false");
   overlay.inert = false;
@@ -31,9 +33,23 @@ function openShareOverlay() {
 function closeShareOverlay() {
   const overlay = document.getElementById("share-overlay");
   if (!overlay) return;
+  const canRestore = returnFocusEl instanceof HTMLElement
+    && document.contains(returnFocusEl)
+    && !overlay.contains(returnFocusEl);
+  if (document.activeElement instanceof HTMLElement && overlay.contains(document.activeElement)) {
+    if (canRestore) returnFocusEl.focus();
+    else {
+      if (!document.body.hasAttribute("tabindex")) document.body.setAttribute("tabindex", "-1");
+      document.body.focus();
+    }
+  }
+  if (document.activeElement instanceof HTMLElement && overlay.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
   overlay.classList.add("hidden");
   overlay.setAttribute("aria-hidden", "true");
   overlay.inert = true;
+  returnFocusEl = null;
   document.body.style.overflow = "";
 }
 

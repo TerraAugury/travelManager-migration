@@ -54,12 +54,12 @@ export function buildApp({ db: d1, env }) {
 
   registerHealthRoutes(app, { db });
   registerAuthRoutes(app, context);
+  registerTripShareRoutes(app, context);
   registerTripRoutes(app, context);
   registerFlightRoutes(app, context);
   registerFlightsTodayRoutes(app, context);
   registerHotelRoutes(app, context);
   registerPassengerRoutes(app, context);
-  registerTripShareRoutes(app, context);
   registerSyncRoutes(app, context);
   registerAdminUsersRoutes(app, context);
 
