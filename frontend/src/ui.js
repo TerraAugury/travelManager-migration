@@ -7,12 +7,23 @@ function eventElement(event) {
   return event.target instanceof Element ? event.target : null;
 }
 
+function setButtonIconState(button, active) {
+  button.querySelector(".icon-default")?.toggleAttribute("hidden", active);
+  button.querySelector(".icon-active")?.toggleAttribute("hidden", !active);
+}
+
 function switchScreen(screen) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active-screen"));
-  document.querySelectorAll(".tab-btn,.nav-btn").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll(".tab-btn,.nav-btn").forEach((button) => {
+    button.classList.remove("active");
+    setButtonIconState(button, false);
+  });
   const el = document.getElementById(`screen-${screen}`);
   if (el) el.classList.add("active-screen");
-  document.querySelectorAll(`[data-screen="${screen}"]`).forEach((b) => b.classList.add("active"));
+  document.querySelectorAll(`[data-screen="${screen}"]`).forEach((button) => {
+    button.classList.add("active");
+    setButtonIconState(button, true);
+  });
 }
 
 function openOverlay(id) {
@@ -74,7 +85,8 @@ export function syncFlightProviderSelect() {
 }
 
 export function bindUI(actions) {
-  // Screen switching (supports dynamically inserted buttons)
+  const activeScreen = document.querySelector(".screen.active-screen")?.id?.replace("screen-", "");
+  if (activeScreen) switchScreen(activeScreen);
   document.addEventListener("click", (event) => {
     const btn = eventElement(event)?.closest(".tab-btn,.nav-btn");
     const screen = btn?.dataset?.screen;
@@ -83,7 +95,6 @@ export function bindUI(actions) {
     switchScreen(screen);
   });
 
-  // Open overlays
   document.getElementById("add-flight-btn")?.addEventListener("click", () => {
     document.getElementById("flight-form")?.reset();
     const form = document.getElementById("flight-form");
@@ -97,7 +108,6 @@ export function bindUI(actions) {
     openOverlay("hotel-overlay");
   });
 
-  // Close overlays
   ["close-flight-overlay", "cancel-flight-btn"].forEach((id) =>
     document.getElementById(id)?.addEventListener("click", () => closeOverlay("flight-overlay"))
   );
