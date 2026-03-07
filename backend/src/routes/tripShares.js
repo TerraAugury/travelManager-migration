@@ -11,7 +11,6 @@ function parseCreateShareBody(body) {
 
   const rawTripId = toTrimmedString(body?.tripId, { field: "tripId", required: false, max: 120 });
   if (rawTripId.error) return { error: rawTripId.error };
-  if (rawTripId.value && !isUuid(rawTripId.value)) return { error: "tripId must be a valid UUID." };
 
   return {
     value: {

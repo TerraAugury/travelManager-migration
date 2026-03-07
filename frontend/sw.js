@@ -9,7 +9,7 @@ const STATIC = [
   "/calendar.css",
   "/map.css",
   "/manifest.json",
-  "/icons/icon.svg",
+  "/icons/apple-touch-icon.png",
   "/sw-register.js",
   "/src/main.js",
   "/src/api.js",
