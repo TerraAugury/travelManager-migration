@@ -29,18 +29,20 @@ function createFlightsEl() {
     _innerHTML: "",
     set innerHTML(value) {
       this._innerHTML = value;
-      const match = String(value).match(/data-flight-number=\"([^\"]+)\".*data-flight-date=\"([^\"]*)\"/);
-      const attrs = { "data-flight-number": match?.[1] || "", "data-flight-date": match?.[2] || "" };
-      const card = createCard();
-      const listeners = {};
-      this._buttons = [{
-        disabled: false,
-        textContent: "Refresh status",
-        getAttribute(name) { return attrs[name] || ""; },
-        addEventListener(type, fn) { listeners[type] = fn; },
-        closest(selector) { return selector === ".today-flight-card" ? card : null; },
-        click() { listeners.click?.(); }
-      }];
+      const matches = [...String(value).matchAll(/data-flight-number=\"([^\"]+)\"[^>]*data-flight-date=\"([^\"]*)\"/g)];
+      this._buttons = matches.map((match) => {
+        const attrs = { "data-flight-number": match?.[1] || "", "data-flight-date": match?.[2] || "" };
+        const card = createCard();
+        const listeners = {};
+        return {
+          disabled: false,
+          textContent: "Refresh status",
+          getAttribute(name) { return attrs[name] || ""; },
+          addEventListener(type, fn) { listeners[type] = fn; },
+          closest(selector) { return selector === ".today-flight-card" ? card : null; },
+          click() { listeners.click?.(); }
+        };
+      });
     },
     get innerHTML() { return this._innerHTML; },
     querySelectorAll(selector) {
@@ -91,6 +93,38 @@ test("Today refresh uses provider from state", async () => {
     flightsEl.querySelectorAll(".today-refresh-btn")[0].click();
     await new Promise((resolve) => setTimeout(resolve, 0));
     assert.equal(calledWith[2], "flightera");
+  } finally {
+    globalThis.document = previousDocument;
+  }
+});
+
+test("Today screen merges same operational flight and combines passengers", async () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { getElementById() { return null; } };
+  const emptyEl = { textContent: "", classList: classListMock() };
+  const flightsEl = createFlightsEl();
+  const api = {
+    async listFlightsToday() {
+      return {
+        date: "2026-03-06",
+        flights: [
+          { id: "f1", flightNumber: "BA123", airline: "BA", departureCode: "LHR", arrivalCode: "JFK", departureScheduled: "2026-03-06T10:00:00+00:00", arrivalScheduled: "2026-03-06T14:00:00+00:00", passengerNames: ["Alice"] },
+          { id: "f2", flightNumber: "BA123", airline: "BA", departureCode: "LHR", arrivalCode: "JFK", departureScheduled: "2026-03-06T10:00:00+00:00", arrivalScheduled: "2026-03-06T14:00:00+00:00", passengerNames: ["Bob"] }
+        ]
+      };
+    },
+    async lookupFlight() { return { status: "Scheduled" }; }
+  };
+  try {
+    await renderTodayScreen({
+      els: { "today-empty": emptyEl, "today-flights": flightsEl },
+      token: "token-1",
+      api,
+      esc: (v) => String(v)
+    });
+    assert.equal(flightsEl.querySelectorAll(".today-refresh-btn").length, 1);
+    assert.match(flightsEl.innerHTML, /Alice/);
+    assert.match(flightsEl.innerHTML, /Bob/);
   } finally {
     globalThis.document = previousDocument;
   }

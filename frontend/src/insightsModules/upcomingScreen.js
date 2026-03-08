@@ -3,6 +3,7 @@ import { getShowPastTrips } from "../state.js";
 const DAY_FMT = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 const TIME_FMT = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
 const PLANE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.8 19.2 16 11l4-4a1 1 0 0 0-1.4-1.4l-4 4-8.2-1.8a1 1 0 0 0-.9 1.7L9 12l-3.5 2.5a1 1 0 0 0 .9 1.7l8.2-1.8 2.4 2.4a1 1 0 0 0 1.7-.9Z"/></svg>';
+const CLOCK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>';
 const TRASH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 
 function esc(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -83,7 +84,7 @@ function layoverStrip(current, next) {
   const layover = formatLayover(current.arrAt || current.depAt, next.depAt);
   if (!layover) return "";
   const airport = current.arrivalIata || current.arrivalAirport || "transfer airport";
-  return `<div class="layover-strip"><span class="layover-strip-line"></span><span class="layover-strip-icon">🕒</span><span class="layover-strip-text">${esc(layover)} in ${esc(airport)}</span></div>`;
+  return `<div class="layover-strip"><span class="layover-strip-line"></span><span class="layover-strip-icon">${CLOCK_ICON}</span><span class="layover-strip-text">${esc(layover)} in ${esc(airport)}</span></div>`;
 }
 function renderBucket(bucket, todayStart) {
   const first = bucket.flights[0];

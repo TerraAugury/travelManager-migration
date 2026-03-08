@@ -17,7 +17,7 @@
   background: var(--accent-soft-15);
   color: var(--accent-blue);
 }
-.day-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.day-icon svg { width: 18px; height: 18px; stroke: none; fill: currentColor; }
 .day-title { margin: 0; color: var(--text-primary); font-size: var(--font-size-footnote); font-weight: var(--font-weight-subheadline-strong); }
 .day-summary-chip {
   border-radius: var(--radius-pill);
@@ -95,8 +95,8 @@
   letter-spacing: -0.5px;
 }
 .align-right { text-align: right; }
-.flight-plane-icon { color: var(--accent-blue); display: inline-flex; align-items: center; justify-content: center; }
-.flight-plane-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.flight-plane-icon { color: var(--accent-blue); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; line-height: 0; }
+.flight-plane-icon svg { width: 20px; height: 20px; stroke: none; fill: currentColor; }
 .flight-separator { width: 100%; border-top: 1px dashed var(--line-soft-10); }
 .flight-time-row { display: grid; grid-template-columns: 1fr 1fr; align-items: center; }
 .flight-time,
@@ -172,8 +172,8 @@
   padding: 0 var(--space-3);
 }
 .layover-strip-line { height: 100%; border-left: 1px dashed var(--line-soft-25); }
-.layover-strip-icon { color: var(--text-secondary); display: inline-flex; }
-.layover-strip-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.layover-strip-icon { color: var(--text-secondary); display: inline-flex; flex: 0 0 auto; line-height: 0; }
+.layover-strip-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 .hotel-card {
   background: linear-gradient(0deg, var(--teal-soft-08), var(--teal-soft-08)), var(--bg-secondary);
@@ -191,8 +191,8 @@
 .hotel-stay-date { color: var(--text-primary); font-size: var(--font-size-subheadline); }
 .hotel-nights,
 .hotel-meta-row { color: var(--text-secondary); font-size: var(--font-size-footnote); }
-.hotel-bed-icon { color: var(--accent-teal); display: inline-flex; align-items: center; justify-content: center; }
-.hotel-bed-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hotel-bed-icon { color: var(--accent-teal); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; line-height: 0; }
+.hotel-bed-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 @media (max-width: 899px) {
   .trip-event-card { padding: var(--space-3) var(--space-4); }

@@ -134,8 +134,23 @@
 .today-flight-card { margin: 0; }
 .today-flight-card .flight-type-row { padding-right: 96px; }
 .today-flight-actions { justify-content: flex-start; }
-.today-flight-status { top: var(--space-4); right: var(--space-5); }
-.today-flight-live-meta { font-size: 12px; color: var(--today-live-meta); margin: 0; min-height: 16px; }
+.today-flight-card .today-flight-status,
+.today-flight-card .today-flight-status.status-upcoming,
+.today-flight-card .today-flight-status.status-past,
+.today-flight-card .today-flight-status.status-confirmed,
+.today-flight-card .today-flight-status.status-delayed {
+  top: var(--space-4);
+  right: var(--space-5);
+  bottom: auto;
+}
+.today-flight-live-meta {
+  font-size: 12px;
+  color: var(--today-live-meta);
+  margin: 0;
+  min-height: 16px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 .today-flight-live-meta .late { color: var(--today-cancelled); font-weight: 600; }
 .today-flight-live-meta .ontrack { color: var(--today-on-time); font-weight: 600; }
 .today-empty-wrap { min-height: 52vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; }

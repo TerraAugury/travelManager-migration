@@ -71,7 +71,7 @@ export function createInsightsController() {
     const nextBtn = document.getElementById("map-next-flight-btn");
     if (nextBtn) { nextBtn.classList.toggle("hidden", !state.mapState.passenger); nextBtn.textContent = state.mapState.nextFlightOnly ? "All flights" : "Next flight"; nextBtn.setAttribute("aria-pressed", state.mapState.nextFlightOnly ? "true" : "false"); }
     if (document.getElementById("screen-today")?.classList.contains("active-screen")) {
-      void state.renderTodayScreen({ els: state.els, token: getState().token, api, esc, trips: state.legacyTrips });
+      void state.renderTodayScreen({ els: state.els, token: getState().token, api, esc, trips: state.legacyTrips, userId: getState().user?.id });
     }
     syncCustomControls();
   }
